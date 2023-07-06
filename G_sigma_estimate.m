@@ -28,31 +28,33 @@ M=N/L; P=N-N/L;
 for iter=1:iterations
     % h=randn(N,1);
     % h=(randn(N,1)+1i*randn(N,1))/sqrt(2);
-    h=(randn(N,1)+1i*randn(N,1)).*exp(-[0:N-1]'/3);
-    H=toeplitz(h,[h(1); h(end:-1:2)]);
-    sigH(iter,:,:)=inv(H*H'+epsilon*eye(N));
-    [F,Hf]=eig(H);
-    %%
-    % Precoder design
-    E=eye(N/L);E=upsample(E,L);
-    
-    A=E'*H;
-    R=A'*A+epsilon*eye(N);
-    a=[1; zeros(N/L-1,1)];
-    p=A'*a;
-    g=R\p; %g=g/sqrt(g'*g);
-    % sig_p(i,:,:)=p*p';
-    G=toeplitz(g,[g(1); g(end:-1:2)]);
-    G=G*E;
-    sigG(iter,:,:)=G*G';
-    X(:,iter)=G*ones(M,1); %sample of G and symbols
+    % h=(randn(N,1)+1i*randn(N,1)).*exp(-[0:N-1]'/3);
+    % H=toeplitz(h,[h(1); h(end:-1:2)]);
+    % sigH(iter,:,:)=inv(H*H'+epsilon*eye(N));
+    % [F,Hf]=eig(H);
+    % %%
+    % % Precoder design
+    % E=eye(N/L);E=upsample(E,L);
+    % 
+    % A=E'*H;
+    % R=A'*A+epsilon*eye(N);
+    % a=[1; zeros(N/L-1,1)];
+    % p=A'*a;
+    % g=R\p; %g=g/sqrt(g'*g);
+    % % sig_p(i,:,:)=p*p';
+    % G=toeplitz(g,[g(1); g(end:-1:2)]);
+    % G=G*E;
+    % sigG(iter,:,:)=G*G';
+    % X(:,iter)=G*ones(M,1); %sample of G and symbols
 
     % mean_G(i,:,:)=G;
     % form s*G + v*Q, so take hermitian of G
     G=G';
     %%% Test with orthogonal G %%%
-    G=(randn(M,N) + 1i*randn(M,N))/sqrt(2);
-    G_orth=orthogonalize(G);
+    H=(randn(N,N) + 1i*randn(N,N))/sqrt(2);
+    H_orth=orthogonalize(H);
+    G=H_orth(:,1:M);
+    Q=H_orth(:,M-+1:end);
 
     for i=1:N
         for j=1:N
@@ -69,20 +71,20 @@ for iter=1:iterations
     % g2_g2(iter,:,:)=G(2,:)' * G(2,:); %g2 * g1'
     % g3_g3(iter,:,:)=G(3,:)' * G(3,:);
 
-
-[V D]=eig(R);
-    NNL=N-N/L;
-    P=NNL;
-    Q=V(:,1:NNL);
-    Q=Q';       %take hermitian to match X=SG + VQ
-      v=(randn(T,P)+1i*randn(T,P))/sqrt(2);
-  
-
-    for i=1:N
-        for j=1:N
-            sig_noise(iter,i,j,:,:)=v*Q(:,i)*Q(:,j)'*v';
-        end
-    end
+% 
+% [V D]=eig(R);
+%     NNL=N-N/L;
+%     P=NNL;
+%     Q=V(:,1:NNL);
+%     Q=Q';       %take hermitian to match X=SG + VQ
+%       v=(randn(T,P)+1i*randn(T,P))/sqrt(2);
+% 
+% 
+%     for i=1:N
+%         for j=1:N
+%             sig_noise(iter,i,j,:,:)=v*Q(:,i)*Q(:,j)'*v';
+%         end
+%     end
 
   % q1_q1(iter,:,:)=v*Q(:,1)*Q(:,1)'*v';
   % q1_q2(iter,:,:)=v*Q(:,1)*Q(:,2)'*v';
