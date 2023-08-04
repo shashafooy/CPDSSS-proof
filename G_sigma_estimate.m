@@ -1,12 +1,13 @@
- N=6;L=2;
+ N=12;L=4;
 M=N/L; P=N-N/L;
 
- T=2;
- iterations=100000;
+ T=8;
+ iterations=50000;
  epsilon = 1e-4;
  sigG=zeros(iterations,N,N);
  sig_g=zeros(iterations,N,N,M,M); %g*g' is MxM, total of NxN different columns g
  sig_noise=zeros(iterations,N,N,T,T);
+ sig_qq=zeros(iterations,N,N);
  
  
  % g1_g1=zeros(iterations,M,M);
@@ -28,40 +29,41 @@ M=N/L; P=N-N/L;
 for iter=1:iterations
     % h=randn(N,1);
     % h=(randn(N,1)+1i*randn(N,1))/sqrt(2);
-    % h=(randn(N,1)+1i*randn(N,1)).*exp(-[0:N-1]'/3);
-    % H=toeplitz(h,[h(1); h(end:-1:2)]);
+    h=(randn(N,1)+1i*randn(N,1)).*exp(-[0:N-1]'/3);
+    H=toeplitz(h,[h(1); h(end:-1:2)]);
     % sigH(iter,:,:)=inv(H*H'+epsilon*eye(N));
     % [F,Hf]=eig(H);
     % %%
     % % Precoder design
-    % E=eye(N/L);E=upsample(E,L);
-    % 
-    % A=E'*H;
-    % R=A'*A+epsilon*eye(N);
-    % a=[1; zeros(N/L-1,1)];
-    % p=A'*a;
-    % g=R\p; %g=g/sqrt(g'*g);
+    E=eye(N/L);E=upsample(E,L);
+
+    A=E'*H;
+    R=A'*A+epsilon*eye(N);
+    a=[1; zeros(N/L-1,1)];
+    p=A'*a;
+    g=R\p; %g=g/sqrt(g'*g);
     % % sig_p(i,:,:)=p*p';
-    % G=toeplitz(g,[g(1); g(end:-1:2)]);
-    % G=G*E;
+    G=toeplitz(g,[g(1); g(end:-1:2)]);
+    G=G*E;
+    G=G';
     % sigG(iter,:,:)=G*G';
     % X(:,iter)=G*ones(M,1); %sample of G and symbols
 
     % mean_G(i,:,:)=G;
     % form s*G + v*Q, so take hermitian of G
-    G=G';
-    %%% Test with orthogonal G %%%
-    H=(randn(N,N) + 1i*randn(N,N))/sqrt(2);
-    H_orth=orthogonalize(H);
-    G=H_orth(:,1:M);
-    Q=H_orth(:,M-+1:end);
-
-    for i=1:N
-        for j=1:N
-            % sig_g(iter,i,j,:,:)=G(:,i)*G(:,j)';
-            sig_g(iter,i,j,:,:)=G_orth(:,i)*G_orth(:,j)';
-        end
-    end
+    % G=G';
+    % %%% Test with orthogonal G %%%
+    % H=(randn(N,N) + 1i*randn(N,N))/sqrt(2);
+    % H_orth=orthogonalize(H);
+    % G=H_orth(:,1:M);
+    % Q=H_orth(:,M-+1:end);
+    % 
+    % for i=1:N
+    %     for j=1:N
+    %         % sig_g(iter,i,j,:,:)=G(:,i)*G(:,j)';
+    %         sig_g(iter,i,j,:,:)=G_orth(:,i)*G_orth(:,j)';
+    %     end
+    % end
 
     % 
     % g1_g1(iter,:,:)=G(1,:)' * G(1,:); %g1 * g1'
@@ -72,19 +74,23 @@ for iter=1:iterations
     % g3_g3(iter,:,:)=G(3,:)' * G(3,:);
 
 % 
-% [V D]=eig(R);
-%     NNL=N-N/L;
-%     P=NNL;
-%     Q=V(:,1:NNL);
-%     Q=Q';       %take hermitian to match X=SG + VQ
-%       v=(randn(T,P)+1i*randn(T,P))/sqrt(2);
-% 
-% 
-%     for i=1:N
-%         for j=1:N
-%             sig_noise(iter,i,j,:,:)=v*Q(:,i)*Q(:,j)'*v';
-%         end
-%     end
+[V D]=eig(R);
+    NNL=N-N/L;
+    P=NNL;
+    Q=V(:,1:NNL);
+    Q=Q';       %take hermitian to match X=SG + VQ
+      v=(randn(T,P)+1i*randn(T,P))/sqrt(2);
+
+    Sigma_v=diag([1:P]);
+    sig_qq(iter,:,:)=Q'*Sigma_v*Q;
+
+    % for i=1:P
+    %     for k=1:N
+    %         for l=1:N
+    %         sig_qq(iter,:,k,l)=Q(:,k).*conj(Q(:,l));
+    %         end
+    %     end
+    % end
 
   % q1_q1(iter,:,:)=v*Q(:,1)*Q(:,1)'*v';
   % q1_q2(iter,:,:)=v*Q(:,1)*Q(:,2)'*v';
@@ -94,6 +100,12 @@ for iter=1:iterations
 end
 %remove nan samples
 sig_g_no_nan = sig_g(~any(isnan(sig_g),[2 3 4 5]),:,:,:,:);
+sig_qq_no_nan = sig_qq(~any(isnan(sig_qq),[2 3 4]),:,:);
+
+sig_qq_mean=squeeze(mean(sig_qq_no_nan,1));
+sig_qq_threshold = sig_qq_mean;
+sig_qq_threshold(abs(sig_qq_threshold)<0.01)=0;
+abs(sig_qq_threshold)
 
 
 sig_g_mean=squeeze(mean(sig_g,1));
