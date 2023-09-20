@@ -1,13 +1,23 @@
- N=12;L=4;
+ N=6;L=3;
 M=N/L; P=N-N/L;
 
  T=8;
- iterations=50000;
+ iterations=1e5;
  epsilon = 1e-4;
+
+noise_power = 0.5 + rand(P,1); %power between 0.5-1.5
+
+
  sigG=zeros(iterations,N,N);
- sig_g=zeros(iterations,N,N,M,M); %g*g' is MxM, total of NxN different columns g
- sig_noise=zeros(iterations,N,N,T,T);
+ % sig_g=zeros(iterations,N,N,M,M); %g*g' is MxM, total of NxN different columns g
+ % sig_noise=zeros(iterations,N,N,T,T);
  sig_qq=zeros(iterations,N,N);
+ E_V=zeros(iterations,N,N);
+ E_V_rot=zeros(iterations,N,N);
+ E_Lambda = zeros(iterations,N,N);
+ E_AN = zeros(iterations,N,N);
+ E_noise = zeros(iterations,P,P);
+ E_Q = zeros(iterations,N,N);
  
  
  % g1_g1=zeros(iterations,M,M);
@@ -22,7 +32,8 @@ M=N/L; P=N-N/L;
  % q2_q2=zeros(iterations,T,T);
  sigH=zeros(iterations,N,N);
 
-
+orth = eye(N);
+% orth(:,randperm(N)) = orth(:,:); %random rotation matrix using identity matrix
  % sig_noise=zeros(iterations,T,T);
 
  X=zeros(N,iterations);
@@ -45,7 +56,11 @@ for iter=1:iterations
     % % sig_p(i,:,:)=p*p';
     G=toeplitz(g,[g(1); g(end:-1:2)]);
     G=G*E;
-    G=G';
+    G=G;
+    % [V, Lambda] = eig(G'*G);
+    % E_V(iter,:,:)=V;
+    % E_V_rot(iter,:,:)=orth*V;
+    % E_Lambda(iter,:,:)=Lambda;
     % sigG(iter,:,:)=G*G';
     % X(:,iter)=G*ones(M,1); %sample of G and symbols
 
@@ -78,11 +93,13 @@ for iter=1:iterations
     NNL=N-N/L;
     P=NNL;
     Q=V(:,1:NNL);
-    Q=Q';       %take hermitian to match X=SG + VQ
+    Q=Q;       %take hermitian to match X=SG + VQ
       v=(randn(T,P)+1i*randn(T,P))/sqrt(2);
 
-    Sigma_v=diag([1:P]);
-    sig_qq(iter,:,:)=Q'*Sigma_v*Q;
+    
+    % Sigma_v=diag([1:P]);
+    % sig_qq(iter,:,:)=Q'*Sigma_v*Q;
+    
 
     % for i=1:P
     %     for k=1:N
@@ -96,6 +113,11 @@ for iter=1:iterations
   % q1_q2(iter,:,:)=v*Q(:,1)*Q(:,2)'*v';
   % q2_q1(iter,:,:)=v*Q(:,2)*Q(:,1)'*v';
   % q2_q2(iter,:,:)=v*Q(:,2)*Q(:,2)'*v';
+
+  noise = (normrnd(0,sqrt(noise_power)) + 1i*normrnd(0,sqrt(noise_power)))/sqrt(2);
+  E_AN(iter,:,:) = Q*noise*noise'*Q';
+  E_noise(iter,:,:)=noise*noise';
+  E_Q(iter,:,:)=Q*Q';
   
 end
 %remove nan samples
