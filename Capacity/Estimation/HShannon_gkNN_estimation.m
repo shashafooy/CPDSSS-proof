@@ -40,7 +40,7 @@ end
 function [sigma] = ellipse_sigma_axis(samples,indicies,distances,dim)
     [k,num_samples]=size(indicies);
     k=k+1;
-    sigma=zeros(dim,k)
+    sigma=zeros(num_samples,dim);
     for i=1:num_samples
         x_ij=samples([i;indicies(:,i)],:); %(k+1)xd k nearest samples to the i-th sample. d is the dimension of x_i
         z=mean(x_ij,1); %centroid
@@ -59,6 +59,7 @@ function [k_i] = points_in_ellipse(samples,sigma,v)
     [K,~]=size(samples);
     k_i=1;
     eigs=1;
+    A=diag(sigma)*v'
     for i=2:K
         point=(samples(i,:)-cen)';
         val=point'*A*point

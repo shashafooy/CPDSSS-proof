@@ -1,7 +1,7 @@
 co.k=20;
 co.NSmethod='kdtree';
 
-num_samples=1e5;
+num_samples=1e3;
 alpha=1e-4;
 X=rand(1,num_samples);
 V=rand(1,num_samples);
