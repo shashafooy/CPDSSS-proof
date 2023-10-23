@@ -1,6 +1,16 @@
 *.asv
 token.txt
+
+covar_X_given_S.mat
+Repeated Q/rotation.mat
+
+covar_X_given_S.mat
+.git/objects/pack/tmp_pack_rCb68S
+.git/objects/pack/tmp_pack_NXXFy8
+.git/objects/50/31661a3aad736eee36e94624798e7d8999a9a0
+Repeated Q/rotation.mat
 ./covar_X_given_S.mat
-./Repeated Q/rotation.mat
-./covar_X_given_S.mat
+./.git/objects/pack/tmp_pack_rCb68S
+./.git/objects/pack/tmp_pack_NXXFy8
+./.git/objects/50/31661a3aad736eee36e94624798e7d8999a9a0
 ./Repeated Q/rotation.mat
