@@ -32,36 +32,48 @@ indices = int32(indices(:,2:end).');%.': to be compatible with 'ANN'
 
 %H estimation:
     % V = volume_of_the_unit_ball(d);
-    [sigmas]=ellipse_sigma_axis(Y.',indices,distances,d);
-    H = log(num_of_samples-1) - psi(co.k) + log(V) + d / num_of_samples * sum(log(distances(co.k,:))); %sqrt <= squared_distances,
+    [sigmas,k_i]=ellipse_sigma_axis(Y.',indices,distances,d);
+    % H = log(num_of_samples-1) - psi(co.k) + log(V) + d / num_of_samples * sum(log(distances(co.k,:))); %sqrt <= squared_distances,
+    N=num_of_samples;
+    H = log(N) + log(pi^(d/2)/gamma(1+d/2)) - 1/N * sum(log(k_i)) + d/N * sum(log(distances(:,end))) + 1/N*sum(sum(log(sigmas./sigmas(:,1)),2));
+    % H_test = log(N) + log(pi^(d/2)/gamma(1+d/2)) - mean(log(k_i)) + d*mean(log(distances(:,end))) + mean(sum(log(sigmas./sigmas(:,1)),2));
  
 end
 
-function [sigma] = ellipse_sigma_axis(samples,indicies,distances,dim)
+function [sigma,k_i] = ellipse_sigma_axis(samples,indicies,distances,dim)
     [k,num_samples]=size(indicies);
     k=k+1;
     sigma=zeros(num_samples,dim);
+    k_i=zeros(num_samples,1);
     for i=1:num_samples
         x_ij=samples([i;indicies(:,i)],:); %(k+1)xd k nearest samples to the i-th sample. d is the dimension of x_i
         z=mean(x_ij,1); %centroid
-        z=x_ij(1,:);
+        % z=x_ij(1,:);
         y=x_ij-z; %Center data
 
-        [U,Sigma,V]=svd(y);
+        [~,Sigma,V]=svd(y);
 
-        sigma(i,:)=diag(Sigma);
+        if(dim==1)
+            sigma(i,:)=Sigma(1);
+        else
+            sigma(i,:)=diag(Sigma);
+        end
+        k_i(i)=points_in_ellipse(x_ij,sigma(i,:),V,distances(i,end));
     end
 
 end
 
-function [k_i] = points_in_ellipse(samples,sigma,v)
-    cen=samples(1,:);
+function [k_i] = points_in_ellipse(samples,sigma,v,distance)
+    cen=samples(1,:); %x_i
     [K,~]=size(samples);
-    k_i=1;
-    eigs=1;
-    A=diag(sigma)*v'
+    k_i=1; %At least the center point x_i
+    dist=distance*sigma/sigma(1); %length of each axis
+    A=v*diag(1./dist.^2)*v'; %axis length is 1/sqrt(lambda), so eigenvalues are 1/dist^2
     for i=2:K
         point=(samples(i,:)-cen)';
-        val=point'*A*point
+        val=point'*A*point;
+        if(val<=1) %A point is within an ellipse if xAx'<=1
+            k_i=k_i+1;
+        end
     end
 end
