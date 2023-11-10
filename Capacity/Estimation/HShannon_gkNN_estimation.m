@@ -1,4 +1,4 @@
-function [H] = HShannon_gkNN_estimation(Y,co)
+function [H] = HShannon_gkNN_estimation(Y,k)
 %function [H] = HShannon_kNN_k_estimation(Y,co)
 %Estimates the Shannon differential entropy (H) of Y using the geometric kNN method (and neighbors S={k}).
 % This method uses elipses instead of balls for the local region. This
@@ -23,7 +23,7 @@ function [H] = HShannon_gkNN_estimation(Y,co)
 % Y=Y(1:2:end,:);
 %%%%%%%%%%%%%%%%%%%%%
 
-[indices,distances] = knnsearch(Y.',Y.','K',co.k+1,'NSMethod',co.NSmethod); %[double,...
+[indices,distances] = knnsearch(Y.',Y.','K',k+1,'NSMethod','kdtree'); %[double,...
 indices = int32(indices(:,2:end).');%.': to be compatible with 'ANN'
             % squared_distances = (distances(:,2:end).').^2;%distances -> squared distances; .': to be compatible with 'ANN'
 % d=d/2;

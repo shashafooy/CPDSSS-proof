@@ -1,9 +1,9 @@
-if ispc
-    load ITE_dir
-elseif isunix
-    load ITE_dir_linux
-end
-addpath(genpath(ITE_code_dir));
+% if ispc
+%     load ITE_dir
+% elseif isunix
+%     load ITE_dir_linux
+% end
+% addpath(genpath(ITE_code_dir));
 % REAL = false;
 % sigma2_s=1;
 % sigma2_v=20*sigma2_s;
@@ -31,7 +31,7 @@ MI_estimation = zeros(max_T,1);
 MI_estimation_nocond = zeros(max_T,1);
 MI_estimation_multiDim = zeros(max_T,1);
 
-for T=M:max_T
+for T=M+1:max_T
     % T=M+1;
     
     %% Generate data
@@ -51,8 +51,10 @@ for T=M:max_T
         [Phi,R]=qr(n_rand); % isotropic unitary
         Phi=Phi(:,1:M); %truncate to T x M
 
-        S(:,:,run)=sqrt(T)*Phi;
-        X(:,:,run)=sqrt(rho/M)*sqrt(T)*Phi*H+W;
+        % S(:,:,run)=sqrt(T)*Phi;
+        % X(:,:,run)=sqrt(rho/M)*sqrt(T)*Phi*H+W;
+        S(:,:,run)=(randn(T,M)+1i*randn(T,M))/sqrt(2);
+        X(:,:,run)=sqrt(rho/M)*S(:,:,run)*H+W;
         
         %     mu=zeros(N*T,1);
         %     Sigma=kron(eye(N),eye(T)+rho*T/M*Phi*Phi');
@@ -97,9 +99,9 @@ for T=M:max_T
     %%%%%%%%%%%%%%%%%%%
     %Vectorize X,S
     x=squeeze(X); 
-    x=x(:).';
+    % x=x(:).';
     s=squeeze(S);
-    s=s(:).';
+    % s=s(:).';
     
     Y=[x;s];ds=[N;M];
 
@@ -110,10 +112,15 @@ for T=M:max_T
     % Y_expanded(2:2:end,:)=imag(Y);
     ds=2*ds;
     
-    co_edge = IShannon_HShannon_initialization(1);
+    % co_edge = IShannon_HShannon_initialization(1);
 %     co_edge.member_name = 'Shannon_Edgeworth';
 %     co_edge.member_co = H_initialization(co_edge.member_name,1);
-    MI_estimation_nocond(T)=IShannon_HShannon_estimation(Y_expanded,ds,co_edge)/T;
+    % MI_estimation_nocond(T)=IShannon_HShannon_estimation(Y_expanded,ds,co_edge)/T;
+    k=100;
+    H_x=HShannon_gkNN_estimation(C2R_vector(x),k);
+    H_s=HShannon_gkNN_estimation(C2R_vector(s),k);
+    H_xs=HShannon_gkNN_estimation(Y_expanded,k);
+    MI_estimation_nocond(T)=H_x+H_s - H_xs
 
 
     %%%%%%%%%%%%%%%%%%%%%
@@ -125,13 +132,13 @@ for T=M:max_T
     % Y_expanded(:,1:2:end)=real(Y);
     % Y_expanded(:,2:2:end)=imag(Y);
 
-    MI_estimation_multiDim(T)=IShannon_HShannon_estimation(Y_expanded,ds,co_edge)/T;
+    % MI_estimation_multiDim(T)=IShannon_HShannon_estimation(Y_expanded,ds,co_edge)/T;
 end
 
 
 
 %% Plots
 
-figure(3), plot(1:max_T,MI_estimation),title("conditional dist I(x_T;s_T|s_{T-1} ...)");
-figure(4), plot(1:max_T,MI_estimation_nocond), title("vectorized dist I(vec(X);vec(S))");
+% figure(3), plot(1:max_T,MI_estimation),title("conditional dist I(x_T;s_T|s_{T-1} ...)");
+figure, plot(1:max_T,MI_estimation_nocond), title("vectorized dist I(vec(X);vec(S))");
 
