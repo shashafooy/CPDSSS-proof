@@ -1,4 +1,4 @@
-from itertools import izip
+# from itertools import izip
 
 import numpy as np
 import theano
@@ -32,8 +32,8 @@ def test_connectivity(C):
     all = 0
     gaps = 0
 
-    for i in xrange(N1):
-        for j in xrange(i+1, N2):
+    for i in range(N1):
+        for j in range(i+1, N2):
             all += 1
             if C[i, j] == 0:
                 gaps += 1
@@ -51,8 +51,8 @@ def test_autoregressive_masks(n_inputs, n_hiddens, mode):
     C = calc_connectivity(Ms, Mmp)
     not_connected, n_connections = test_connectivity(C)
 
-    print 'not connected = {0:.2%}'.format(not_connected)
-    print '# connections = {0}'.format(n_connections)
+    print('not connected = {0:.2%}'.format(not_connected))
+    print('# connections = {0}'.format(n_connections))
 
     fig, ax = plt.subplots(1, 1)
     fig.colorbar(ax.matshow(C))
@@ -121,7 +121,7 @@ def create_masks(degrees):
 
     Ms = []
 
-    for l, (d0, d1) in enumerate(izip(degrees[:-1], degrees[1:])):
+    for l, (d0, d1) in enumerate(zip(degrees[:-1], degrees[1:])):
         M = d0[:, np.newaxis] <= d1
         M = theano.shared(M.astype(dtype), name='M' + str(l+1), borrow=True)
         Ms.append(M)
@@ -147,7 +147,7 @@ def create_weights(n_inputs, n_hiddens, n_comps, rng=np.random):
 
     n_units = np.concatenate(([n_inputs], n_hiddens))
 
-    for l, (N0, N1) in enumerate(izip(n_units[:-1], n_units[1:])):
+    for l, (N0, N1) in enumerate(zip(n_units[:-1], n_units[1:])):
         W = theano.shared((rng.randn(N0, N1) / np.sqrt(N0 + 1)).astype(dtype), name='W' + str(l+1), borrow=True)
         b = theano.shared(np.zeros(N1, dtype=dtype), name='b' + str(l+1), borrow=True)
         Ws.append(W)
@@ -207,7 +207,7 @@ def create_weights_SVI(n_inputs, n_hiddens, rng):
 
     n_units = np.concatenate(([n_inputs], n_hiddens))
 
-    for l, (N0, N1) in enumerate(izip(n_units[:-1], n_units[1:])):
+    for l, (N0, N1) in enumerate(zip(n_units[:-1], n_units[1:])):
         mW = theano.shared((rng.randn(N0, N1) / np.sqrt(N0 + 1)).astype(dtype), name='mW' + str(l+1), borrow=True)
         mb = theano.shared(np.zeros(N1, dtype=dtype), name='mb' + str(l+1), borrow=True)
         sW = theano.shared(-5.0 * np.ones([N0, N1], dtype=dtype), name='sW' + str(l+1), borrow=True)
@@ -270,7 +270,7 @@ class GaussianMade:
         h = self.input
 
         # feedforward propagation
-        for l, (M, W, b) in enumerate(izip(Ms, Ws, bs)):
+        for l, (M, W, b) in enumerate(zip(Ms, Ws, bs)):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 1)
 
@@ -384,7 +384,7 @@ class GaussianMade:
         x = np.zeros([n_samples, self.n_inputs], dtype=dtype)
         u = rng.randn(n_samples, self.n_inputs).astype(dtype) if u is None else u
 
-        for i in xrange(1, self.n_inputs + 1):
+        for i in range(1, self.n_inputs + 1):
             m, logp = self.eval_comps(x)
             idx = np.argwhere(self.input_order == i)[0, 0]
             x[:, idx] = m[:, idx] + np.exp(np.minimum(-0.5 * logp[:, idx], 10.0)) * u[:, idx]
@@ -450,7 +450,7 @@ class MixtureOfGaussiansMade:
         h = self.input
 
         # feedforward propagation
-        for l, (M, W, b) in enumerate(izip(Ms, Ws, bs)):
+        for l, (M, W, b) in enumerate(zip(Ms, Ws, bs)):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 1)
 
@@ -570,10 +570,10 @@ class MixtureOfGaussiansMade:
         x = np.zeros([n_samples, self.n_inputs], dtype=dtype)
         u = rng.randn(n_samples, self.n_inputs).astype(dtype) if u is None else u
 
-        for i in xrange(1, self.n_inputs + 1):
+        for i in range(1, self.n_inputs + 1):
             m, logp, loga = self.eval_comps(x)
             idx = np.argwhere(self.input_order == i)[0, 0]
-            for n in xrange(n_samples):
+            for n in range(n_samples):
                 z = util.math.discrete_sample(np.exp(loga[n, idx]), rng=rng)
                 x[n, idx] = m[n, idx, z] + np.exp(np.minimum(-0.5 * logp[n, idx, z], 10.0)) * u[n, idx]
 
@@ -641,7 +641,7 @@ class ConditionalGaussianMade:
         # feedforward propagation
         h = f(tt.dot(self.input, Wx) + tt.dot(self.y, Ms[0] * Ws[0]) + bs[0])
         h.name = 'h1'
-        for l, (M, W, b) in enumerate(izip(Ms[1:], Ws[1:], bs[1:])):
+        for l, (M, W, b) in enumerate(zip(Ms[1:], Ws[1:], bs[1:])):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 2)
 
@@ -785,7 +785,7 @@ class ConditionalGaussianMade:
 
         xy = (np.tile(x, [n_samples, 1]), y)
 
-        for i in xrange(1, self.n_outputs + 1):
+        for i in range(1, self.n_outputs + 1):
             m, logp = self.eval_comps(xy)
             idx = np.argwhere(self.output_order == i)[0, 0]
             y[:, idx] = m[:, idx] + np.exp(np.minimum(-0.5 * logp[:, idx], 10.0)) * u[:, idx]
@@ -857,7 +857,7 @@ class ConditionalMixtureOfGaussiansMade:
         # feedforward propagation
         h = f(tt.dot(self.input, Wx) + tt.dot(self.y, Ms[0] * Ws[0]) + bs[0])
         h.name = 'h1'
-        for l, (M, W, b) in enumerate(izip(Ms[1:], Ws[1:], bs[1:])):
+        for l, (M, W, b) in enumerate(zip(Ms[1:], Ws[1:], bs[1:])):
             h = f(tt.dot(h, M * W) + b)
             h.name = 'h' + str(l + 2)
 
@@ -1004,10 +1004,10 @@ class ConditionalMixtureOfGaussiansMade:
 
         xy = (np.tile(x, [n_samples, 1]), y)
 
-        for i in xrange(1, self.n_outputs + 1):
+        for i in range(1, self.n_outputs + 1):
             m, logp, loga = self.eval_comps(xy)
             idx = np.argwhere(self.output_order == i)[0, 0]
-            for n in xrange(n_samples):
+            for n in range(n_samples):
                 z = util.math.discrete_sample(np.exp(loga[n, idx]), rng=rng)
                 y[n, idx] = m[n, idx, z] + np.exp(np.minimum(-0.5 * logp[n, idx, z], 10.0)) * u[n, idx]
 
@@ -1078,7 +1078,7 @@ class GaussianMade_SVI:
         uas = []
 
         # feedforward propagation
-        for l, (M, mW, mb, sW, sb, N) in enumerate(izip(Ms, mWs, mbs, sWs, sbs, n_hiddens)):
+        for l, (M, mW, mb, sW, sb, N) in enumerate(zip(Ms, mWs, mbs, sWs, sbs, n_hiddens)):
             ma = tt.dot(h, M * mW) + mb
             sa = tt.dot(h**2, M * tt.exp(2*sW)) + tt.exp(2*sb)
             ua = self.srng.normal((h.shape[0], N), dtype=dtype)
@@ -1301,7 +1301,7 @@ class GaussianMade_SVI:
         # seed for theano random stream
         seed = rng.randint(2**30)
 
-        for i in xrange(1, self.n_inputs + 1):
+        for i in range(1, self.n_inputs + 1):
             self.srng.seed(seed)  # need to have same activation noise in each pass
             m, logp = self.eval_comps(x, rand=rand, const_noise=const_noise)
             idx = np.argwhere(self.input_order == i)[0, 0]

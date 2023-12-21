@@ -76,7 +76,7 @@ def plot_RMSE_vs_d(mdl_name, n_trials):
                 
                 net = create_model(sim_model.x_dim, rng=np.random) 
                 estimator = entropy.UMestimator(sim_model, net) 
-                estimator.learn_transformation(n_samples=n_samples*sim_model.x_dim/2)
+                estimator.learn_transformation(n_samples=int(n_samples*sim_model.x_dim/2))
             
                 cal1[i], cal5[i], _, _ = estimator.calc_ent(reuse_samples=False, method='umtkl')
                 cal2[i], cal5[i], _, _ = estimator.calc_ent(reuse_samples=False, method='umtksg')

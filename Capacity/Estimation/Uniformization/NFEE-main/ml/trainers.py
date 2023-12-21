@@ -9,6 +9,7 @@ import ml.step_strategies as ss
 import ml.data_streams as ds
 import util.math
 import util.ml
+# from itertools import izip as zip
 
 
 dtype = theano.config.floatX
@@ -42,7 +43,7 @@ class SGD_Template:
             self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
             self.set_batch_norm_stats = theano.function(
                 inputs=[],
-                givens=zip(self.trn_inputs, self.trn_data),
+                givens=list(zip(self.trn_inputs, self.trn_data)),
                 updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
             )
         else:
@@ -144,7 +145,7 @@ class SGD_Template:
                     logger.write('Epoch = {0:.2f}, training loss = {1}\n'.format(epoch, trn_loss))
 
             # check for convergence
-            if abs(diff) < tol or iter >= maxiter or patience_left <= 0:
+            if (tol is not None and abs(diff) < tol) or iter >= maxiter or patience_left <= 0:
                 if self.do_validation: self.checkpointer.restore()
                 if self.set_batch_norm_stats is not None: self.set_batch_norm_stats()
                 break
@@ -227,7 +228,7 @@ class SGD(SGD_Template):
         self.make_update = theano.function(
             inputs=[idx],
             outputs=trn_loss,
-            givens=zip(self.trn_inputs, [x[idx] for x in self.trn_data]),
+            givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
             updates=step.updates(model.parms, grads)
         )
 
@@ -237,7 +238,7 @@ class SGD(SGD_Template):
             self.validate = theano.function(
                 inputs=[],
                 outputs=val_loss,
-                givens=zip(self.val_inputs, self.val_data) + self.batch_norm_givens
+                givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
 
 
@@ -285,7 +286,7 @@ class WeightedSGD(SGD_Template):
         self.make_update = theano.function(
             inputs=[idx],
             outputs=trn_loss,
-            givens=zip(self.trn_inputs, [x[idx] for x in self.trn_data]),
+            givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
             updates=step.updates(model.parms, grads)
         )
 
@@ -302,7 +303,7 @@ class WeightedSGD(SGD_Template):
             self.validate = theano.function(
                 inputs=[],
                 outputs=tt.mean(val_weights * val_losses) + val_reg,
-                givens=zip(self.val_inputs, self.val_data) + self.batch_norm_givens
+                givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
 
 

@@ -10,6 +10,22 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x,scale=std_x)
     return tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x,scale=std_x),axis=1)))
 
+def create_model(n_inputs, rng):
+    n_hiddens=[50,50]
+    act_fun='tanh'
+    n_mades=10
+
+    import ml.models.mafs as mafs
+
+    return mafs.MaskedAutoregressiveFlow(
+                n_inputs=n_inputs,
+                n_hiddens=n_hiddens,
+                act_fun=act_fun,
+                n_mades=n_mades,
+                mode='random',
+                rng=rng
+            )
+
 N=2
 L=2
 M=int(N/L)
@@ -17,9 +33,9 @@ P=N-int(N/L)
 
 
 
-T_range = range(N,7)
+T_range = range(N,10)
 n_trials = 100
-n_samples = 5000
+n_samples = 10000
 
 
 
@@ -86,7 +102,6 @@ for i in range(n_trials):
             H_gxc = UM_KL_Gaussian(np.concatenate((xCond_term,g_term),axis=1))
             H_cond = UM_KL_Gaussian(xCond_term)
 
-
         H_xxc = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term),axis=1))
         H_joint = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term,g_term),axis=1))
 
@@ -112,27 +127,30 @@ MI_cumsum = np.cumsum(MI_means)
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
             
-fig, ax = plt.subplots(2,1)
+fig, ax = plt.subplots(1,1)
 # ax.set_yscale("log")
             
 # ax.plot([N*t for t in T_range], H_KL, marker='o', color='b', linestyle=':', label='H KL', mfc='none')
 # ax.plot(T_range, np.sqrt(mse4[0]), marker='o', color='b', linestyle='-', label='UM-tKSG', mfc='none')   
 dims=[N*t for t in T_range] 
-ax[0].plot(dims, MI_tKL, marker='x', color='r', linestyle=':', label='MI individual')
-ax[0].plot(dims, MI_means, marker='x', color='b', linestyle='-', label='MI means')
+# ax[0].plot(dims, MI_tKL, marker='x', color='r', linestyle=':', label='MI individual')
+ax.plot(dims, MI_means, marker='x', color='b', linestyle='-', label='MI means')
 # ax.plot(T_range, np.sqrt(mse2[0]), marker='x', color='r', linestyle='-', label='KSG')
         
-ax[0].set_xlabel('dimension')
-ax[0].set_ylabel('Entropy')
-ax[0].legend()
-
-ax[1].plot(dims,MI_cumsum,marker='x',linestyle='-')
-ax[1].set_xlabel('dimension')
-ax[1].set_ylabel('Entropy')
-ax[1].set_title('Cumulative MI')
-
-
+ax.set_xlabel('dimension')
+ax.set_ylabel('Mutual Information')
+ax.set_title("Individual conditional MI")
 plt.savefig('figs/MI_cond_CPDSSSS')
+
+plt.cla()
+fig, ax = plt.subplots(1,1)
+ax.plot(dims,MI_cumsum,marker='x',linestyle='-')
+ax.set_xlabel('dimension')
+ax.set_ylabel('Mutual Information')
+ax.set_title('Cumulative MI')
+
+
+plt.savefig('figs/MI_cumulative_CPDSSSS')
         
 import util.io
 import os
