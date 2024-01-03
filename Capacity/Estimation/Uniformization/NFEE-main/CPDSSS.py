@@ -1,14 +1,18 @@
 import numpy as np
 from scipy import stats
 
-from ent_est.entropy import kl, ksg, tkl, tksg
+import util.io
+import os
+
+from ent_est import entropy
 from simulators.complex import mvn
+from simulators.CPDSSS_models import CPDSSS
 
 
 def UM_KL_Gaussian(x):
     std_x=np.std(x,axis=0)
-    z=stats.norm.cdf(x,scale=std_x)
-    return tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x,scale=std_x),axis=1)))
+    z=stats.norm.cdf(x)
+    return tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
 def create_model(n_inputs, rng):
     n_hiddens=[50,50]
@@ -26,6 +30,14 @@ def create_model(n_inputs, rng):
                 rng=rng
             )
 
+def calc_entropy(sim_model,n_samples=100):
+    net=create_model(sim_model.x_dim, rng=np.random)
+    estimator = entropy.UMestimator(sim_model,net)
+    estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2))
+    H,_,_,_ = estimator.calc_ent(reuse_samples=False, method='umtkl')
+    return H
+
+
 N=2
 L=2
 M=int(N/L)
@@ -35,7 +47,7 @@ P=N-int(N/L)
 
 T_range = range(N,10)
 n_trials = 100
-n_samples = 10000
+n_samples = 1000
 
 
 
@@ -72,44 +84,59 @@ for i in range(n_trials):
 
             
     for k, T in enumerate(T_range):
-        sim_S = mvn(rho=0.0, dim_x=int(M*T))
-        sim_V = mvn(rho=0.0, dim_x=int(P*T))
+        sim_model = CPDSSS(T,N,L)
+
+
+        # sim_S = mvn(rho=0.0, dim_x=int(M*T))
+        # sim_V = mvn(rho=0.0, dim_x=int(P*T))
 
         n_sims = n_samples
 
-        s = sim_S.sim(n_samples=n_sims).reshape((n_sims,M,T))
-        # s=np.reshape(s,[n_sims,M,T])
-        v = sim_V.sim(n_samples=n_sims).reshape((n_sims,P,T))
-        # v=np.reshape(v,[P,T,n_sims])
-        G = sim_G.sim(n_samples=n_sims).reshape((n_sims,N,M))
-        # G=np.reshape(G,[N,M,n_sims])
-        Q = sim_Q.sim(n_samples=n_sims).reshape((n_sims,N,P))
-        # Q=np.reshape(Q,[N,P,n_sims])
+        # s = sim_S.sim(n_samples=n_sims).reshape((n_sims,M,T))
+        # # s=np.reshape(s,[n_sims,M,T])
+        # v = sim_V.sim(n_samples=n_sims).reshape((n_sims,P,T))
+        # # v=np.reshape(v,[P,T,n_sims])
+        # G = sim_G.sim(n_samples=n_sims).reshape((n_sims,N,M))
+        # # G=np.reshape(G,[N,M,n_sims])
+        # Q = sim_Q.sim(n_samples=n_sims).reshape((n_sims,N,P))
+        # # Q=np.reshape(Q,[N,P,n_sims])
 
-        #dims = (samples,N,T), matrix multiplication over last 2 dimensions
-        # X=np.matmul(np.transpose(G,(2,0,1)),np.transpose(s,(2,0,1))) + np.matmul(np.transpose(Q,(2,0,1)),np.transpose(v,(2,0,1)))
-        X=np.matmul(G,s)+np.matmul(Q,v)
+        # #dims = (samples,N,T), matrix multiplication over last 2 dimensions
+        # # X=np.matmul(np.transpose(G,(2,0,1)),np.transpose(s,(2,0,1))) + np.matmul(np.transpose(Q,(2,0,1)),np.transpose(v,(2,0,1)))
+        # X=np.matmul(G,s)+np.matmul(Q,v)
 
-        g_term = G[:,:,0]
-        xT_term = X[:,:,T-1]
-        xCond_term = X[:,:,0:T-1].reshape((n_sims,N*(T-1)),order='F') #order 'F' needed to make arrays stack instead of interlaced
+        # g_term = G[:,:,0]
+        # xT_term = X[:,:,T-1]
+        # xCond_term = X[:,:,0:T-1].reshape((n_sims,N*(T-1)),order='F') #order 'F' needed to make arrays stack instead of interlaced
         # xT_term = s[:,:,T-1]-.reshape((n_sims,M*(T-1)),order='F')
 
         if(T>N): #Use previous calculations
             H_gxc = H_joint
             H_cond = H_xxc
         else:
-            H_gxc = UM_KL_Gaussian(np.concatenate((xCond_term,g_term),axis=1))
-            H_cond = UM_KL_Gaussian(xCond_term)
+            first_tx_model = CPDSSS(T-1,N,L)
 
-        H_xxc = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term),axis=1))
-        H_joint = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term,g_term),axis=1))
+            first_tx_model.set_use_G_flag(g_flag=True)
+            H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_sims)
+
+            first_tx_model.set_use_G_flag(g_flag=False)
+            H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_sims)
+            # H_gxc = UM_KL_Gaussian(np.concatenate((xCond_term,g_term),axis=1))
+            # H_cond = UM_KL_Gaussian(xCond_term)
+
+        sim_model.set_use_G_flag(False)
+        H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_sims)
+        sim_model.set_use_G_flag(True)
+        H_joint = calc_entropy(sim_model=sim_model,n_samples=n_sims)
+        # H_xxc = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term),axis=1))
+        # H_joint = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term,g_term),axis=1))
 
         H_gxc_cum[i,k]=H_gxc
         H_xxc_cum[i,k]=H_xxc
         H_joint_cum[i,k]=H_joint
         H_cond_cum[i,k]=H_cond
         MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
+        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum), os.path.join('temp_data', 'CPDSSS_data_dump')) 
         # z=stats.norm.cdf(xT_term)
         # H_xxc = tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(xT_term),axis=1)))
 
