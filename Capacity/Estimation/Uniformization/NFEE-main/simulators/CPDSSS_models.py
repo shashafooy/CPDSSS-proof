@@ -14,6 +14,14 @@ class CPDSSS:
         self.set_use_G_flag(g_flag=False)
 
     def sim(self, n_samples=1000):
+        """Generate samples X and (optional) G for CPDSSS
+
+        Args:
+            n_samples (int, optional): number of input samples. Defaults to 1000.            
+
+        Returns:
+            numpy: (n_samples, dim_x) array of generated values
+        """
         s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.M,self.T))
         v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.P,self.T))
         self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.M))
@@ -33,11 +41,34 @@ class CPDSSS:
         # xCond_term = X[:,:,0:self.T-1].reshape((n_samples,self.N*(self.T-1)),order='F')#order 'F' needed to make arrays stack instead of interlaced
     
     def set_use_G_flag(self,g_flag=True):
+        """Enables sim to append G in addition to X
+
+        Args:
+            g_flag (bool, optional): Enable G output. Defaults to True.
+        """
         self.use_G=g_flag
         if(g_flag):
             self.x_dim = self.N*self.T + self.N
         else:
             self.x_dim = self.N*self.T
+    
+    def get_base_X_G(self,n_samples=1000):
+        """Generate values for G and X
+
+        Args:
+            n_samples (int, optional): Number of input samples. Defaults to 1000.
+
+        Returns:
+            numpy: X, X_T, X_cond, G
+        """
+        self.set_use_G_flag(g_flag=True)
+        vals = self.sim(n_samples=n_samples)
+        X=vals[:,0:self.N*self.T]
+        X_T=X[:,-self.N:]
+        X_cond = X[:,0:-self.N]
+        G = vals[:,-self.N:]
+        return X,X_T,X_cond,G
+
 
 
 

@@ -30,11 +30,12 @@ def create_model(n_inputs, rng):
                 rng=rng
             )
 
-def calc_entropy(sim_model,n_samples=100):
+def calc_entropy(sim_model,base_samples=None,n_samples=100):
     net=create_model(sim_model.x_dim, rng=np.random)
     estimator = entropy.UMestimator(sim_model,net)
     estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2))
-    H,_,_,_ = estimator.calc_ent(reuse_samples=False, method='umtkl')
+    estimator.samples = estimator.samples if base_samples is None else base_samples
+    H,_,_,_ = estimator.calc_ent(reuse_samples=True, method='umtkl')
     return H
 
 
@@ -86,29 +87,13 @@ for i in range(n_trials):
     for k, T in enumerate(T_range):
         sim_model = CPDSSS(T,N,L)
 
-
-        # sim_S = mvn(rho=0.0, dim_x=int(M*T))
-        # sim_V = mvn(rho=0.0, dim_x=int(P*T))
-
         n_sims = n_samples
 
-        # s = sim_S.sim(n_samples=n_sims).reshape((n_sims,M,T))
-        # # s=np.reshape(s,[n_sims,M,T])
-        # v = sim_V.sim(n_samples=n_sims).reshape((n_sims,P,T))
-        # # v=np.reshape(v,[P,T,n_sims])
-        # G = sim_G.sim(n_samples=n_sims).reshape((n_sims,N,M))
-        # # G=np.reshape(G,[N,M,n_sims])
-        # Q = sim_Q.sim(n_samples=n_sims).reshape((n_sims,N,P))
-        # # Q=np.reshape(Q,[N,P,n_sims])
+        X,X_T,X_cond,G = sim_model.get_base_X_G(n_sims)
+        gxc=np.concatenate((X_cond,G),axis=1)
+        joint=np.concatenate((X,G),axis=1)
 
-        # #dims = (samples,N,T), matrix multiplication over last 2 dimensions
-        # # X=np.matmul(np.transpose(G,(2,0,1)),np.transpose(s,(2,0,1))) + np.matmul(np.transpose(Q,(2,0,1)),np.transpose(v,(2,0,1)))
-        # X=np.matmul(G,s)+np.matmul(Q,v)
 
-        # g_term = G[:,:,0]
-        # xT_term = X[:,:,T-1]
-        # xCond_term = X[:,:,0:T-1].reshape((n_sims,N*(T-1)),order='F') #order 'F' needed to make arrays stack instead of interlaced
-        # xT_term = s[:,:,T-1]-.reshape((n_sims,M*(T-1)),order='F')
 
         if(T>N): #Use previous calculations
             H_gxc = H_joint
@@ -117,17 +102,25 @@ for i in range(n_trials):
             first_tx_model = CPDSSS(T-1,N,L)
 
             first_tx_model.set_use_G_flag(g_flag=True)
-            H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_sims)
+            print("-"*25 + "\ncalculating H_gxc, T: {0}, iter: {1}".format(T,i+1))
+            print("-"*25)
+            H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=gxc)
 
             first_tx_model.set_use_G_flag(g_flag=False)
-            H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_sims)
+            print("-"*25 + "\ncalculating H_cond, T: {0}, iter: {1}".format(T,i+1))
+            print("-"*25)
+            H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=X_cond)
             # H_gxc = UM_KL_Gaussian(np.concatenate((xCond_term,g_term),axis=1))
             # H_cond = UM_KL_Gaussian(xCond_term)
 
         sim_model.set_use_G_flag(False)
-        H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_sims)
+        print("-"*25 + "\ncalculating H_xxc, T: {0}, iter: {1}".format(T,i+1))
+        print("-"*25)
+        H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_sims,base_samples=X)
         sim_model.set_use_G_flag(True)
-        H_joint = calc_entropy(sim_model=sim_model,n_samples=n_sims)
+        print("-"*25 + "\ncalculating H_joint, T: {0}, iter: {1}".format(T,i+1))
+        print("-"*25)
+        H_joint = calc_entropy(sim_model=sim_model,n_samples=n_sims,base_samples=joint)
         # H_xxc = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term),axis=1))
         # H_joint = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term,g_term),axis=1))
 

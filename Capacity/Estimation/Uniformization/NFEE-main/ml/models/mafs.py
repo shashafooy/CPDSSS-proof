@@ -55,7 +55,7 @@ class MaskedAutoregressiveFlow:
             made = mades.GaussianMade(n_inputs, n_hiddens, act_fun, input_order, mode, self.u, rng)
             self.mades.append(made)
             self.parms += made.parms
-            input_order = input_order if input_order == 'random' else made.input_order[::-1]
+            input_order = input_order if isinstance(input_order,str) and input_order == 'random' else made.input_order[::-1]
 
             # inverse autoregressive transform
             self.u = made.u

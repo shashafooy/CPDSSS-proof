@@ -382,7 +382,8 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             minibatch=minibatch,
             patience=patience,
             monitor_every=monitor_every,
-            logger=logger
+            logger=logger,
+            tol=0.001
         )
 
     else:
@@ -509,7 +510,7 @@ class UMestimator:
         
         monitor_every = min(10 ** 5 / float(n_samples), 1.0)
         logger.write('training model...\n')
-        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng)
+        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=10)
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtkl'):
@@ -520,7 +521,8 @@ class UMestimator:
             samples = self.sim_model.sim(self.n_samples)
         
         u = self.model.calc_random_numbers(samples)
-        idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1)
+        #remove extreme data that isn't within 99.9999% of the norm dist
+        idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
         u = u[idx]
         
         if method == 'umtkl': 
