@@ -261,7 +261,7 @@ class Lotka_Volterra:
             self.time[i+1] = self.time[i]+self.dt
             self.predator[i+1] = self.predator[i] + self.dt*self.predator[i]*(self.predgrow*self.prey[i]*(1.0 - self.predator[i]/self.predator_capacity) - self.preddie)
             self.prey[i+1] = self.prey[i] + self.dt*self.prey[i]*self.preygrow*(1.0-self.prey[i]/self.prey_capacity) - self.prey[i]*self.predator[i]*self.preydie
-            #print self.time[i], self.predator[i],self.prey[i]
+            #print(self.time[i], self.predator[i],self.prey[i])
     
     def integrate_stochastic(self):
         '''integrate vanilla Lotka-Volterra system with stochastic predator death rate (simple Euler method)'''
