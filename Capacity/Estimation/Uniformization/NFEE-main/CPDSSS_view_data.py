@@ -43,24 +43,3 @@ fig2.tight_layout()
 
 
 
-
-
-
-plt.switch_backend('agg')
-            
-fig, ax = plt.subplots(1,1)
-# ax.set_yscale("log")
-            
-# ax.plot([N*t for t in T_range], H_KL, marker='o', color='b', linestyle=':', label='H KL', mfc='none')
-# ax.plot(T_range, np.sqrt(mse4[0]), marker='o', color='b', linestyle='-', label='UM-tKSG', mfc='none')   
-dims=[N*t for t in T_range] 
-# ax[0].plot(dims, MI_tKL, marker='x', color='r', linestyle=':', label='MI individual')
-ax.plot(dims, MI_means, marker='x', color='b', linestyle='-', label='MI means')
-# ax.plot(T_range, np.sqrt(mse2[0]), marker='x', color='r', linestyle='-', label='KSG')
-        
-ax.set_xlabel('dimension')
-ax.set_ylabel('Mutual Information')
-ax.set_title("Individual conditional MI")
-plt.savefig('figs/MI_cond_CPDSSSS')
-
-
