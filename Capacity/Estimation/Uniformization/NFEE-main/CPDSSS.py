@@ -5,10 +5,14 @@ import util.io
 import os
 
 from ent_est import entropy
+from ent_est.entropy import tkl
+
 from simulators.complex import mvn
 from simulators.CPDSSS_models import CPDSSS
 
-
+"""
+Functions for generating the model and entropy
+"""
 def UM_KL_Gaussian(x):
     std_x=np.std(x,axis=0)
     z=stats.norm.cdf(x)
@@ -33,29 +37,39 @@ def create_model(n_inputs, rng):
 def calc_entropy(sim_model,base_samples=None,n_samples=100):
     net=create_model(sim_model.x_dim, rng=np.random)
     estimator = entropy.UMestimator(sim_model,net)
-    estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2))
-    estimator.samples = estimator.samples if base_samples is None else base_samples
-    H,_,_,_ = estimator.calc_ent(reuse_samples=True, method='umtkl')
+    H=-1
+    #redo learning if calc_ent returns error
+    while H==-1:
+        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2))
+        estimator.samples = estimator.samples if base_samples is None else base_samples
+        reuse = False if base_samples is None else True
+        H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
     return H
 
 
+"""
+Parameters for CPDSSS
+"""
 N=2
 L=2
 M=int(N/L)
 P=N-int(N/L)
+max_T=9
+T_range = range(N,max_T+1)
+
+"""
+Number of iterations
+"""
+n_trials = 100 #iterations to average
+n_samples = 1000 #samples to generate per entropy calc
+completed_iter=0
 
 
-
-T_range = range(N,10)
-n_trials = 100
-n_samples = 1000
-
-
-
+"""
+Initialize arrays
+"""
 MI_tKL = np.empty(len(T_range))
 MI_means = np.empty(len(T_range))
-
-
 MI_cum = np.empty((n_trials,len(T_range)))
 H_gxc_cum=np.empty((n_trials,len(T_range)))
 H_xxc_cum=np.empty((n_trials,len(T_range)))
@@ -65,24 +79,8 @@ H_cond_cum=np.empty((n_trials,len(T_range)))
         
 
 
-sim_G = mvn(rho=0.0, dim_x=N*M)
-sim_Q = mvn(rho=0.0, dim_x=N*P)
 
 for i in range(n_trials):        
-
-    # MI_cum = np.empty(n_trials)
-    # sim_mdl = mvn(rho=0.0, dim_x=d)
-    
-    # sim_S = mvn(rho=0.0, dim_x=int(M*T))
-    # sim_V = mvn(rho=0.0, dim_x=int(P*T))
-    
-    
-    
-    # cal2 = np.empty(n_trials)
-    # cal3 = np.empty(n_trials)
-    # cal4 = np.empty(n_trials)
-
-
             
     for k, T in enumerate(T_range):
         sim_model = CPDSSS(T,N,L)
@@ -95,21 +93,21 @@ for i in range(n_trials):
 
 
 
-        if(T>N): #Use previous calculations
-            H_gxc = H_joint
-            H_cond = H_xxc
-        else:
-            first_tx_model = CPDSSS(T-1,N,L)
+        # if(T>N): #Use previous calculations
+        #     H_gxc = H_joint
+        #     H_cond = H_xxc
+        # else:
+        first_tx_model = CPDSSS(T-1,N,L)
 
-            first_tx_model.set_use_G_flag(g_flag=True)
-            print("-"*25 + "\ncalculating H_gxc, T: {0}, iter: {1}".format(T,i+1))
-            print("-"*25)
-            H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=gxc)
+        first_tx_model.set_use_G_flag(g_flag=True)
+        print("-"*25 + "\ncalculating H_gxc, T: {0}, iter: {1}".format(T,i+1))
+        print("-"*25)
+        H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=gxc)
 
-            first_tx_model.set_use_G_flag(g_flag=False)
-            print("-"*25 + "\ncalculating H_cond, T: {0}, iter: {1}".format(T,i+1))
-            print("-"*25)
-            H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=X_cond)
+        first_tx_model.set_use_G_flag(g_flag=False)
+        print("-"*25 + "\ncalculating H_cond, T: {0}, iter: {1}".format(T,i+1))
+        print("-"*25)
+        H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=X_cond)
             # H_gxc = UM_KL_Gaussian(np.concatenate((xCond_term,g_term),axis=1))
             # H_cond = UM_KL_Gaussian(xCond_term)
 
@@ -129,7 +127,8 @@ for i in range(n_trials):
         H_joint_cum[i,k]=H_joint
         H_cond_cum[i,k]=H_cond
         MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
-        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum), os.path.join('temp_data', 'CPDSSS_data_dump')) 
+        completed_iter = completed_iter if k != max_T else completed_iter + 1
+        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join('temp_data', 'CPDSSS_data_dump')) 
         # z=stats.norm.cdf(xT_term)
         # H_xxc = tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(xT_term),axis=1)))
 

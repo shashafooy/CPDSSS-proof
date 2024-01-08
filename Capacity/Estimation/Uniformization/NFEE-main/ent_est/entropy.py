@@ -383,7 +383,7 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             patience=patience,
             monitor_every=monitor_every,
             logger=logger,
-            tol=0.001
+            tol=0.0001
         )
 
     else:
