@@ -127,7 +127,7 @@ for i in range(n_trials):
         H_joint_cum[i,k]=H_joint
         H_cond_cum[i,k]=H_cond
         MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
-        completed_iter = completed_iter if k != max_T else completed_iter + 1
+        completed_iter = completed_iter if k != np.size(T_range)-1 else completed_iter + 1
         util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join('temp_data', 'CPDSSS_data_dump')) 
         # z=stats.norm.cdf(xT_term)
         # H_xxc = tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(xT_term),axis=1)))

@@ -524,9 +524,13 @@ class UMestimator:
         #remove extreme data that isn't within 99.9999% of the norm dist
         idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
         u = u[idx]
-        
+        if(u.shape[0]<0.01*self.samples.shape[0]):
+            return -1,0,0,0
         if method == 'umtkl': 
             z = stats.norm.cdf(u)
+            if(z.shape[0]<0.01*self.samples.shape[0]):
+                #return fitting error if size of z is < 10% of original data
+                return -1,0,0,0
             correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
             h = tkl(z, k=k) + correction1
             
