@@ -5,3 +5,36 @@ scikit_learn==1.3.2
 scipy==1.11.4
 seaborn==0.13.1
 Theano==1.0.5
+
+
+Windows Install (WIP)
+https://hsaghir.github.io/data_science/theano-on-windows/
+https://datafireball.com/2016/12/06/theano-installation-on-windows/
+
+pip install Theano
+conda install mingw libpython
+pip install pipwin
+pipwin install pycuda
+Microsoft 10 SDK https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/
+Add the following system environment variables (search environment variables > edit/new var)
+    LIB=C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\um\x64;C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\ucrt\x64
+    INCLUDE=C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\ucrt\x64
+Add .theanorc to \home or C:\Users\{username}
+Linux
+   [global]
+    device = cuda
+    floatx = float32
+
+    [cuda]
+    root = /usr/local/cuda
+
+    [dnn] 
+    enabled = False 
+Windows
+    [global]
+    device=gpu
+    floatx=float32
+    [nvcc]
+    fastmath = True
+    flags=-LC:\Users\{username}\anaconda3\libs
+    compiler_bindir=
