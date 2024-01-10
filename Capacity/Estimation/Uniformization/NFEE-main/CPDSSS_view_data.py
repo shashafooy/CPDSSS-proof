@@ -4,16 +4,34 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join('temp_data', 'CPDSSS_data_dump'))
+"""
+Load and combine all datasets
+"""
 
-valid_iter = range(0,completed_iter)
-MI_cum = MI_cum[valid_iter,:]
+filepath='temp_data/CPDSSS_data/1k_samples'
+for filename in os.listdir(filepath):
+    filename=os.path.splitext(filename)[0] #remove extention
+    T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
 
-MI_mean = np.mean(MI_cum[0:completed_iter,:],axis=0)
-H_gxc_mean = np.mean(H_gxc_cum[0:completed_iter,:],axis=0)
-H_xxc_mean = np.mean(H_xxc_cum[0:completed_iter,:],axis=0)
-H_joint_mean = np.mean(H_joint_cum[0:completed_iter,:],axis=0)
-H_cond_mean = np.mean(H_cond_cum[0:completed_iter,:],axis=0)
+    if 'MI_tot' not in locals():
+        MI_tot = np.empty((0,np.size(T_range)))
+        H_gxc_tot = np.empty((0,np.size(T_range)))
+        H_xxc_tot = np.empty((0,np.size(T_range)))
+        H_joint_tot = np.empty((0,np.size(T_range)))
+        H_cond_tot = np.empty((0,np.size(T_range)))
+
+    iter = range(0,completed_iter)
+    MI_tot = np.append(MI_tot,MI_cum[iter,:],axis=0)
+    H_gxc_tot=np.append(H_gxc_tot,H_gxc_cum[iter,:],axis=0)
+    H_xxc_tot=np.append(H_xxc_tot,H_xxc_cum[iter,:],axis=0)
+    H_joint_tot=np.append(H_joint_tot,H_joint_cum[iter,:],axis=0)
+    H_cond_tot=np.append(H_cond_tot,H_cond_cum[iter,:],axis=0)
+
+MI_mean = np.mean(MI_tot,axis=0)
+H_gxc_mean = np.mean(H_gxc_tot,axis=0)
+H_xxc_mean = np.mean(H_xxc_tot,axis=0)
+H_joint_mean = np.mean(H_joint_tot,axis=0)
+H_cond_mean = np.mean(H_cond_tot,axis=0)
 
 
 

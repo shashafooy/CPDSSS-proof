@@ -35,11 +35,11 @@ def create_model(n_inputs, rng):
             )
 
 def calc_entropy(sim_model,base_samples=None,n_samples=100):
-    net=create_model(sim_model.x_dim, rng=np.random)
-    estimator = entropy.UMestimator(sim_model,net)
     H=-1
     #redo learning if calc_ent returns error
     while H==-1:
+        net=create_model(sim_model.x_dim, rng=np.random)
+        estimator = entropy.UMestimator(sim_model,net)
         estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2))
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
@@ -77,9 +77,18 @@ H_joint_cum=np.empty((n_trials,len(T_range)))
 H_cond_cum=np.empty((n_trials,len(T_range)))
 
         
+"""
+File names
+"""
+from datetime import date
+today=date.today()
+filename="CPDSSS_data_dump(XYZ_iter)({0}k_samples)({1})".format(int(n_samples/1000),today.strftime("%b_%d"))
+filename=os.path.join('temp_data', filename)
 
 
-
+"""
+Generate data
+"""
 for i in range(n_trials):        
             
     for k, T in enumerate(T_range):
@@ -128,7 +137,7 @@ for i in range(n_trials):
         H_cond_cum[i,k]=H_cond
         MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
         completed_iter = completed_iter if k != np.size(T_range)-1 else completed_iter + 1
-        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join('temp_data', 'CPDSSS_data_dump')) 
+        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), filename) 
         # z=stats.norm.cdf(xT_term)
         # H_xxc = tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(xT_term),axis=1)))
 
