@@ -46,6 +46,13 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
     return H
 
+def update_filename(path,old_name,n_samples,today,iter):
+    new_name ="CPDSSS_data_dump({0}_iter)({1}k_samples)({2})".format(iter,int(n_samples/1000),today)
+    os.rename(os.path.join(path,old_name + '.pkl'),os.path.join(path,new_name + '.pkl'))
+    return new_name
+
+
+
 
 """
 Parameters for CPDSSS
@@ -54,14 +61,14 @@ N=2
 L=2
 M=int(N/L)
 P=N-int(N/L)
-max_T=9
-T_range = range(N,max_T+1)
+max_T=10
+T_range = range(5,max_T+1)
 
 """
 Number of iterations
 """
 n_trials = 100 #iterations to average
-n_samples = 1000 #samples to generate per entropy calc
+n_samples = 50000 #samples to generate per entropy calc
 completed_iter=0
 
 
@@ -81,9 +88,10 @@ H_cond_cum=np.empty((n_trials,len(T_range)))
 File names
 """
 from datetime import date
-today=date.today()
-filename="CPDSSS_data_dump(XYZ_iter)({0}k_samples)({1})".format(int(n_samples/1000),today.strftime("%b_%d"))
-filename=os.path.join('temp_data', filename)
+today=date.today().strftime("%b_%d")
+filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
+path = 'temp_data'
+# filename=os.path.join(path, filename)
 
 
 """
@@ -136,8 +144,12 @@ for i in range(n_trials):
         H_joint_cum[i,k]=H_joint
         H_cond_cum[i,k]=H_cond
         MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
-        completed_iter = completed_iter if k != np.size(T_range)-1 else completed_iter + 1
-        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), filename) 
+        if k== np.size(T_range):
+            completed_iter = completed_iter + 1
+            filename = update_filename(path,filename,n_sims,today,completed_iter)    
+        # completed_iter = completed_iter if k != np.size(T_range)-1 else completed_iter + 1
+        
+        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(path,filename)) 
         # z=stats.norm.cdf(xT_term)
         # H_xxc = tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(xT_term),axis=1)))
 
