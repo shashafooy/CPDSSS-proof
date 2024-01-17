@@ -6,6 +6,26 @@ scipy==1.11.4
 seaborn==0.13.1
 Theano==1.0.5
 python=3.9.7
+conda install -c conda-forge pygpu theano
+
+
+Linux Install
+conda create -n unif
+https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#debian
+https://developer.nvidia.com/cuda-downloads
+    follow instructions for required command to install cuda
+Install cudnn
+    https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html#installlinux-tar
+    https://developer.nvidia.com/rdp/cudnn-download
+    extract tar files to /usr/local/cuda directory
+    Make sure there are no conflits with anaconda cudnn files
+        Search for cudnn.h libsudnn.so (include,lib) in anaconda and replace those with the .tar versions
+Troubleshooting:
+    Remove ALL nvidia drivers
+    https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#removing-cuda-toolkit-and-driver
+    Reinstall nvidia driver, CUDA, and cudnn
+
+
 
 
 
@@ -36,7 +56,7 @@ Linux
     root = /usr/local/cuda
 
     [dnn] 
-    enabled = False 
+    enabled = True 
 Windows
     [global]
     device=cuda
