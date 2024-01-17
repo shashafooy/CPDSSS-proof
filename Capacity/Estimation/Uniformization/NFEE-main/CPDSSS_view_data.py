@@ -7,11 +7,17 @@ import numpy as np
 """
 Load and combine all datasets
 """
+max_T=0
+min_T=0
 
-filepath='temp_data/CPDSSS_data/1k_samples'
+
+filepath='temp_data/CPDSSS_data/50k_samples'
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
     T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
+
+    max_T = max_T if max(T_range) <= max_T else max(T_range)
+    min_T = min_T if min(T_range) >= min_T else min(T_range)
 
     if 'MI_tot' not in locals():
         MI_tot = np.empty((0,np.size(T_range)))
@@ -19,6 +25,7 @@ for filename in os.listdir(filepath):
         H_xxc_tot = np.empty((0,np.size(T_range)))
         H_joint_tot = np.empty((0,np.size(T_range)))
         H_cond_tot = np.empty((0,np.size(T_range)))
+
 
     iter = range(0,completed_iter)
     MI_tot = np.append(MI_tot,MI_cum[iter,:],axis=0)
