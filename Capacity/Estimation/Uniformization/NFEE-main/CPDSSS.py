@@ -144,7 +144,7 @@ for i in range(n_trials):
         H_joint_cum[i,k]=H_joint
         H_cond_cum[i,k]=H_cond
         MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
-        if k== np.size(T_range):
+        if k== np.size(T_range)-1:
             completed_iter = completed_iter + 1
             filename = update_filename(path,filename,n_sims,today,completed_iter)    
         # completed_iter = completed_iter if k != np.size(T_range)-1 else completed_iter + 1
