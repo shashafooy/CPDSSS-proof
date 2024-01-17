@@ -62,7 +62,7 @@ L=2
 M=int(N/L)
 P=N-int(N/L)
 max_T=10
-T_range = range(5,max_T+1)
+T_range = range(N,max_T+1)
 
 """
 Number of iterations
