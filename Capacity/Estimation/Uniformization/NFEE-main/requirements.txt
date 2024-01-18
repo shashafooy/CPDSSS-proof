@@ -18,6 +18,11 @@ Install cudnn
     https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html#installlinux-tar
     https://developer.nvidia.com/rdp/cudnn-download
     extract tar files to /usr/local/cuda directory
+        $ cd folder/extracted/contents
+        $ sudo cp include/cudnn.h /usr/local/cuda/include
+        $ sudo cp lib64/libcudnn* /usr/local/cuda/lib64
+        $ sudo chmod a+r /usr/local/cuda/lib64/libcudnn*
+
     Make sure there are no conflits with anaconda cudnn files
         Search for cudnn.h libsudnn.so (include,lib) in anaconda and replace those with the .tar versions
 Troubleshooting:
