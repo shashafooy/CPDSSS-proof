@@ -4,6 +4,35 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def append_data(old_data, old_T_range, new_data, new_T_range):
+    """
+    Adjust both datasets to match their T_range before appending
+    """
+    old_width=old_data.shape[1]
+    new_width=new_data.shape[1]
+
+    min_diff = min(old_T_range) - min(new_T_range)
+    if(min_diff < 0): #Pad new data
+        # new_data = np.insert(new_data,range(0,abs(min_diff)),np.empty((1,abs(min_diff))),axis=1)
+        # new_data = np.insert(new_data,range(0,abs(min_diff)),np.nan,axis=1)
+        new_data = np.insert(new_data,[0]*abs(min_diff),np.nan,axis=1)
+    elif(min_diff > 0): #Pad old data
+        # old_data = np.insert(old_data,0:min_diff,np.empty((1,min_diff)),axis=1)
+        #insert nan to first min_diff columns
+        old_data = np.insert(old_data,[0]*min_diff,np.nan,axis=1)
+
+    max_diff = max(old_T_range) - max(new_T_range)
+    if(max_diff > 0): #Pad new data
+        new_data = np.insert(new_data,[new_data.shape[1]]*max_diff,np.nan,axis=1)
+        # new_data = np.append(new_data,np.empty((new_data.shape[0],max_diff)),axis=1)
+    elif(max_diff < 0): #Pad old data
+        old_data = np.insert(old_data,[old_data.shape[1]]*abs(max_diff),np.nan,axis=1)
+        # old_data = np.append(old_data,np.empty((old_data.shape[0],abs(max_diff))),axis=1)
+    
+
+    return np.append(old_data,new_data,axis=0), range(min(old_T_range[0],new_T_range[0]),max(old_T_range[-1],new_T_range[-1])+1)
+
+
 """
 Load and combine all datasets
 """
@@ -11,13 +40,12 @@ max_T=0
 min_T=0
 
 
-filepath='temp_data/CPDSSS_data/50k_samples'
+#util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(path,filename)) 
+
+filepath='temp_data/CPDSSS_data/1k_samples'
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
     T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
-
-    max_T = max_T if max(T_range) <= max_T else max(T_range)
-    min_T = min_T if min(T_range) >= min_T else min(T_range)
 
     if 'MI_tot' not in locals():
         MI_tot = np.empty((0,np.size(T_range)))
@@ -25,21 +53,26 @@ for filename in os.listdir(filepath):
         H_xxc_tot = np.empty((0,np.size(T_range)))
         H_joint_tot = np.empty((0,np.size(T_range)))
         H_cond_tot = np.empty((0,np.size(T_range)))
+        old_range = T_range
+
+    # append_data(MI_tot,T_range,H_gxc_tot,range(2,8))
+    # max_T = max_T if max(T_range) <= max_T else max(T_range)
+    # min_T = min_T if min(T_range) >= min_T else min(T_range)
 
 
     iter = range(0,completed_iter)
-    MI_tot = np.append(MI_tot,MI_cum[iter,:],axis=0)
-    H_gxc_tot=np.append(H_gxc_tot,H_gxc_cum[iter,:],axis=0)
-    H_xxc_tot=np.append(H_xxc_tot,H_xxc_cum[iter,:],axis=0)
-    H_joint_tot=np.append(H_joint_tot,H_joint_cum[iter,:],axis=0)
-    H_cond_tot=np.append(H_cond_tot,H_cond_cum[iter,:],axis=0)
+    MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
+    H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
+    H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
+    H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
+    H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
 
-MI_mean = np.mean(MI_tot,axis=0)
-H_gxc_mean = np.mean(H_gxc_tot,axis=0)
-H_xxc_mean = np.mean(H_xxc_tot,axis=0)
-H_joint_mean = np.mean(H_joint_tot,axis=0)
-H_cond_mean = np.mean(H_cond_tot,axis=0)
-
+MI_mean = np.nanmean(MI_tot,axis=0)
+H_gxc_mean = np.nanmean(H_gxc_tot,axis=0)
+H_xxc_mean = np.nanmean(H_xxc_tot,axis=0)
+H_joint_mean = np.nanmean(H_joint_tot,axis=0)
+H_cond_mean = np.nanmean(H_cond_tot,axis=0)
+T_range = old_range
 
 
 
