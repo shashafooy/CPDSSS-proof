@@ -42,7 +42,7 @@ min_T=0
 
 #util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(path,filename)) 
 
-filepath='temp_data/CPDSSS_data/1k_samples'
+filepath='temp_data/CPDSSS_data/50k_samples'
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
     T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
@@ -74,6 +74,27 @@ H_joint_mean = np.nanmean(H_joint_tot,axis=0)
 H_cond_mean = np.nanmean(H_cond_tot,axis=0)
 T_range = old_range
 
+
+'''
+Experiment combining data but with offset of 1 (like reusing old data). 
+The target entropy should remain the same and this gives better accuracy
+'''
+H_gxc_mean = np.nanmean(np.append(H_gxc_tot[:,:-1],H_joint_tot[:,1:],axis=1),axis=0)
+temp = np.empty(H_gxc_tot.shape)*np.nan
+temp=np.insert(H_joint_tot[:,:-1],0,np.nan,axis=1) #insert column of nan to align matrices
+H_gxc_mean = np.nanmean(np.append(H_gxc_tot,temp,axis=0),axis=0)
+
+# temp = temp = np.empty(H_joint_tot.shape)*np.nan
+temp=np.insert(H_gxc_tot[:,1:],H_joint_tot.shape[1]-1,np.nan,axis=1)
+H_joint_mean = np.nanmean(np.append(temp,H_joint_tot,axis=0),axis=0)
+
+temp=np.insert(H_cond_tot[:,1:],H_joint_tot.shape[1]-1,np.nan,axis=1) #insert column of nan to align matrices
+H_xxc_mean = np.nanmean(np.append(H_xxc_tot,temp,axis=0),axis=0)
+
+temp=np.insert(H_xxc_tot[:,:-1],0,np.nan,axis=1)
+H_cond_mean = np.nanmean(np.append(temp,H_cond_tot,axis=0),axis=0)
+
+MI_mean = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
 
 
 
