@@ -71,7 +71,7 @@ class SGD_Template:
         self.trn_loss = float('inf')
         self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
 
-    def train(self, minibatch=None, tol=None, maxepochs=None, monitor_every=None, patience=None, logger=sys.stdout, show_progress=False, val_in_same_plot=True):
+    def train(self, minibatch=None, tol=None, maxepochs=None, monitor_every=None, patience=None, logger=sys.stdout, show_progress=False, val_in_same_plot=True, val_Tol=None):
         """
         Trains the model.
         :param minibatch: minibatch size
@@ -82,6 +82,7 @@ class SGD_Template:
         :param logger: logger for logging messages. If None, no logging takes place
         :param show_progress: if True, plot training and validation progress
         :param val_in_same_plot: if True, plot validation progress in same plot as training progress
+        :param val_tol: Tolerance to decide if validation loss has improved enough
         :return: None
         """
 
@@ -127,10 +128,21 @@ class SGD_Template:
                     patience_left -= 1
 
                     if val_loss < self.best_val_loss:
-                        self.best_val_loss = val_loss
-                        self.checkpointer.checkpoint()
+                        val_diff = self.best_val_loss - val_loss
+
+                        #Save best validation if above tolerance
+                        if val_Tol is not None and val_diff < val_Tol:
+                            self.best_val_loss = self.best_val_loss
+                            patience_left = patience_left
+                        else:
+                            self.best_val_loss = val_loss
+                            patience_left = patience #only reset patience if the improvement is larger than tolerance
+                            logger.write('>') #marking for best epoch
+                            
+                        self.checkpointer.checkpoint() #Still save best epoch, even if improvement is minor
                         best_epoch = epoch
-                        patience_left = patience
+                        #only reset patience if the improvement is larger than tolerance
+                        # patience_left = patience 
 
                 # monitor progress
                 if show_progress:
@@ -148,6 +160,10 @@ class SGD_Template:
             if (tol is not None and abs(diff) < tol) or iter >= maxiter or patience_left <= 0:
                 if self.do_validation: self.checkpointer.restore()
                 if self.set_batch_norm_stats is not None: self.set_batch_norm_stats()
+                if tol is not None and abs(diff) < tol:
+                    logger.write('Below training tolerance\n')
+                if patience_left<=0:
+                    logger.write('Ran out of patience\n')
                 break
 
         # plot progress

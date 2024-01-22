@@ -350,9 +350,26 @@ def est_alpha_for_lnc(dim, k, N=5e5, eps=5e-3, rng=np.random):
     
     
     
-def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random):
-    """
-    Train model to learn the density p(x).
+def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None):
+    """    Train model to learn the density p(x).
+
+
+    Args:
+        model (_type_): model to train
+        xs (_type_): samples to train on
+        ws (_type_, optional): weights. Defaults to None.
+        regularizer (_type_, optional): _description_. Defaults to None.
+        val_frac (float, optional): _description_. Defaults to 0.05.
+        step (_type_, optional): _description_. Defaults to ss.Adam(a=1.e-4).
+        minibatch (int, optional): _description_. Defaults to 100.
+        patience (int, optional): Epochs to try after best validation case. Defaults to 20.
+        monitor_every (int, optional): _description_. Defaults to 1.
+        logger (_type_, optional): _description_. Defaults to sys.stdout.
+        rng (_type_, optional): _description_. Defaults to np.random.
+        val_tol (_type_, optional): Tolerance if validation loss has improved. Defaults to None.
+
+    Returns:
+        _type_: Trained model
     """
 
     xs = np.asarray(xs, np.float32)
@@ -383,7 +400,7 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             patience=patience,
             monitor_every=monitor_every,
             logger=logger,
-            tol=0.0001
+            val_Tol=val_tol
         )
 
     else:
@@ -499,7 +516,16 @@ class UMestimator:
         self.n_samples = None
         self.xdim = None
         
-    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random):
+    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None):
+        """Learn the transformation to push a gaussian towards target distribution
+
+        Args:
+            n_samples (int): number of samples
+            logger (_type_, optional): output log type. Defaults to sys.stdout.
+            rng (_type_, optional): Defaults to np.random.
+            patience (int, optional): How many epochs to try after finding the best validation. Defaults to 10.
+            val_tol (int, optional): Tolerance of validation loss to decide when the model improved. Defaults to None.
+        """
         
         if self.samples is None:
             xs = self.sim_model.sim(n_samples)
@@ -510,7 +536,7 @@ class UMestimator:
         
         monitor_every = min(10 ** 5 / float(n_samples), 1.0)
         logger.write('training model...\n')
-        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=10)
+        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=patience, val_tol=val_tol)
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtkl'):
