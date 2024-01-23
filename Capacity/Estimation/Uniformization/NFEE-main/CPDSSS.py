@@ -41,7 +41,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
     while H==-1:
         net=create_model(sim_model.x_dim, rng=np.random)
         estimator = entropy.UMestimator(sim_model,net)
-        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2),val_tol=val_tol,patience=10)
+        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2),val_tol=val_tol,patience=5)
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
         H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
