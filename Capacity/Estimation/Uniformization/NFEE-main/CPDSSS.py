@@ -36,7 +36,7 @@ def create_model(n_inputs, rng):
 
 def calc_entropy(sim_model,base_samples=None,n_samples=100):
     H=-1
-    val_tol = 0.005
+    val_tol = 0.01
     #redo learning if calc_ent returns error
     while H==-1:
         net=create_model(sim_model.x_dim, rng=np.random)
@@ -47,9 +47,17 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
     return H
 
-def update_filename(path,old_name,n_samples,today,iter):
+def update_filename(path,old_name,n_samples,today,iter,rename=True):
     new_name ="CPDSSS_data_dump({0}_iter)({1}k_samples)({2})".format(iter,int(n_samples/1000),today)
-    os.rename(os.path.join(path,old_name + '.pkl'),os.path.join(path,new_name + '.pkl'))
+    unique_name=new_name
+    #Check if name already exists, append number to end until we obtain new name
+    i=1
+    while os.path.isfile(os.path.join(path,unique_name + '.pkl')):
+        unique_name = new_name + '_' + str(i)        
+        i=i+1
+    new_name=unique_name 
+    if(rename):
+        os.rename(os.path.join(path,old_name + '.pkl'),os.path.join(path,new_name + '.pkl'))
     return new_name
 
 
@@ -91,8 +99,10 @@ File names
 from datetime import date
 today=date.today().strftime("%b_%d")
 filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
-path = 'temp_data'
+path = 'temp_data/CPDSSS_data/50k_high_epoch'
 # filename=os.path.join(path, filename)
+filename = update_filename(path,'',n_samples,today,completed_iter,rename=False)    #fix filename if file already exists
+# filename = update_filename(path,filename,n_samples,today,1) 
 
 
 """
@@ -149,8 +159,8 @@ for i in range(n_trials):
             completed_iter = completed_iter + 1
             filename = update_filename(path,filename,n_sims,today,completed_iter)    
         # completed_iter = completed_iter if k != np.size(T_range)-1 else completed_iter + 1
-        
-        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(path,filename)) 
+        ''' try using i as completed iter. matrix row is not complete, but this saves at least some data'''
+        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,i), os.path.join(path,filename)) 
         # z=stats.norm.cdf(xT_term)
         # H_xxc = tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(xT_term),axis=1)))
 
