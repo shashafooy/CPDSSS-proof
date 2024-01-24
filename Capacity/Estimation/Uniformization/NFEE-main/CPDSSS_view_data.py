@@ -40,7 +40,7 @@ max_T=0
 min_T=0
 
 
-#util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(path,filename)) 
+#util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename)) 
 
 filepath='temp_data/CPDSSS_data/50k_samples'
 for filename in os.listdir(filepath):

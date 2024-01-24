@@ -7,5 +7,6 @@ token.txt
 covar_X_given_S.mat
 Repeated Q/rotation.mat
 
-*pyc
+Capacity/Estimation/Uniformization/NFEE-main/**/*pyc
 Capacity/Estimation/Uniformization/NFEE-main/ent_est/__pycache__/entropy.cpython-311.pyc
+Capacity/Estimation/Uniformization/NFEE-main/temp_data/CPDSSS_data/50k_high_epoch/CPDSSS_data_dump(2_iter)(50k_samples)(Jan_22).pkl
