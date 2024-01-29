@@ -36,7 +36,7 @@ def create_model(n_inputs, rng):
 
 def calc_entropy(sim_model,base_samples=None,n_samples=100):
     H=-1
-    val_tol = 0.01
+    val_tol = 0.1
     #redo learning if calc_ent returns error
     while H==-1:
         net=create_model(sim_model.x_dim, rng=np.random)
@@ -99,7 +99,7 @@ File names
 from datetime import date
 today=date.today().strftime("%b_%d")
 filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
-path = 'temp_data/CPDSSS_data/50k_high_epoch'
+path = 'temp_data/CPDSSS_data/50k_tol_0.1_patience_10'
 # filename=os.path.join(path, filename)
 filename = update_filename(path,'',n_samples,today,completed_iter,rename=False)    #fix filename if file already exists
 # filename = update_filename(path,filename,n_samples,today,1) 
