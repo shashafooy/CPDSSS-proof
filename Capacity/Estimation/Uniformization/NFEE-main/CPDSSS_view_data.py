@@ -41,8 +41,9 @@ min_T=0
 
 
 #util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename)) 
-
-filepath='temp_data/CPDSSS_data/50k_samples'
+base_path = 'temp_data/CPDSSS_data/'
+filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
+filepath=filepaths[1]
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
     T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
@@ -96,6 +97,8 @@ H_cond_mean = np.nanmean(np.append(temp,H_cond_tot,axis=0),axis=0)
 
 MI_mean = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
 
+import math 
+H_G = 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.eye(2)))
 
 
 fig,ax=plt.subplots(2,2)
@@ -114,27 +117,39 @@ fig.tight_layout()
 
 fig1,ax1=plt.subplots(2,2)
 fig1.suptitle('Entropy increase per added transmission')
+
 diff=H_gxc_mean[1:]-H_gxc_mean[0:-1]
-yerr = np.std(H_gxc_tot[:,1:],axis=0) + np.std(H_gxc_tot[:,:-1],axis=0)
+yerr = np.nanvar(H_gxc_tot[:,1:],axis=0) + np.nanvar(H_gxc_tot[:,:-1],axis=0)
 ax1[0,0].cla(),ax1[0,0].errorbar(T_range[:-1],diff,yerr=yerr)
 ax1[0,0].set_title('H1(g,x_cond)'),ax1[0,0].set_ylabel('delta H()'),ax1[0,0].set_xlabel('T')
-ax1[1,0].cla(),ax1[1,0].errorbar(T_range[:-1],H_joint_mean[1:]-H_joint_mean[0:-1])
+
+diff=H_joint_mean[1:]-H_joint_mean[0:-1]
+yerr = np.nanvar(H_joint_tot[:,1:],axis=0) + np.nanvar(H_joint_tot[:,:-1],axis=0)
+ax1[1,0].cla(),ax1[1,0].errorbar(T_range[:-1],diff,yerr=yerr)
 ax1[1,0].set_title('H1(g,x,x_cond)'),ax1[1,0].set_ylabel('delta H()'),ax1[1,0].set_xlabel('T')
-ax1[0,1].cla(),ax1[0,1].errorbar(T_range[:-1],H_cond_mean[1:]-H_cond_mean[0:-1])
+
+diff=H_cond_mean[1:]-H_cond_mean[0:-1]
+yerr = np.nanvar(H_cond_tot[:,1:],axis=0) + np.nanvar(H_cond_tot[:,:-1],axis=0)
+ax1[0,1].cla(),ax1[0,1].errorbar(T_range[:-1],diff,yerr=yerr)
 ax1[0,1].set_title('H1(x_cond)'),ax1[0,1].set_ylabel('delta H()'),ax1[0,1].set_xlabel('T')
-ax1[1,1].cla(),ax1[1,1].errorbar(T_range[:-1],H_xxc_mean[1:]-H_xxc_mean[0:-1])
+
+diff=H_xxc_mean[1:]-H_xxc_mean[0:-1]
+yerr = np.nanvar(H_xxc_tot[:,1:],axis=0) + np.nanvar(H_xxc_tot[:,:-1],axis=0)
+ax1[1,1].cla(),ax1[1,1].errorbar(T_range[:-1],diff,yerr=yerr)
 ax1[1,1].set_title('H1(x,x_cond)'),ax1[1,1].set_ylabel('delta H()'),ax1[1,1].set_xlabel('T')
 
 fig.tight_layout()
 
 fig2,ax2=plt.subplots(1,2)
 ax2[0].cla(),ax2[0].plot(T_range,MI_mean),ax2[0].set_title('MI increase per T'),ax2[0].set_xlabel('T')
-ax2[1].cla(),ax2[1].plot(T_range,np.cumsum(MI_mean)),ax2[1].set_title('total MI'),ax2[1].set_xlabel('T')
+ax2[1].cla(),ax2[1].plot(T_range,np.cumsum(MI_mean))
+ax2[1].axhline(y=H_G,linestyle='dashed', label = 'H(G)'),ax2[1].set_title('total MI'),ax2[1].set_xlabel('T')
+
 fig2.tight_layout()
 
 fig3,ax3=plt.subplots(1,2)
-ax3[0].cla(),ax3[0].errorbar(T_range,MI_mean,yerr=np.var(MI_tot,axis=0)),ax3[0].set_title('MI increase per T'),ax3[0].set_xlabel('T')
-ax3[1].cla(),ax3[1].errorbar(T_range,np.cumsum(MI_mean),yerr=np.cumsum(np.var(MI_tot,axis=0))),ax3[1].set_title('total MI'),ax3[1].set_xlabel('T')
+ax3[0].cla(),ax3[0].errorbar(T_range,MI_mean,yerr=np.nanvar(MI_tot,axis=0)),ax3[0].set_title('MI increase per T, error bars'),ax3[0].set_xlabel('T')
+ax3[1].cla(),ax3[1].errorbar(T_range,np.cumsum(MI_mean),yerr=np.cumsum(np.nanvar(MI_tot,axis=0))),ax3[1].set_title('total MI'),ax3[1].set_xlabel('T')
 fig3.tight_layout()
 
 fig4,ax4=plt.subplots(1,2)
@@ -144,3 +159,4 @@ ax4[1].cla(),ax4[1].scatter(T_matrix,np.cumsum(MI_tot,axis=1)),ax4[1].set_title(
 fig4.tight_layout()
 
 plt.show()
+
