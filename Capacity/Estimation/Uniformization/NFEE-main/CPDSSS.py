@@ -71,8 +71,8 @@ N=2
 L=2
 M=int(N/L)
 P=N-int(N/L)
-max_T=10
-T_range = range(4,max_T)
+max_T=8
+T_range = range(N,max_T)
 
 """
 Number of iterations
