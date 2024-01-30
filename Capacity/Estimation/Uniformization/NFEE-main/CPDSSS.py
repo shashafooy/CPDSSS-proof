@@ -37,11 +37,12 @@ def create_model(n_inputs, rng):
 def calc_entropy(sim_model,base_samples=None,n_samples=100):
     H=-1
     val_tol = 0.1
+    patience=7
     #redo learning if calc_ent returns error
     while H==-1:
         net=create_model(sim_model.x_dim, rng=np.random)
         estimator = entropy.UMestimator(sim_model,net)
-        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2),val_tol=val_tol,patience=5)
+        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2),val_tol=val_tol,patience=patience)
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
         H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
