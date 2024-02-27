@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg as lin
 from simulators.complex import mvn
 class CPDSSS:
     def __init__(self, num_tx, N, L):
@@ -10,6 +11,7 @@ class CPDSSS:
         self.sim_Q = mvn(rho=0.0, dim_x=self.N*self.P)
         self.sim_S = mvn(rho=0.0, dim_x=self.M*self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.P*self.T)
+        self.sim_H = mvn(rho=0.0, dim_x=self.N)
         
         self.set_use_G_flag(g_flag=False)
 
@@ -69,9 +71,43 @@ class CPDSSS:
         G = vals[:,-self.N:]
         return X,X_T,X_cond,G
 
+    def generate_G_Q(N,L,n_samples):
+        epsilon=1e-4
+        h=self.sim_H.sim(n_samples=n_samples) + 1j*np.self.sim_H.sim(n_samples=n_samples)
+        h=h*np.exp(-np.array(range(0,N))/3)
+        # H=lin.toeplitz(h,r=)
+
+'''
+function [G,Q] = generate_G_Q(N,L)
+epsilon=1e-4;
+
+h=(randn(N,1)+1i*randn(N,1)).*exp(-[0:N-1]'/3);
+h=randn(N,1).*exp(-[0:N-1]'/3); % REAL EXPERIMENT
+H=toeplitz(h,[h(1); h(end:-1:2)]);
+E=eye(N/L);E=upsample(E,L);
+
+A=E'*H;
+R=A'*A+epsilon*eye(N);
+a=[1; zeros(N/L-1,1)];
+p=A'*a;
+g=R\p;
+
+G=toeplitz(g,[g(1); g(end:-1:2)]);
+G=G*E;
+
+[V D]=eig(R);
+NNL=N-N/L;
+P=NNL;
+Q=V(:,1:NNL);
+% Q=Q';       %take hermitian to match X=SG + VQ
+% v=(randn(T,P)+1i*randn(T,P))/sqrt(2);
 
 
-
+M=N/L;P=N-M;
+G=randn(N,M);
+Q=randn(N,P);
+end
+'''
 
 class CPDSSS_X:
     """

@@ -19,7 +19,7 @@ def UM_KL_Gaussian(x):
     return tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
 def create_model(n_inputs, rng):
-    n_hiddens=[50,50]
+    n_hiddens=[100,100]
     act_fun='tanh'
     n_mades=10
 
@@ -67,12 +67,12 @@ def update_filename(path,old_name,n_samples,today,iter,rename=True):
 """
 Parameters for CPDSSS
 """
-N=2
+N=4
 L=2
 M=int(N/L)
 P=N-int(N/L)
-max_T=8
-T_range = range(N,max_T)
+max_T=5
+T_range = range(N,N+max_T)
 
 """
 Number of iterations
@@ -100,7 +100,7 @@ File names
 from datetime import date
 today=date.today().strftime("%b_%d")
 filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
-path = 'temp_data/CPDSSS_data/50k_tol_0.1_patience_10'
+path = 'temp_data/CPDSSS_data/50k_N4_L2'
 # filename=os.path.join(path, filename)
 filename = update_filename(path,'',n_samples,today,completed_iter,rename=False)    #fix filename if file already exists
 # filename = update_filename(path,filename,n_samples,today,1) 

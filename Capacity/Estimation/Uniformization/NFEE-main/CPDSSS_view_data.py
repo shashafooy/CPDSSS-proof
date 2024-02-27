@@ -43,52 +43,52 @@ min_T=0
 #util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename)) 
 base_path = 'temp_data/CPDSSS_data/'
 filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
-
-filepath=filepaths[1]
+filepath = base_path+'50k_tol_0.1_patience_10'
+# filepath=filepaths[1]
 idx=0
-for idx,filepath in enumerate(filepaths):
-    for filename in os.listdir(filepath):
-        filename=os.path.splitext(filename)[0] #remove extention
-        T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
+# for idx,filepath in enumerate(filepaths):
+for filename in os.listdir(filepath):
+    filename=os.path.splitext(filename)[0] #remove extention
+    T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
 
-        if 'MI_tot' not in locals():
-            MI_tot = np.empty((0,np.size(T_range)))
-            H_gxc_tot = np.empty((0,np.size(T_range)))
-            H_xxc_tot = np.empty((0,np.size(T_range)))
-            H_joint_tot = np.empty((0,np.size(T_range)))
-            H_cond_tot = np.empty((0,np.size(T_range)))
-            old_range = T_range
+    if 'MI_tot' not in locals():
+        MI_tot = np.empty((0,np.size(T_range)))
+        H_gxc_tot = np.empty((0,np.size(T_range)))
+        H_xxc_tot = np.empty((0,np.size(T_range)))
+        H_joint_tot = np.empty((0,np.size(T_range)))
+        H_cond_tot = np.empty((0,np.size(T_range)))
+        old_range = T_range
 
-        # append_data(MI_tot,T_range,H_gxc_tot,range(2,8))
-        # max_T = max_T if max(T_range) <= max_T else max(T_range)
-        # min_T = min_T if min(T_range) >= min_T else min(T_range)
-
-
-        iter = range(0,completed_iter)
-
-        '''Experiment to only grab T=2,3 from the 50k_samples'''
-        if idx == 1:
-            if T_range[0] >3: #does not contain values for T=2,3
-                continue
-            if T_range[0] == 3 : #only has T=3 
-                T_range = range(3,4)
-            else:
-                T_range = range(2,4)
+    # append_data(MI_tot,T_range,H_gxc_tot,range(2,8))
+    # max_T = max_T if max(T_range) <= max_T else max(T_range)
+    # min_T = min_T if min(T_range) >= min_T else min(T_range)
 
 
-            # T_range=range(2,4)
-            MI_cum=MI_cum[:,0:len(T_range)]
-            H_gxc_cum=H_gxc_cum[:,0:len(T_range)]
-            H_xxc_cum=H_xxc_cum[:,0:len(T_range)]
-            H_joint_cum=H_joint_cum[:,0:len(T_range)]
-            H_cond_cum=H_cond_cum[:,0:len(T_range)]
-        
+    iter = range(0,completed_iter)
 
-        MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
-        H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
-        H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
-        H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
-        H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
+    '''Experiment to only grab T=2,3 from the 50k_samples'''
+    if idx == 1:
+        if T_range[0] >3: #does not contain values for T=2,3
+            continue
+        if T_range[0] == 3 : #only has T=3 
+            T_range = range(3,4)
+        else:
+            T_range = range(2,4)
+
+
+        # T_range=range(2,4)
+        MI_cum=MI_cum[:,0:len(T_range)]
+        H_gxc_cum=H_gxc_cum[:,0:len(T_range)]
+        H_xxc_cum=H_xxc_cum[:,0:len(T_range)]
+        H_joint_cum=H_joint_cum[:,0:len(T_range)]
+        H_cond_cum=H_cond_cum[:,0:len(T_range)]
+    
+
+    MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
+    H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
+    H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
+    H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
+    H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
 
 MI_mean = np.nanmean(MI_tot,axis=0)
 H_gxc_mean = np.nanmean(H_gxc_tot,axis=0)
@@ -117,7 +117,7 @@ H_xxc_mean = np.nanmean(np.append(H_xxc_tot,temp,axis=0),axis=0)
 temp=np.insert(H_xxc_tot[:,:-1],0,np.nan,axis=1)
 H_cond_mean = np.nanmean(np.append(temp,H_cond_tot,axis=0),axis=0)
 
-MI_mean2 = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
+MI_mean = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
 
 import math 
 H_G = 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.eye(2)))
@@ -160,18 +160,22 @@ yerr = np.nanvar(H_xxc_tot[:,1:],axis=0) + np.nanvar(H_xxc_tot[:,:-1],axis=0)
 ax2[1,1].cla(),ax2[1,1].errorbar(T_range[:-1],diff,yerr=yerr)
 ax2[1,1].set_title('H1(x,x_cond)'),ax2[1,1].set_ylabel('delta H()'),ax2[1,1].set_xlabel('T')
 
-fig1.tight_layout()
+fig2.tight_layout()
 
 fig3,ax3=plt.subplots(1,2)
-ax3[0].cla(),ax3[0].plot(T_range,MI_mean),ax3[0].set_title('MI increase per T'),ax3[0].set_xlabel('T')
-ax3[1].cla(),ax3[1].plot(T_range,np.cumsum(MI_mean))
+temp_range = range(1,max(T_range)+1)
+MI_mean=np.insert(MI_mean,0,0)
+ax3[0].cla(),ax3[0].plot(temp_range,MI_mean),ax3[0].set_title('MI increase per T'),ax3[0].set_xlabel('T')
+ax3[1].cla(),ax3[1].plot(temp_range,np.cumsum(MI_mean),label = 'I(X,G)')
 ax3[1].axhline(y=H_G,linestyle='dashed', label = 'H(G)'),ax3[1].set_title('total MI'),ax3[1].set_xlabel('T')
+ax3[1].legend()
 
 fig3.tight_layout()
 
 fig4,ax4=plt.subplots(1,2)
-ax4[0].cla(),ax4[0].errorbar(T_range,MI_mean,yerr=np.nanvar(MI_tot,axis=0)),ax4[0].set_title('MI increase per T, error bars'),ax4[0].set_xlabel('T')
-ax4[1].cla(),ax4[1].errorbar(T_range,np.cumsum(MI_mean),yerr=np.cumsum(np.nanvar(MI_tot,axis=0))),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
+yerr=np.insert(np.nanvar(MI_tot,axis=0),0,0)
+ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean,yerr=yerr),ax4[0].set_title('MI increase per T, error bars'),ax4[0].set_xlabel('T')
+ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr)),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
 fig4.tight_layout()
 
 fig5,ax5=plt.subplots(1,2)

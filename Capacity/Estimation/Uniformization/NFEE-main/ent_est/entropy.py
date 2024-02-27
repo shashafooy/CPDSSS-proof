@@ -539,7 +539,7 @@ class UMestimator:
         learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=patience, val_tol=val_tol)
         logger.write('training done\n')
         
-    def calc_ent(self, k=1, reuse_samples=True, method='umtkl'):
+    def calc_ent(self, k=1, reuse_samples=True, method='umtkl',SHOW_PDF_PLOTS=False):
 
         if reuse_samples:
             samples = self.samples
@@ -550,12 +550,22 @@ class UMestimator:
         #remove extreme data that isn't within 99.9999% of the norm dist
         idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
         u = u[idx]
+
+        if(SHOW_PDF_PLOTS==True):
+            import matplotlib.pyplot as plt
+            fig,ax=plt.subplots()
+            x=np.linspace(stats.norm.ppf(1e-6),stats.norm.ppf(1-1e-6),100)
+            ax.plot(x,stats.norm.pdf(x),lw=5)
+            ax.hist(u,bins=40,density=True)
+
+
+
         if(u.shape[0]<0.01*self.samples.shape[0]):
             return -1,0,0,0
         if method == 'umtkl': 
             z = stats.norm.cdf(u)
             if(z.shape[0]<0.01*self.samples.shape[0]):
-                #return fitting error if size of z is < 10% of original data
+                #return fitting error if size of z is < 1% of original data
                 return -1,0,0,0
             correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
             h = tkl(z, k=k) + correction1
