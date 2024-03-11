@@ -42,7 +42,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
     while H==-1:
         net=create_model(sim_model.x_dim, rng=np.random)
         estimator = entropy.UMestimator(sim_model,net)
-        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim/2),val_tol=val_tol,patience=patience)
+        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim**2 / 2),val_tol=val_tol,patience=patience)
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
         H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
@@ -78,7 +78,7 @@ T_range = range(2,N+max_T)
 Number of iterations
 """
 n_trials = 100 #iterations to average
-n_samples = 50000 #samples to generate per entropy calc
+n_samples = 10000 #samples to generate per entropy calc
 completed_iter=0
 
 
