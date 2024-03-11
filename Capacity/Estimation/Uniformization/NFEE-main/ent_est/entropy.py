@@ -536,7 +536,7 @@ class UMestimator:
         
         monitor_every = min(10 ** 5 / float(n_samples), 1.0)
         logger.write('training model...\n')
-        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=patience, val_tol=val_tol)
+        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=patience, val_tol=val_tol, minibatch=128)
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtkl',SHOW_PDF_PLOTS=False):
