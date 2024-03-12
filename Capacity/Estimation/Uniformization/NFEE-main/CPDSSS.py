@@ -111,6 +111,7 @@ File names
 today=date.today().strftime("%b_%d")
 filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
 path = 'temp_data/CPDSSS_data/50k_N4_L2'
+path = 'temp_data/CPDSSS_data/NlogN_10k_scaling'
 # filename=os.path.join(path, filename)
 filename = update_filename(path,'',n_samples,today,completed_iter,rename=False)    #fix filename if file already exists
 # filename = update_filename(path,filename,n_samples,today,1) 
