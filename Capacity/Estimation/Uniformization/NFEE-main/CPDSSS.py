@@ -47,7 +47,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         net=create_model(sim_model.x_dim, rng=np.random)
         estimator = entropy.UMestimator(sim_model,net)
         start_time = time.time()
-        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim**2 / 2),val_tol=val_tol,patience=patience)
+        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) * 2),val_tol=val_tol,patience=patience)
         end_time = time.time()        
         print("total time: {}",str(timedelta(seconds = int(end_time - start_time))))
         estimator.samples = estimator.samples if base_samples is None else base_samples
@@ -67,6 +67,9 @@ def update_filename(path,old_name,n_samples,today,iter,rename=True):
     if(rename):
         os.rename(os.path.join(path,old_name + '.pkl'),os.path.join(path,new_name + '.pkl'))
     return new_name
+
+def print_border(msg):
+    print("-"*len(msg) + "\n" + msg + "\n" + "-"*len(msg))
 
 
 
@@ -136,27 +139,20 @@ for i in range(n_trials):
         first_tx_model = CPDSSS(T-1,N,L)
 
         first_tx_model.set_use_G_flag(g_flag=True)
-        print("-"*25 + "\ncalculating H_gxc, T: {0}, iter: {1}".format(T,i+1))
-        print("-"*25)
+        print_border("calculating H_gxc, T: {0}, iter: {1}".format(T,i+1))        
         H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=gxc)
 
         first_tx_model.set_use_G_flag(g_flag=False)
-        print("-"*25 + "\ncalculating H_cond, T: {0}, iter: {1}".format(T,i+1))
-        print("-"*25)
+        print_border("calculating H_cond, T: {0}, iter: {1}".format(T,i+1))
         H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=X_cond)
-            # H_gxc = UM_KL_Gaussian(np.concatenate((xCond_term,g_term),axis=1))
-            # H_cond = UM_KL_Gaussian(xCond_term)
 
         sim_model.set_use_G_flag(False)
-        print("-"*25 + "\ncalculating H_xxc, T: {0}, iter: {1}".format(T,i+1))
-        print("-"*25)
+        print_border("calculating H_xxc, T: {0}, iter: {1}".format(T,i+1))
         H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_sims,base_samples=X)
+
         sim_model.set_use_G_flag(True)
-        print("-"*25 + "\ncalculating H_joint, T: {0}, iter: {1}".format(T,i+1))
-        print("-"*25)
+        print_border("calculating H_joint, T: {0}, iter: {1}".format(T,i+1))
         H_joint = calc_entropy(sim_model=sim_model,n_samples=n_sims,base_samples=joint)
-        # H_xxc = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term),axis=1))
-        # H_joint = UM_KL_Gaussian(np.concatenate((xCond_term,xT_term,g_term),axis=1))
 
         H_gxc_cum[i,k]=H_gxc
         H_xxc_cum[i,k]=H_xxc
@@ -166,51 +162,6 @@ for i in range(n_trials):
         if k== np.size(T_range)-1:
             completed_iter = completed_iter + 1
             filename = update_filename(path,filename,n_sims,today,completed_iter)    
-        # completed_iter = completed_iter if k != np.size(T_range)-1 else completed_iter + 1
+        
         ''' try using i as completed iter. matrix row is not complete, but this saves at least some data'''
         util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,i), os.path.join(path,filename)) 
-        # z=stats.norm.cdf(xT_term)
-        # H_xxc = tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(xT_term),axis=1)))
-
-        
-        # mse1[n,k] = np.mean((cal1-true_val)**2)
-        # mse2[n,k] = np.mean((cal2-true_val)**2)
-        # mse3[n,k] = np.mean((cal3-true_val)**2)
-        # mse4[n,k] = np.mean((cal4-true_val)**2)
-
-MI_tKL=np.mean(MI_cum,axis=0)
-MI_means=np.mean(H_gxc_cum,axis=0) + np.mean(H_xxc_cum,axis=0) - np.mean(H_joint_cum,axis=0) - np.mean(H_cond_cum,axis=0)
-MI_cumsum = np.cumsum(MI_means)
-
-    
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')
-            
-fig, ax = plt.subplots(1,1)
-# ax.set_yscale("log")
-            
-# ax.plot([N*t for t in T_range], H_KL, marker='o', color='b', linestyle=':', label='H KL', mfc='none')
-# ax.plot(T_range, np.sqrt(mse4[0]), marker='o', color='b', linestyle='-', label='UM-tKSG', mfc='none')   
-dims=[N*t for t in T_range] 
-# ax[0].plot(dims, MI_tKL, marker='x', color='r', linestyle=':', label='MI individual')
-ax.plot(dims, MI_means, marker='x', color='b', linestyle='-', label='MI means')
-# ax.plot(T_range, np.sqrt(mse2[0]), marker='x', color='r', linestyle='-', label='KSG')
-        
-ax.set_xlabel('dimension')
-ax.set_ylabel('Mutual Information')
-ax.set_title("Individual conditional MI")
-plt.savefig('figs/MI_cond_CPDSSSS')
-
-plt.cla()
-fig, ax = plt.subplots(1,1)
-ax.plot(dims,MI_cumsum,marker='x',linestyle='-')
-ax.set_xlabel('dimension')
-ax.set_ylabel('Mutual Information')
-ax.set_title('Cumulative MI')
-
-
-plt.savefig('figs/MI_cumulative_CPDSSSS')
-        
-import util.io
-import os
-util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum), os.path.join('temp_data', 'gaussian_experiment')) 
