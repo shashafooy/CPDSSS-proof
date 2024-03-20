@@ -13,6 +13,7 @@ from datetime import date
 from datetime import timedelta
 
 import time
+import gc
 
 """
 Functions for generating the model and entropy
@@ -53,6 +54,10 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
         H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
+
+        net.release_shared_data()
+        for i in range(3): gc.collect()
+        
     return H
 
 def update_filename(path,old_name,n_samples,today,iter,rename=True):

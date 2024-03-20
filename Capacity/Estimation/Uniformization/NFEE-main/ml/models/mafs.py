@@ -196,6 +196,10 @@ class MaskedAutoregressiveFlow:
         logdet_jacobi = self.eval_jacobian_u(x[np.newaxis, :])[0] if x.ndim == 1 else self.eval_jacobian_u(x)
 
         return logdet_jacobi
+    
+    def release_shared_data(self):
+        for bn in self.bns:
+            bn.release_shared_data()
         
 
 

@@ -83,3 +83,10 @@ class BatchNorm:
         x = np.sqrt(self.bv.get_value(borrow=True)) * x_hat + self.bm.get_value(borrow=True)
 
         return x
+    
+    def release_shared_data(self):
+        self.log_gamma.set_value([])
+        self.beta.set_value([])
+        
+        self.bm.set_value([])
+        self.bv.set_value([])
