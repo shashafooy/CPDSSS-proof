@@ -164,6 +164,7 @@ class SGD_Template:
                     logger.write('Below training tolerance\n')
                 if patience_left<=0:
                     logger.write('Ran out of patience\n')
+                self.release_shared_data()
                 break
 
         # plot progress
@@ -210,6 +211,13 @@ class SGD_Template:
         n_data = list(n_data_list)[0]
 
         return n_data
+    
+    def release_shared_data(self):
+        for share in self.val_data:
+            share.set_value([[]])
+        for share in self.trn_data:
+            share.set_value([[]])
+        
 
 
 class SGD(SGD_Template):
