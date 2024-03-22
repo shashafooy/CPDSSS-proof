@@ -44,8 +44,9 @@ min_T=0
 base_path = 'temp_data/CPDSSS_data/'
 filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
 filepath = base_path+'50k_N4_L2'
-filepath = base_path + '50k_tol_0.1_patience_10'
-N=2
+filepath = base_path + 'NlogN_10k_scaling'
+# filepath = base_path + '50k_tol_0.1_patience_10'
+N=4
 L=2
 # filepath=filepaths[1]
 idx=0
@@ -67,24 +68,24 @@ for filename in os.listdir(filepath):
     # min_T = min_T if min(T_range) >= min_T else min(T_range)
 
 
-    iter = range(0,completed_iter)
+    iter = range(0,completed_iter+1)
 
-    '''Experiment to only grab T=2,3 from the 50k_samples'''
-    if idx == 1:
-        if T_range[0] >3: #does not contain values for T=2,3
-            continue
-        if T_range[0] == 3 : #only has T=3 
-            T_range = range(3,4)
-        else:
-            T_range = range(2,4)
+    # '''Experiment to only grab T=2,3 from the 50k_samples'''
+    # if idx == 1:
+    #     if T_range[0] >3: #does not contain values for T=2,3
+    #         continue
+    #     if T_range[0] == 3 : #only has T=3 
+    #         T_range = range(3,4)
+    #     else:
+    #         T_range = range(2,4)
 
 
-        # T_range=range(2,4)
-        MI_cum=MI_cum[:,0:len(T_range)]
-        H_gxc_cum=H_gxc_cum[:,0:len(T_range)]
-        H_xxc_cum=H_xxc_cum[:,0:len(T_range)]
-        H_joint_cum=H_joint_cum[:,0:len(T_range)]
-        H_cond_cum=H_cond_cum[:,0:len(T_range)]
+    #     # T_range=range(2,4)
+    #     MI_cum=MI_cum[:,0:len(T_range)]
+    #     H_gxc_cum=H_gxc_cum[:,0:len(T_range)]
+    #     H_xxc_cum=H_xxc_cum[:,0:len(T_range)]
+    #     H_joint_cum=H_joint_cum[:,0:len(T_range)]
+    #     H_cond_cum=H_cond_cum[:,0:len(T_range)]
     
 
     MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
@@ -105,22 +106,32 @@ T_range = old_range
 Experiment combining data but with offset of 1 (like reusing old data). 
 The target entropy should remain the same and this gives better accuracy
 '''
-H_gxc_mean = np.nanmean(np.append(H_gxc_tot[:,:-1],H_joint_tot[:,1:],axis=1),axis=0)
-temp = np.empty(H_gxc_tot.shape)*np.nan
+# H_gxc_mean = np.nanmean(np.append(H_gxc_tot[:,:-1],H_joint_tot[:,1:],axis=1),axis=0)
+# temp = np.empty(H_gxc_tot.shape)*np.nan
 temp=np.insert(H_joint_tot[:,:-1],0,np.nan,axis=1) #insert column of nan to align matrices
-H_gxc_mean = np.nanmean(np.append(H_gxc_tot,temp,axis=0),axis=0)
+H_gxc_tot_long = np.append(H_gxc_tot,temp,axis=0)
+H_gxc_mean = np.nanmean(H_gxc_tot_long,axis=0)
 
 # temp = temp = np.empty(H_joint_tot.shape)*np.nan
 temp=np.insert(H_gxc_tot[:,1:],H_joint_tot.shape[1]-1,np.nan,axis=1)
-H_joint_mean = np.nanmean(np.append(temp,H_joint_tot,axis=0),axis=0)
+H_joint_tot_long = np.append(temp,H_joint_tot,axis=0)
+H_joint_mean = np.nanmean(H_joint_tot_long,axis=0)
 
 temp=np.insert(H_cond_tot[:,1:],H_joint_tot.shape[1]-1,np.nan,axis=1) #insert column of nan to align matrices
-H_xxc_mean = np.nanmean(np.append(H_xxc_tot,temp,axis=0),axis=0)
+H_xxc_tot_long = np.append(H_xxc_tot,temp,axis=0)
+H_xxc_mean = np.nanmean(H_xxc_tot_long,axis=0)
 
 temp=np.insert(H_xxc_tot[:,:-1],0,np.nan,axis=1)
-H_cond_mean = np.nanmean(np.append(temp,H_cond_tot,axis=0),axis=0)
+H_cond_tot_long = np.append(temp,H_cond_tot,axis=0)
+H_cond_mean = np.nanmean(H_cond_tot_long,axis=0)
 
 MI_mean = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
+# Due to inserting NaN to align matrices, first and last columns will always be NaN
+# Only use the middle columns
+MI_tot_long = H_gxc_tot_long + H_xxc_tot_long - H_joint_tot_long - H_cond_tot_long
+MI_tot_long[:MI_tot.shape[0],[0, MI_tot_long.shape[1]-1]] = MI_tot[:,[0,MI_tot_long.shape[1]-1]]
+MI_mean_long = np.nanmean(MI_tot_long,axis=0)
+MI_mean = MI_mean_long
 
 '''
 Max capacity
@@ -192,6 +203,21 @@ T_matrix=np.tile(np.array(T_range),(MI_tot.shape[0],1))
 ax5[0].cla(),ax5[0].scatter(T_matrix,MI_tot),ax5[0].set_title('MI increase per T'),ax5[0].set_xlabel('T')
 ax5[1].cla(),ax5[1].scatter(T_matrix,np.cumsum(MI_tot,axis=1)),ax5[1].set_title('total MI'),ax5[1].set_xlabel('T')
 fig5.tight_layout()
+
+fig6,ax6=plt.subplots(1,2)
+fig6.suptitle("Combined Entropies, N={}, L={}".format(N,L))
+T_matrix=np.tile(np.array(T_range),(MI_tot_long.shape[0],1))
+ax6[0].cla(),ax6[0].scatter(T_matrix,MI_tot_long),ax6[0].set_title('MI increase per T'),ax6[0].set_xlabel('T')
+ax6[1].cla(),ax6[1].scatter(T_matrix,np.nancumsum(MI_tot_long,axis=1)),ax6[1].set_title('total MI'),ax6[1].set_xlabel('T')
+fig5.tight_layout()
+
+fig4,ax4=plt.subplots(1,2)
+fig4.suptitle("Combined Entropies, N={}, L={}".format(N,L))
+yerr=np.insert(np.nanvar(MI_tot_long,axis=0),0,0)
+MI_mean_long = np.insert(MI_mean_long,0,0)
+ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean_long,yerr=yerr),ax4[0].set_title('MI increase per T, error bars'),ax4[0].set_xlabel('T')
+ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean_long),yerr=np.cumsum(yerr)),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
+fig4.tight_layout()
 
 plt.show()
 
