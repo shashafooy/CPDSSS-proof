@@ -53,7 +53,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         print("total time: {}",str(timedelta(seconds = int(end_time - start_time))))
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
-        H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl')
+        H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl',k=3)
 
         net.release_shared_data()
         for i in range(3): gc.collect()
@@ -116,7 +116,7 @@ File names
 today=date.today().strftime("%b_%d")
 filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
 path = 'temp_data/CPDSSS_data/50k_N4_L2'
-path = 'temp_data/CPDSSS_data/NlogN_10k_scaling'
+path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 # filename=os.path.join(path, filename)
 filename = update_filename(path,'',n_samples,today,completed_iter,rename=False)    #fix filename if file already exists
 # filename = update_filename(path,filename,n_samples,today,1) 
