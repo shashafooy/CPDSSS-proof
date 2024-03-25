@@ -88,6 +88,7 @@ M=int(N/L)
 P=N-int(N/L)
 max_T=5
 T_range = range(2,N+max_T)
+T_range = range(8,9)
 
 """
 Number of iterations
@@ -117,6 +118,7 @@ today=date.today().strftime("%b_%d")
 filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
 path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
+path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8'
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
