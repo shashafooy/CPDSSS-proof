@@ -48,7 +48,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         net=create_model(sim_model.x_dim, rng=np.random)
         estimator = entropy.UMestimator(sim_model,net)
         start_time = time.time()
-        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 2),val_tol=val_tol,patience=patience)
+        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
         end_time = time.time()        
         print("total time: {}",str(timedelta(seconds = int(end_time - start_time))))
         estimator.samples = estimator.samples if base_samples is None else base_samples
@@ -94,7 +94,7 @@ T_range = range(8,9)
 Number of iterations
 """
 n_trials = 100 #iterations to average
-n_samples = 40000 #samples to generate per entropy calc
+n_samples = 80000 #samples to generate per entropy calc
 completed_iter=0
 
 
