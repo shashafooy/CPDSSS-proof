@@ -43,10 +43,10 @@ min_T=0
 #util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename)) 
 base_path = 'temp_data/CPDSSS_data/'
 filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
-filepath = base_path+'50k_N4_L2'
-filepath = base_path + 'NlogN_10k_scaling'
-filepath = base_path + 'NlogN_10k_K=3'
-# filepath = base_path + '50k_tol_0.1_patience_10'
+filepath = base_path + '50k_tol_0.1_patience_10'
+# filepath = base_path+'50k_N4_L2'
+# filepath = base_path + 'NlogN_10k_scaling'
+filepath = base_path + 'NlogN_10k_K=3,T=8'
 N=4
 L=2
 # filepath=filepaths[1]
@@ -183,6 +183,7 @@ fig2.tight_layout()
 fig3,ax3=plt.subplots(1,2)
 fig3.suptitle("N={}, L={}".format(N,L))
 temp_range = range(1,max(T_range)+1)
+temp_range = np.insert(T_range,0,1)
 MI_mean=np.insert(MI_mean,0,0) # start at 0 MI
 ax3[0].cla(),ax3[0].plot(temp_range,MI_mean),ax3[0].set_title('MI increase per T'),ax3[0].set_xlabel('T')
 ax3[1].cla(),ax3[1].plot(temp_range,np.cumsum(MI_mean),label = 'I(X,G)')
@@ -195,7 +196,8 @@ fig4,ax4=plt.subplots(1,2)
 fig4.suptitle("N={}, L={}".format(N,L))
 yerr=np.insert(np.nanvar(MI_tot,axis=0),0,0)
 ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean,yerr=yerr),ax4[0].set_title('MI increase per T, error bars'),ax4[0].set_xlabel('T')
-ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr)),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
+ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr),label = 'I(X,G)'),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
+ax4[1].axhline(y=H_G,linestyle='dashed', label = 'H(G)'),ax4[1].legend()
 fig4.tight_layout()
 
 fig5,ax5=plt.subplots(1,2)
