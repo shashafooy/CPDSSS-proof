@@ -48,7 +48,8 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         net=create_model(sim_model.x_dim, rng=np.random)
         estimator = entropy.UMestimator(sim_model,net)
         start_time = time.time()
-        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
+        # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
+        estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim),val_tol=val_tol,patience=patience)
         end_time = time.time()        
         print("total time: {}",str(timedelta(seconds = int(end_time - start_time))))
         estimator.samples = estimator.samples if base_samples is None else base_samples
@@ -94,7 +95,8 @@ T_range = range(8,9)
 Number of iterations
 """
 n_trials = 100 #iterations to average
-n_samples = 80000 #samples to generate per entropy calc
+knn_samples = 1000000 #samples to generate per entropy calc
+n_train_samples = 10000
 completed_iter=0
 
 
@@ -115,14 +117,15 @@ File names
 """
 
 today=date.today().strftime("%b_%d")
-filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(n_samples/1000),today)
+filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(knn_samples/1000),today)
 path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
+path = 'temp_data/CPDSSS_data/N4_L2/Nscaling_knn=1M_T=8'
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
-filename = update_filename(path,'',n_samples,today,completed_iter,rename=False)    
+filename = update_filename(path,'',knn_samples,today,completed_iter,rename=False)    
 #create initial file
 util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,0), os.path.join(path,filename)) 
 # filename = update_filename(path,filename,n_samples,today,1) 
@@ -136,7 +139,7 @@ for i in range(n_trials):
     for k, T in enumerate(T_range):
         sim_model = CPDSSS(T,N,L)
 
-        n_sims = n_samples
+        n_sims = knn_samples * T
 
         X,X_T,X_cond,G = sim_model.get_base_X_G(n_sims)
         gxc=np.concatenate((X_cond,G),axis=1)
@@ -152,19 +155,19 @@ for i in range(n_trials):
 
         first_tx_model.set_use_G_flag(g_flag=True)
         print_border("calculating H_gxc, T: {0}, iter: {1}".format(T,i+1))        
-        H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=gxc)
+        H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=gxc)
 
         first_tx_model.set_use_G_flag(g_flag=False)
         print_border("calculating H_cond, T: {0}, iter: {1}".format(T,i+1))
-        H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_sims,base_samples=X_cond)
+        H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=X_cond)
 
         sim_model.set_use_G_flag(False)
         print_border("calculating H_xxc, T: {0}, iter: {1}".format(T,i+1))
-        H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_sims,base_samples=X)
+        H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X)
 
         sim_model.set_use_G_flag(True)
         print_border("calculating H_joint, T: {0}, iter: {1}".format(T,i+1))
-        H_joint = calc_entropy(sim_model=sim_model,n_samples=n_sims,base_samples=joint)
+        H_joint = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
 
         H_gxc_cum[i,k]=H_gxc
         H_xxc_cum[i,k]=H_xxc
