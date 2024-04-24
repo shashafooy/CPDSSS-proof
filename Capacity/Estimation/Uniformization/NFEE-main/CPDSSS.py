@@ -51,10 +51,13 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100):
         # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
         estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim),val_tol=val_tol,patience=patience)
         end_time = time.time()        
-        print("total time: {}",str(timedelta(seconds = int(end_time - start_time))))
+        print("learning time: ",str(timedelta(seconds = int(end_time - start_time))))
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
-        H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl',k=3)
+        start_time = time.time()
+        H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl',k=1)
+        end_time = time.time()        
+        print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))       
 
         net.release_shared_data()
         for i in range(3): gc.collect()
@@ -95,7 +98,7 @@ T_range = range(8,9)
 Number of iterations
 """
 n_trials = 100 #iterations to average
-knn_samples = 1000000 #samples to generate per entropy calc
+knn_samples = 200000 #samples to generate per entropy calc
 n_train_samples = 10000
 completed_iter=0
 
@@ -139,7 +142,7 @@ for i in range(n_trials):
     for k, T in enumerate(T_range):
         sim_model = CPDSSS(T,N,L)
 
-        n_sims = knn_samples * T
+        n_sims = knn_samples
 
         X,X_T,X_cond,G = sim_model.get_base_X_G(n_sims)
         gxc=np.concatenate((X_cond,G),axis=1)
