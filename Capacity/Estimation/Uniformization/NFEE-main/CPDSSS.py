@@ -124,7 +124,7 @@ filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(knn_samples/10
 path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
-path = 'temp_data/CPDSSS_data/N4_L2/Nscaling_knn=200k_T=8'
+path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
