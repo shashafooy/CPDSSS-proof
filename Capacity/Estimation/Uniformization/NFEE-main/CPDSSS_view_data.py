@@ -46,6 +46,7 @@ base_path = 'temp_data/CPDSSS_data/'
 filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
 filepath = base_path + '50k_tol_0.1_patience_10'
 filepath = base_path+'50k_N4_L2'
+filepath = base_path+'50k_N4_L2'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepath = base_path + 'NlogN_10k_K=3,T=8'
 filepath = base_path + 'NlogN_10k_K=3,T=8,samp=40k'

@@ -10,6 +10,7 @@ import ml.trainers as trainers
 import ml.step_strategies as ss
 
 
+
 def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     
     y = np.asarray(y, float)
@@ -58,7 +59,7 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=-1).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
     r = dist[:,k]
@@ -577,7 +578,8 @@ class UMestimator:
             
         correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
             
-        return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
+        # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
+        return h+correction2,0,0,0
     
     def ksg_ent(self, k=1, reuse_samples=True, method='kl'):
         
