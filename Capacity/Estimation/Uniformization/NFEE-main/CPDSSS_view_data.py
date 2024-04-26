@@ -58,6 +58,7 @@ idx=0
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
     T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
+    iter = range(0,completed_iter+1)
 
     if 'MI_tot' not in locals():
         MI_tot = np.empty((0,np.size(T_range)))
@@ -66,31 +67,7 @@ for filename in os.listdir(filepath):
         H_joint_tot = np.empty((0,np.size(T_range)))
         H_cond_tot = np.empty((0,np.size(T_range)))
         old_range = T_range
-
-    # append_data(MI_tot,T_range,H_gxc_tot,range(2,8))
-    # max_T = max_T if max(T_range) <= max_T else max(T_range)
-    # min_T = min_T if min(T_range) >= min_T else min(T_range)
-
-
-    iter = range(0,completed_iter+1)
-
-    # '''Experiment to only grab T=2,3 from the 50k_samples'''
-    # if idx == 1:
-    #     if T_range[0] >3: #does not contain values for T=2,3
-    #         continue
-    #     if T_range[0] == 3 : #only has T=3 
-    #         T_range = range(3,4)
-    #     else:
-    #         T_range = range(2,4)
-
-
-    #     # T_range=range(2,4)
-    #     MI_cum=MI_cum[:,0:len(T_range)]
-    #     H_gxc_cum=H_gxc_cum[:,0:len(T_range)]
-    #     H_xxc_cum=H_xxc_cum[:,0:len(T_range)]
-    #     H_joint_cum=H_joint_cum[:,0:len(T_range)]
-    #     H_cond_cum=H_cond_cum[:,0:len(T_range)]
-    
+ 
 
     MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
     H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
@@ -169,6 +146,7 @@ H_G = 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.eye(N)))
 
 # fig1.tight_layout()
 
+'''View how each entropy changes as T increases'''
 fig2,ax2=plt.subplots(2,2)
 fig2.suptitle('Entropy increase per added transmission, N={}'.format(N))
 
@@ -194,6 +172,7 @@ ax2[1,1].set_title('H1(x,x_cond)'),ax2[1,1].set_ylabel('delta H()'),ax2[1,1].set
 
 fig2.tight_layout()
 
+'''Plot individual and cumulative Mutual Information'''
 fig3,ax3=plt.subplots(1,2)
 fig3.suptitle("N={}, L={}".format(N,L))
 temp_range = range(1,max(T_range)+1)
@@ -206,6 +185,7 @@ ax3[1].legend()
 
 fig3.tight_layout()
 
+'''Plot Mutual Information, but include bars showing variance'''
 fig4,ax4=plt.subplots(1,2)
 fig4.suptitle("N={}, L={}".format(N,L))
 yerr=np.insert(np.nanvar(MI_tot,axis=0),0,0)
@@ -214,6 +194,7 @@ ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr),
 ax4[1].axhline(y=H_G,linestyle='dashed', label = 'H(G)'),ax4[1].legend()
 fig4.tight_layout()
 
+'''Scatter plot of the Mutual Information'''
 fig5,ax5=plt.subplots(1,2)
 fig5.suptitle("N={}, L={}".format(N,L))
 T_matrix=np.tile(np.array(T_range),(MI_tot.shape[0],1))
@@ -225,6 +206,7 @@ ax5.cla(),ax5.scatter(T_matrix,MI_tot),ax5.set_title("Low number of samples 10k*
 # ax5[1].cla(),ax5[1].scatter(T_matrix,np.cumsum(MI_tot,axis=1)),ax5[1].set_title('total MI'),ax5[1].set_xlabel('T')
 fig5.tight_layout()
 
+'''scatter plot with combining similar entropies'''
 fig6,ax6=plt.subplots(1,2)
 fig6.suptitle("Combined Entropies, N={}, L={}".format(N,L))
 T_matrix=np.tile(np.array(T_range),(MI_tot_long.shape[0],1))
@@ -232,6 +214,7 @@ ax6[0].cla(),ax6[0].scatter(T_matrix,MI_tot_long),ax6[0].set_title('MI increase 
 ax6[1].cla(),ax6[1].scatter(T_matrix,np.nancumsum(MI_tot_long,axis=1)),ax6[1].set_title('total MI'),ax6[1].set_xlabel('T')
 fig5.tight_layout()
 
+'''Error bars with combining similar entropies'''
 fig4,ax4=plt.subplots(1,2)
 fig4.suptitle("Combined Entropies, N={}, L={}".format(N,L))
 yerr=np.insert(np.nanvar(MI_tot_long,axis=0),0,0)

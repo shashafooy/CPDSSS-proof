@@ -5,9 +5,12 @@ from scipy import stats
 import scipy.special as spl
 
 import sys
+import configparser
 
 import ml.trainers as trainers
 import ml.step_strategies as ss
+
+
 
 
 
@@ -49,6 +52,12 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
     y = np.asarray(y, float)
     N, dim = y.shape
     
+    config = configparser.ConfigParser()
+    if config.read('CPDSSS.ini') != []:
+        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
+    else: 
+        n_jobs = 1
+    
     if n is None:
         n = N
     else:
@@ -59,7 +68,7 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=-1).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
     r = dist[:,k]
