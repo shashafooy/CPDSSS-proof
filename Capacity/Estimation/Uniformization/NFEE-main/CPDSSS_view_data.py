@@ -39,14 +39,16 @@ Load and combine all datasets
 max_T=0
 min_T=0
 
+REMOVE_OUTLIERS = True
 
 #util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename)) 
 base_path = 'temp_data/CPDSSS_data/'
 filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
 filepath = base_path + '50k_tol_0.1_patience_10'
-# filepath = base_path+'50k_N4_L2'
+filepath = base_path+'50k_N4_L2'
 # filepath = base_path + 'NlogN_10k_scaling'
-filepath = base_path + 'NlogN_10k_K=3,T=8'
+# filepath = base_path + 'NlogN_10k_K=3,T=8'
+filepath = base_path + 'NlogN_10k_K=3,T=8,samp=40k'
 N=4
 L=2
 # filepath=filepaths[1]
@@ -94,6 +96,17 @@ for filename in os.listdir(filepath):
     H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
     H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
     H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
+
+'''
+Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
+'''
+if REMOVE_OUTLIERS:
+    std = np.nanstd(MI_tot,axis=0)
+    MI_mean = np.nanmean(MI_tot,axis=0)
+    #check if any value outside of 3*std
+    idx = (MI_tot > MI_mean +3*std) |  (MI_tot < MI_mean - 3*std)
+    MI_tot[idx]=np.NaN
+
 
 MI_mean = np.nanmean(MI_tot,axis=0)
 H_gxc_mean = np.nanmean(H_gxc_tot,axis=0)
@@ -203,8 +216,12 @@ fig4.tight_layout()
 fig5,ax5=plt.subplots(1,2)
 fig5.suptitle("N={}, L={}".format(N,L))
 T_matrix=np.tile(np.array(T_range),(MI_tot.shape[0],1))
-ax5[0].cla(),ax5[0].scatter(T_matrix,MI_tot),ax5[0].set_title('MI increase per T'),ax5[0].set_xlabel('T')
-ax5[1].cla(),ax5[1].scatter(T_matrix,np.cumsum(MI_tot,axis=1)),ax5[1].set_title('total MI'),ax5[1].set_xlabel('T')
+#plot just T=8
+fig5,ax5=plt.subplots(1,1)
+T_matrix = np.tile([8],(MI_tot.shape[0],1))
+ax5.cla(),ax5.scatter(T_matrix,MI_tot),ax5.set_title("Low number of samples 10k*N, std = {0:.3f}".format(np.nanstd(MI_tot))),ax5.set_xlabel('T')
+# ax5[0].cla(),ax5[0].scatter(T_matrix,MI_tot),ax5[0].set_title('MI increase per T'),ax5[0].set_xlabel('T')
+# ax5[1].cla(),ax5[1].scatter(T_matrix,np.cumsum(MI_tot,axis=1)),ax5[1].set_title('total MI'),ax5[1].set_xlabel('T')
 fig5.tight_layout()
 
 fig6,ax6=plt.subplots(1,2)
