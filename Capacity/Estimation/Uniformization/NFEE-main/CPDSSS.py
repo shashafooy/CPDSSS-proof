@@ -93,6 +93,7 @@ P=N-int(N/L)
 max_T=5
 T_range = range(2,N+max_T)
 T_range = range(8,9)
+T_range = range(1,2)
 
 """
 Number of iterations
@@ -113,6 +114,9 @@ H_gxc_cum=np.empty((n_trials,len(T_range)))*np.nan
 H_xxc_cum=np.empty((n_trials,len(T_range)))*np.nan
 H_joint_cum=np.empty((n_trials,len(T_range)))*np.nan
 H_cond_cum=np.empty((n_trials,len(T_range)))*np.nan
+H_x=np.empty((n_trials,len(T_range)))*np.nan
+H_g=np.empty((n_trials,len(T_range)))*np.nan
+H_xg=np.empty((n_trials,len(T_range)))*np.nan
 
         
 """
@@ -125,6 +129,7 @@ path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
+path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=1".format(int(knn_samples/1000))
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
@@ -148,38 +153,55 @@ for i in range(n_trials):
         gxc=np.concatenate((X_cond,G),axis=1)
         joint=np.concatenate((X,G),axis=1)
 
+        if T==1:
+            sim_model.set_use_G_flag(g_flag=False)
+            print_border("Calculate H(x), T: 1, iter: {}".format(i+1))
+            H_x[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X_T)
 
+            sim_model.set_use_G_flag(g_flag=True)
+            sim_model.set_sim_G_only(sim_g=True)
+            print_border("Calculate H(g), T: 1, iter: {}".format(i+1))
+            H_g[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=G)
 
-        # if(T>N): #Use previous calculations
-        #     H_gxc = H_joint
-        #     H_cond = H_xxc
-        # else:
-        first_tx_model = CPDSSS(T-1,N,L)
+            sim_model.set_sim_G_only(sim_g=False)
+            sim_model.set_use_G_flag(g_flag=True)            
+            print_border("Calculate H(x,g), T: 1, iter: {}".format(i+1))
+            H_xg[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
 
-        first_tx_model.set_use_G_flag(g_flag=True)
-        print_border("calculating H_gxc, T: {0}, iter: {1}".format(T,i+1))        
-        H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=gxc)
+            MI_cum[i,k] = H_x[i,k] + H_g[i,k] - H_xg[i,k]
+            if k== np.size(T_range)-1:
+                completed_iter = completed_iter + 1
+                filename = update_filename(path,filename,n_sims,today,completed_iter)    
 
-        first_tx_model.set_use_G_flag(g_flag=False)
-        print_border("calculating H_cond, T: {0}, iter: {1}".format(T,i+1))
-        H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=X_cond)
+            util.io.save((T_range, MI_cum,H_x,H_g,H_xg,i), os.path.join(path,filename)) 
 
-        sim_model.set_use_G_flag(False)
-        print_border("calculating H_xxc, T: {0}, iter: {1}".format(T,i+1))
-        H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X)
+        else:
+            first_tx_model = CPDSSS(T-1,N,L)
 
-        sim_model.set_use_G_flag(True)
-        print_border("calculating H_joint, T: {0}, iter: {1}".format(T,i+1))
-        H_joint = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
+            first_tx_model.set_use_G_flag(g_flag=True)
+            print_border("calculating H_gxc, T: {0}, iter: {1}".format(T,i+1))        
+            H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=gxc)
 
-        H_gxc_cum[i,k]=H_gxc
-        H_xxc_cum[i,k]=H_xxc
-        H_joint_cum[i,k]=H_joint
-        H_cond_cum[i,k]=H_cond
-        MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
-        if k== np.size(T_range)-1:
-            completed_iter = completed_iter + 1
-            filename = update_filename(path,filename,n_sims,today,completed_iter)    
-        
-        ''' try using i as completed iter. matrix row is not complete, but this saves at least some data'''
-        util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,i), os.path.join(path,filename)) 
+            first_tx_model.set_use_G_flag(g_flag=False)
+            print_border("calculating H_cond, T: {0}, iter: {1}".format(T,i+1))
+            H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=X_cond)
+
+            sim_model.set_use_G_flag(False)
+            print_border("calculating H_xxc, T: {0}, iter: {1}".format(T,i+1))
+            H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X)
+
+            sim_model.set_use_G_flag(True)
+            print_border("calculating H_joint, T: {0}, iter: {1}".format(T,i+1))
+            H_joint = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
+
+            H_gxc_cum[i,k]=H_gxc
+            H_xxc_cum[i,k]=H_xxc
+            H_joint_cum[i,k]=H_joint
+            H_cond_cum[i,k]=H_cond
+            MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
+            if k== np.size(T_range)-1:
+                completed_iter = completed_iter + 1
+                filename = update_filename(path,filename,n_sims,today,completed_iter)    
+            
+            ''' try using i as completed iter. matrix row is not complete, but this saves at least some data'''
+            util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,i), os.path.join(path,filename)) 
