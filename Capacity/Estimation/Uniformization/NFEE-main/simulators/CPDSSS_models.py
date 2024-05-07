@@ -14,6 +14,7 @@ class CPDSSS:
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
         
         self.set_use_G_flag(g_flag=False)
+        self.sim_g_only = False
 
     def sim(self, n_samples=1000):
         """Generate samples X and (optional) G for CPDSSS
@@ -36,6 +37,9 @@ class CPDSSS:
             self.samples = np.concatenate((joint_X,self.G[:,:,0]),axis=1)
         else:
             self.samples = joint_X
+        if(self.sim_g_only):
+            self.samples = self.G[:,:,0]
+
 
         return self.samples
         # g_term = G[:,:,0]
@@ -53,6 +57,21 @@ class CPDSSS:
             self.x_dim = self.N*self.T + self.N
         else:
             self.x_dim = self.N*self.T
+
+    def set_sim_G_only(self,sim_g=True):
+        """Set flag to only return G when using sim()
+        
+        Args:
+            sim_g (bool): True if you want sim() to return only G
+        """
+        self.sim_g_only = sim_g
+        if(sim_g):
+            self.x_dim = self.N
+        elif(self.use_G):
+            self.x_dim = self.N*self.T + self.N
+        else:
+            self.x_dim = self.N*self.T
+
     
     def get_base_X_G(self,n_samples=1000):
         """Generate values for G and X
