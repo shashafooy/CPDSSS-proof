@@ -93,7 +93,7 @@ P=N-int(N/L)
 max_T=5
 T_range = range(2,N+max_T)
 T_range = range(8,9)
-T_range = range(1,2)
+T_range = range(2,8)
 
 """
 Number of iterations
@@ -129,7 +129,7 @@ path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
-path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=1".format(int(knn_samples/1000))
+path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7".format(int(knn_samples/1000))
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
