@@ -563,10 +563,13 @@ class UMestimator:
 
         if(SHOW_PDF_PLOTS==True):
             import matplotlib.pyplot as plt
-            fig,ax=plt.subplots()
+            fig,ax=plt.subplots(1,2)
             x=np.linspace(stats.norm.ppf(1e-6),stats.norm.ppf(1-1e-6),100)
-            ax.plot(x,stats.norm.pdf(x),lw=5)
-            ax.hist(u,bins=40,density=True)
+            ax[0].plot(x,stats.norm.pdf(x),lw=5)
+            ax[1].plot(x,stats.norm.pdf(x),lw=5)
+
+            ax[0].hist(u,bins=40,density=True),ax[0].set_title("Transformed Gaussian")
+            ax[1].hist(samples,bins=40,density=True),ax[1].set_title("Original Data")
 
 
 
