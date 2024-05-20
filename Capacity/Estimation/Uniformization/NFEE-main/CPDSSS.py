@@ -100,7 +100,7 @@ Number of iterations
 """
 n_trials = 100 #iterations to average
 knn_samples = 200000 #samples to generate per entropy calc
-n_train_samples = 10000
+n_train_samples = 100
 completed_iter=0
 
 

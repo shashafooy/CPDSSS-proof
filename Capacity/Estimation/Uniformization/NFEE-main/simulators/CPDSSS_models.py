@@ -5,12 +5,14 @@ class CPDSSS:
     def __init__(self, num_tx, N, L):
         self.T=num_tx
         self.N=N
-        self.M=int(N/L)
-        self.P=N-self.M
-        self.sim_G = mvn(rho=0.0,dim_x=self.N*self.M)
-        self.sim_Q = mvn(rho=0.0, dim_x=self.N*self.P)
-        self.sim_S = mvn(rho=0.0, dim_x=self.M*self.T)
-        self.sim_V = mvn(rho=0.0, dim_x=self.P*self.T)
+        self.L=L
+        self.NL=int(N/L)
+        self.NNL=N-self.NL
+        self.sim_G = mvn(rho=0.0,dim_x=self.N*self.NL)
+        self.sim_g = mvn(rho=0.0,dim_x=self.N)
+        self.sim_Q = mvn(rho=0.0, dim_x=self.N*self.NNL)
+        self.sim_S = mvn(rho=0.0, dim_x=self.NL*self.T)
+        self.sim_V = mvn(rho=0.0, dim_x=self.NNL*self.T)
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
         
         self.set_use_G_flag(g_flag=False)
@@ -25,10 +27,12 @@ class CPDSSS:
         Returns:
             numpy: (n_samples, dim_x) array of generated values
         """
-        s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.M,self.T))
-        v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.P,self.T))
-        self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.M))
-        Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples,self.N,self.P))
+        self.sim_GQ(n_samples=200)
+        s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.NL,self.T))
+        v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.NNL,self.T))
+        self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NL))
+        Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NNL))
+        # self.G,Q = self.sim_GQ(n_samples=n_samples)
 
         self.X=np.matmul(self.G,s) + np.matmul(Q,v)
         joint_X = self.X[:,:,0:self.T].reshape((n_samples,self.N*self.T),order='F')#order 'F' needed to make arrays stack instead of interlaced
@@ -46,6 +50,38 @@ class CPDSSS:
         # xT_term = X[:,:,self.T-1]
         # xCond_term = X[:,:,0:self.T-1].reshape((n_samples,self.N*(self.T-1)),order='F')#order 'F' needed to make arrays stack instead of interlaced
     
+    def sim_GQ(self,n_samples=1000):
+        z=np.exp(1j*2*np.pi*np.arange(0,self.N)**2 / self.N)/np.sqrt(self.N)
+        Z=lin.toeplitz(z,np.concatenate(([z[0]], z[-1:0:-1])))
+
+        E=np.eye(self.N)
+        E=E[:,0::self.L]
+
+        a=np.zeros((self.NL,1))
+        a[0]=1
+
+        h = self.sim_H.sim(n_samples=n_samples)
+        G = np.zeros((n_samples,self.N,self.NL))
+        Q = np.zeros((n_samples,self.N,self.NNL))
+        for i in range(n_samples):
+            H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
+            A=E.T @ H 
+            R=A.T @ A + 0.0001*np.eye(self.N)                       
+            p=A.T @ a
+            g=lin.inv(R)@p
+
+            G[i,:,:]=lin.toeplitz(g,np.concatenate(([g[0]], g[-1:0:-1]))) @ E
+            
+            _,V = lin.eig(R)
+            Q[i,:,:]=V[:,0:self.NNL]
+        return G,Q
+
+
+
+
+
+
+
     def set_use_G_flag(self,g_flag=True):
         """Enables sim to append G in addition to X
 
