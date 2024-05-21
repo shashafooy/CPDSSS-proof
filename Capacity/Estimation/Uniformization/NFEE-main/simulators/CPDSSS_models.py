@@ -32,12 +32,13 @@ class CPDSSS:
         s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.NL,self.T))
         v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.NNL,self.T))
         if(self.gaussian_approx):
-            # self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NL))
             g = self.sim_g.sim(n_samples=n_samples)
             self.G = np.zeros((n_samples,self.N,self.NL))
             #make toeplitz matrix
             for i in range(self.NL):
                 self.G[:,:,i] = np.roll(g,shift=i*self.L,axis=1)
+
+            self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NL))
             Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NNL))
         else:
             self.G,Q = self.sim_GQ(n_samples=n_samples)
