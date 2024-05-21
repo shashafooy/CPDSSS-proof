@@ -3,6 +3,8 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
+plt.rcParams['text.usetex']=True
+
 
 def append_data(old_data, old_T_range, new_data, new_T_range):
     """
@@ -30,11 +32,14 @@ def append_data(old_data, old_T_range, new_data, new_T_range):
     return tot_data, tot_T_range
 
 def remove_outlier(data, num_std):
-    std = np.nanstd(data,axis=0)
-    mean = np.nanmean(data,axis=0)
-    #check if any value outside of 3*std
-    idx = (data > mean +num_std*std) |  (data < mean - num_std*std)
-    data[idx]=np.NaN
+    num_outlier = 1
+    while num_outlier > 0:
+        std = np.nanstd(data,axis=0)
+        mean = np.nanmean(data,axis=0)
+        #check if any value outside of 3*std
+        idx = (data > mean +num_std*std) |  (data < mean - num_std*std)
+        num_outlier = np.count_nonzero(idx)
+        data[idx]=np.NaN
     return data
 
 """
@@ -55,30 +60,35 @@ filepath = base_path+'50k_N4_L2'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepath = base_path + 'NlogN_10k_K=3,T=8'
 filepath = base_path + 'NlogN_10k_K=3,T=8,samp=80k'
+
+# filepath= 'temp_data/CPDSSS_data/N2_L2/50k_tol_0.1_patience_10'
+# filepath= 'temp_data/CPDSSS_data/N2_L2/50k_samples'
+filepath = base_path + 'NlogN_10k_scaling'
+filepaths = [base_path + 'NlogN_10k_scaling', base_path + 'Nscaling_knn=200k_T=8']
 N=4
 L=2
 # filepath=filepaths[1]
 # idx=0
-# for idx,filepath in enumerate(filepaths):
-for filename in os.listdir(filepath):
-    filename=os.path.splitext(filename)[0] #remove extention
-    T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
-    iter = range(0,completed_iter+1)
+for idx,filepath in enumerate(filepaths):
+    for filename in os.listdir(filepath):
+        filename=os.path.splitext(filename)[0] #remove extention
+        T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
+        iter = range(0,completed_iter+1)
 
-    if 'MI_tot' not in locals():
-        MI_tot = np.empty((0,np.size(T_range)))
-        H_gxc_tot = np.empty((0,np.size(T_range)))
-        H_xxc_tot = np.empty((0,np.size(T_range)))
-        H_joint_tot = np.empty((0,np.size(T_range)))
-        H_cond_tot = np.empty((0,np.size(T_range)))
-        old_range = T_range
- 
+        if 'MI_tot' not in locals():
+            MI_tot = np.empty((0,np.size(T_range)))
+            H_gxc_tot = np.empty((0,np.size(T_range)))
+            H_xxc_tot = np.empty((0,np.size(T_range)))
+            H_joint_tot = np.empty((0,np.size(T_range)))
+            H_cond_tot = np.empty((0,np.size(T_range)))
+            old_range = T_range
+    
 
-    MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
-    H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
-    H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
-    H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
-    H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
+        MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
+        H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
+        H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
+        H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
+        H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
 
 '''
 Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
@@ -184,25 +194,29 @@ ax2[1,1].set_title('H1(x,x_cond)'),ax2[1,1].set_ylabel('delta H()'),ax2[1,1].set
 fig2.tight_layout()
 
 '''Plot individual and cumulative Mutual Information'''
-fig3,ax3=plt.subplots(1,2)
+fig3,ax3=plt.subplots(2,1)
 fig3.suptitle("N={}, L={}".format(N,L))
 temp_range = range(1,max(T_range)+1)
 temp_range = np.insert(T_range,0,1)
 MI_mean=np.insert(MI_mean,0,0) # start at 0 MI
-ax3[0].cla(),ax3[0].plot(temp_range,MI_mean),ax3[0].set_title('MI increase per T'),ax3[0].set_xlabel('T')
-ax3[1].cla(),ax3[1].plot(temp_range,np.cumsum(MI_mean),label = 'I(X,G)')
-ax3[1].axhline(y=H_G,linestyle='dashed', label = 'H(G)'),ax3[1].set_title('total MI'),ax3[1].set_xlabel('T')
+ax3[0].cla(),ax3[0].plot(temp_range,MI_mean)
+ax3[0].set_title(r'$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$'),ax3[0].set_xlabel(r'$T$')
+ax3[1].cla(),ax3[1].plot(temp_range,np.cumsum(MI_mean),label = r'$I(\mathbf{g},\mathbf{X})$')
+ax3[1].axhline(y=H_G,linestyle='dashed', label = r'$H(\mathbf{g})$')
+ax3[1].set_title(r'$I(\mathbf{g},\mathbf{X})$'),ax3[1].set_xlabel(r'T')
 ax3[1].legend()
 
 fig3.tight_layout()
 
 '''Plot Mutual Information, but include bars showing variance'''
-fig4,ax4=plt.subplots(1,2)
+fig4,ax4=plt.subplots(2,1)
 fig4.suptitle("N={}, L={}".format(N,L))
-yerr=np.insert(np.nanstd(MI_tot,axis=0),0,0)
-ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean,yerr=yerr),ax4[0].set_title('MI increase per T, error bars'),ax4[0].set_xlabel('T')
-ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr),label = 'I(X,G)'),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
+yerr=np.insert(np.nanvar(MI_tot,axis=0),0,0)
+ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean,yerr=yerr)
+ax4[0].set_title(r'$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$'),ax4[0].set_xlabel(r'$T$')
+ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr),label = r'$I(\mathbf{g},\mathbf{X})$'),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
 ax4[1].axhline(y=H_G,linestyle='dashed', label = 'H(G)'),ax4[1].legend()
+ax4[1].set_title(r'$I(\mathbf{g},\mathbf{X})$'),ax4[1].set_xlabel(r'T')
 fig4.tight_layout()
 
 '''Scatter plot of the Mutual Information'''

@@ -93,7 +93,7 @@ P=N-int(N/L)
 max_T=5
 T_range = range(2,N+max_T)
 T_range = range(8,9)
-T_range = range(2,8)
+T_range = range(4,8)
 
 """
 Number of iterations
@@ -102,6 +102,7 @@ n_trials = 100 #iterations to average
 knn_samples = 200000 #samples to generate per entropy calc
 n_train_samples = 10000
 completed_iter=0
+GQ_gaussian = True
 
 
 """
@@ -130,6 +131,8 @@ path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7,learnTol=0.05".format(int(knn_samples/1000))
+
+# path = "temp_data/CPDSSS_data/Ignore"
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
@@ -145,7 +148,7 @@ Generate data
 for i in range(n_trials):        
             
     for k, T in enumerate(T_range):
-        sim_model = CPDSSS(T,N,L)
+        sim_model = CPDSSS(T,N,L,use_gaussian_approx=GQ_gaussian)
 
         n_sims = knn_samples
 
@@ -176,7 +179,7 @@ for i in range(n_trials):
             util.io.save((T_range, MI_cum,H_x,H_g,H_xg,i), os.path.join(path,filename)) 
 
         else:
-            first_tx_model = CPDSSS(T-1,N,L)
+            first_tx_model = CPDSSS(T-1,N,L,use_gaussian_approx=GQ_gaussian)
 
             first_tx_model.set_use_G_flag(g_flag=True)
             print_border("calculating H_gxc, T: {0}, iter: {1}".format(T,i+1))        
