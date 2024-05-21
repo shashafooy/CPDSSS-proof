@@ -2,7 +2,7 @@ import numpy as np
 import scipy.linalg as lin
 from simulators.complex import mvn
 class CPDSSS:
-    def __init__(self, num_tx, N, L):
+    def __init__(self, num_tx, N, L, use_gaussian_approx=True):
         self.T=num_tx
         self.N=N
         self.L=L
@@ -14,7 +14,8 @@ class CPDSSS:
         self.sim_S = mvn(rho=0.0, dim_x=self.NL*self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.NNL*self.T)
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
-        
+
+        self.gaussian_approx = use_gaussian_approx        
         self.set_use_G_flag(g_flag=False)
         self.sim_g_only = False
 
@@ -27,12 +28,21 @@ class CPDSSS:
         Returns:
             numpy: (n_samples, dim_x) array of generated values
         """
-        self.sim_GQ(n_samples=200)
+        
         s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.NL,self.T))
         v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.NNL,self.T))
-        self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NL))
-        Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NNL))
-        # self.G,Q = self.sim_GQ(n_samples=n_samples)
+        if(self.gaussian_approx):
+            # self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NL))
+            g = self.sim_g.sim(n_samples=n_samples)
+            self.G = np.zeros((n_samples,self.N,self.NL))
+            #make toeplitz matrix
+            for i in range(self.NL):
+                self.G[:,:,i] = np.roll(g,shift=i*self.L,axis=1)
+            Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NNL))
+        else:
+            self.G,Q = self.sim_GQ(n_samples=n_samples)
+        # import timeit
+        # timeit.timeit(lambda: self.sim_GQ(n_samples=200000),number=1)
 
         self.X=np.matmul(self.G,s) + np.matmul(Q,v)
         joint_X = self.X[:,:,0:self.T].reshape((n_samples,self.N*self.T),order='F')#order 'F' needed to make arrays stack instead of interlaced
@@ -51,29 +61,41 @@ class CPDSSS:
         # xCond_term = X[:,:,0:self.T-1].reshape((n_samples,self.N*(self.T-1)),order='F')#order 'F' needed to make arrays stack instead of interlaced
     
     def sim_GQ(self,n_samples=1000):
-        z=np.exp(1j*2*np.pi*np.arange(0,self.N)**2 / self.N)/np.sqrt(self.N)
-        Z=lin.toeplitz(z,np.concatenate(([z[0]], z[-1:0:-1])))
+        # z=np.exp(1j*2*np.pi*np.arange(0,self.N)**2 / self.N)/np.sqrt(self.N)
+        # Z=lin.toeplitz(z,np.concatenate(([z[0]], z[-1:0:-1])))
 
-        E=np.eye(self.N)
-        E=E[:,0::self.L]
+        # E=np.eye(self.N)
+        # E=E[:,0::self.L]
 
-        a=np.zeros((self.NL,1))
-        a[0]=1
+        # a=np.zeros((self.NL,1))
+        # a[0]=1
 
         h = self.sim_H.sim(n_samples=n_samples)
         G = np.zeros((n_samples,self.N,self.NL))
         Q = np.zeros((n_samples,self.N,self.NNL))
+        # from datetime import timedelta
+        # import time
+
+        # start_time = time.time()
         for i in range(n_samples):
-            H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
-            A=E.T @ H 
+            # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
+            # A=E.T @ H 
+            #Slightly faster than doing E.T @ H
+            A = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))[0::self.L,:]
             R=A.T @ A + 0.0001*np.eye(self.N)                       
-            p=A.T @ a
+            # p=A.T @ a
+            p = A[0,:].T
             g=lin.inv(R)@p
 
-            G[i,:,:]=lin.toeplitz(g,np.concatenate(([g[0]], g[-1:0:-1]))) @ E
+            #Only take every L columns of toepltiz matrix
+            # Slightly faster than doing G@E
+            G[i,:,:]=lin.toeplitz(g,np.concatenate(([g[0]], g[-1:0:-1])))[:,0::self.L]
             
             _,V = lin.eig(R)
             Q[i,:,:]=V[:,0:self.NNL]
+        # end_time = time.time()
+        # print("GQ time: ",str(timedelta(seconds = int(end_time - start_time))))       
+
         return G,Q
 
 

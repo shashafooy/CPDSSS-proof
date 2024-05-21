@@ -100,8 +100,9 @@ Number of iterations
 """
 n_trials = 100 #iterations to average
 knn_samples = 200000 #samples to generate per entropy calc
-n_train_samples = 100
+n_train_samples = 10000
 completed_iter=0
+GQ_gaussian = True
 
 
 """
@@ -147,7 +148,7 @@ Generate data
 for i in range(n_trials):        
             
     for k, T in enumerate(T_range):
-        sim_model = CPDSSS(T,N,L)
+        sim_model = CPDSSS(T,N,L,use_gaussian_approx=GQ_gaussian)
 
         n_sims = knn_samples
 
@@ -178,7 +179,7 @@ for i in range(n_trials):
             util.io.save((T_range, MI_cum,H_x,H_g,H_xg,i), os.path.join(path,filename)) 
 
         else:
-            first_tx_model = CPDSSS(T-1,N,L)
+            first_tx_model = CPDSSS(T-1,N,L,use_gaussian_approx=GQ_gaussian)
 
             first_tx_model.set_use_G_flag(g_flag=True)
             print_border("calculating H_gxc, T: {0}, iter: {1}".format(T,i+1))        
