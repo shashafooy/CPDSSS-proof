@@ -41,7 +41,7 @@ def create_model(n_inputs, rng):
 
 def calc_entropy(sim_model,base_samples=None,n_samples=100):
     H=-1
-    val_tol = 0.1
+    val_tol = 0.05
     patience=10
     #redo learning if calc_ent returns error
     while H==-1:
@@ -129,7 +129,7 @@ path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
-path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7".format(int(knn_samples/1000))
+path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7,learnTol=0.05".format(int(knn_samples/1000))
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
