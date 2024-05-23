@@ -86,23 +86,23 @@ def print_border(msg):
 """
 Parameters for CPDSSS
 """
-N=4
+N=2
 L=2
 M=int(N/L)
 P=N-int(N/L)
 max_T=5
 T_range = range(2,N+max_T)
 T_range = range(8,9)
-T_range = range(4,8)
+T_range = range(2,8)
 
 """
 Number of iterations
 """
 n_trials = 100 #iterations to average
 knn_samples = 200000 #samples to generate per entropy calc
-n_train_samples = 10000
+n_train_samples = 20000
 completed_iter=0
-GQ_gaussian = True
+GQ_gaussian = False
 
 
 """
@@ -126,11 +126,14 @@ File names
 
 today=date.today().strftime("%b_%d")
 filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(knn_samples/1000),today)
+
 path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7,learnTol=0.05".format(int(knn_samples/1000))
+base_path = 'temp_data/CPDSSS/True_GQ/N2_L2/'
+path = base_path + "knn={}k_T=2-7".format(int(knn_samples/1000))
 
 # path = "temp_data/CPDSSS_data/Ignore"
 # filename=os.path.join(path, filename)
