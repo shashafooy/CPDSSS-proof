@@ -71,7 +71,8 @@ class CPDSSS:
         # a=np.zeros((self.NL,1))
         # a[0]=1
 
-        h = self.sim_H.sim(n_samples=n_samples)
+        #Flat fading
+        self.h = self.sim_H.sim(n_samples=n_samples) * np.exp(-np.arange(self.N) / 3)
         G = np.zeros((n_samples,self.N,self.NL))
         Q = np.zeros((n_samples,self.N,self.NNL))
         # from datetime import timedelta
@@ -82,7 +83,7 @@ class CPDSSS:
             # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
             # A=E.T @ H 
             #Slightly faster than doing E.T @ H
-            A = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))[0::self.L,:]
+            A = lin.toeplitz(self.h[i,:],np.concatenate(([self.h[i,0]],self.h[i,-1:0:-1])))[0::self.L,:]
             R=A.T @ A + 0.0001*np.eye(self.N)                       
             # p=A.T @ a
             p = A[0,:].T
@@ -92,8 +93,11 @@ class CPDSSS:
             # Slightly faster than doing G@E
             G[i,:,:]=lin.toeplitz(g,np.concatenate(([g[0]], g[-1:0:-1])))[:,0::self.L]
             
-            _,V = lin.eig(R)
-            Q[i,:,:]=V[:,0:self.NNL]
+            ev,V = lin.eig(R)
+            #Only use eigenvectors associated with "zero" eigenvalue
+            #  get indices of the smallest eigenvalues to find "zero" EV
+            sort_indices = np.argsort(ev)
+            Q[i,:,:]=V[:,sort_indices[0:self.NNL]]
         # end_time = time.time()
         # print("GQ time: ",str(timedelta(seconds = int(end_time - start_time))))       
 
