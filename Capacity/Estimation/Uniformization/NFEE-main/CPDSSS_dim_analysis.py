@@ -37,7 +37,7 @@ for N in range(40,41):
    
     plt.figure()             
     sim_model = CPDSSS(T,N,N)
-    X,X_T,X_cond,G = sim_model.get_base_X_G(n_samples=n_samples)
+    X,X_T,X_cond,G = sim_model.get_base_X_h(n_samples=n_samples)
 
     var=np.mean(np.var(X_T,axis=0))
     x=np.linspace(stats.norm.ppf(1e-6,scale=sqrt(var)),stats.norm.ppf(1-1e-6,scale=sqrt(var)),100)
