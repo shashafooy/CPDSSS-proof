@@ -15,7 +15,7 @@ function [GZ,Q] = generate_G_Q(N,L)
     p=A'*a;
     g=R\p; %g=g/sqrt(g'*g);
     G=toeplitz(g,[g(1); g(end:-1:2)]);
-    GZ=G*Z; gz=GZ(:,1);
+    GZ=G*Z*E; gz=GZ(:,1);
     % s=2*randi([0,1],N/L,1)-1;
     % [s E'*H*G*E*s]
     %%
