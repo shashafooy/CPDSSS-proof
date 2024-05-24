@@ -132,7 +132,7 @@ path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7,learnTol=0.05".format(int(knn_samples/1000))
-base_path = 'temp_data/CPDSSS_data/True_GH/N2_L2/'
+base_path = 'temp_data/CPDSSS_data/MI(h,X)/N2_L2/'
 path = base_path + "knn={}k_T=2-7".format(int(knn_samples/1000))
 
 # path = "temp_data/CPDSSS_data/Ignore"
