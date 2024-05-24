@@ -116,8 +116,8 @@ H_xxc_cum=np.empty((n_trials,len(T_range)))*np.nan
 H_joint_cum=np.empty((n_trials,len(T_range)))*np.nan
 H_cond_cum=np.empty((n_trials,len(T_range)))*np.nan
 H_x=np.empty((n_trials,len(T_range)))*np.nan
-H_g=np.empty((n_trials,len(T_range)))*np.nan
-H_xg=np.empty((n_trials,len(T_range)))*np.nan
+H_h=np.empty((n_trials,len(T_range)))*np.nan
+H_xh=np.empty((n_trials,len(T_range)))*np.nan
 
         
 """
@@ -132,7 +132,7 @@ path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7,learnTol=0.05".format(int(knn_samples/1000))
-base_path = 'temp_data/CPDSSS_data/True_GQ/N2_L2/'
+base_path = 'temp_data/CPDSSS_data/True_GH/N2_L2/'
 path = base_path + "knn={}k_T=2-7".format(int(knn_samples/1000))
 
 # path = "temp_data/CPDSSS_data/Ignore"
@@ -155,49 +155,49 @@ for i in range(n_trials):
 
         n_sims = knn_samples
 
-        X,X_T,X_cond,G = sim_model.get_base_X_G(n_sims)
-        gxc=np.concatenate((X_cond,G),axis=1)
-        joint=np.concatenate((X,G),axis=1)
+        X,X_T,X_cond,h = sim_model.get_base_X_h(n_sims)
+        hxc=np.concatenate((X_cond,h),axis=1)
+        joint=np.concatenate((X,h),axis=1)
 
         if T==1:
-            sim_model.set_use_G_flag(g_flag=False)
+            sim_model.set_use_h_flag(h_flag=False)
             print_border("Calculate H(x), T: 1, iter: {}".format(i+1))
             H_x[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X_T)
 
-            sim_model.set_use_G_flag(g_flag=True)
-            sim_model.set_sim_G_only(sim_g=True)
-            print_border("Calculate H(g), T: 1, iter: {}".format(i+1))
-            H_g[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=G)
+            sim_model.set_use_h_flag(h_flag=True)
+            sim_model.set_sim_h_only(sim_h=True)
+            print_border("Calculate H(h), T: 1, iter: {}".format(i+1))
+            H_h[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=h)
 
-            sim_model.set_sim_G_only(sim_g=False)
-            sim_model.set_use_G_flag(g_flag=True)            
-            print_border("Calculate H(x,g), T: 1, iter: {}".format(i+1))
-            H_xg[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
+            sim_model.set_sim_h_only(sim_h=False)
+            sim_model.set_use_h_flag(h_flag=True)            
+            print_border("Calculate H(x,h), T: 1, iter: {}".format(i+1))
+            H_xh[i,k] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
 
-            MI_cum[i,k] = H_x[i,k] + H_g[i,k] - H_xg[i,k]
+            MI_cum[i,k] = H_x[i,k] + H_h[i,k] - H_xh[i,k]
             if k== np.size(T_range)-1:
                 completed_iter = completed_iter + 1
                 filename = update_filename(path,filename,n_sims,today,completed_iter)    
 
-            util.io.save((T_range, MI_cum,H_x,H_g,H_xg,i), os.path.join(path,filename)) 
+            util.io.save((T_range, MI_cum,H_x,H_h,H_xh,i), os.path.join(path,filename)) 
 
         else:
             first_tx_model = CPDSSS(T-1,N,L,use_gaussian_approx=GQ_gaussian)
 
-            first_tx_model.set_use_G_flag(g_flag=True)
-            print_border("calculating H_gxc, T: {0}, iter: {1}".format(T,i+1))        
-            H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=gxc)
+            first_tx_model.set_use_h_flag(h_flag=True)
+            print_border("1/4 calculating H(h,x_old), T: {0}, iter: {1}".format(T,i+1))        
+            H_gxc = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=hxc)
 
-            first_tx_model.set_use_G_flag(g_flag=False)
-            print_border("calculating H_cond, T: {0}, iter: {1}".format(T,i+1))
+            first_tx_model.set_use_h_flag(h_flag=False)
+            print_border("2/4 calculating H(x_old), T: {0}, iter: {1}".format(T,i+1))
             H_cond = calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=X_cond)
 
-            sim_model.set_use_G_flag(False)
-            print_border("calculating H_xxc, T: {0}, iter: {1}".format(T,i+1))
+            sim_model.set_use_h_flag(False)
+            print_border("3/4 calculating H(x_T, x_old), T: {0}, iter: {1}".format(T,i+1))
             H_xxc = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X)
 
-            sim_model.set_use_G_flag(True)
-            print_border("calculating H_joint, T: {0}, iter: {1}".format(T,i+1))
+            sim_model.set_use_h_flag(True)
+            print_border("4/4 calculating H_(h,x_T,x_old), T: {0}, iter: {1}".format(T,i+1))
             H_joint = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
 
             H_gxc_cum[i,k]=H_gxc

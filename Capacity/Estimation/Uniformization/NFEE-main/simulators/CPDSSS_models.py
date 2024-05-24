@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.linalg as lin
 from simulators.complex import mvn
+import math 
 class CPDSSS:
     def __init__(self, num_tx, N, L, use_gaussian_approx=True):
         self.T=num_tx
@@ -16,8 +17,10 @@ class CPDSSS:
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
 
         self.gaussian_approx = use_gaussian_approx        
-        self.set_use_G_flag(g_flag=False)
-        self.sim_g_only = False
+        self.set_use_h_flag(h_flag=False)
+        self.sim_h_only = False
+
+        self.fading = np.exp(-np.arange(self.N) / 3)
 
     def sim(self, n_samples=1000):
         """Generate samples X and (optional) G for CPDSSS
@@ -31,6 +34,7 @@ class CPDSSS:
         
         s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.NL,self.T))
         v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.NNL,self.T))
+        self.h = self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)
         if(self.gaussian_approx):
             g = self.sim_g.sim(n_samples=n_samples)
             self.G = np.zeros((n_samples,self.N,self.NL))
@@ -48,13 +52,12 @@ class CPDSSS:
         self.X=np.matmul(self.G,s) + np.matmul(Q,v)
         joint_X = self.X[:,:,0:self.T].reshape((n_samples,self.N*self.T),order='F')#order 'F' needed to make arrays stack instead of interlaced
 
-        if(self.use_G):
-            self.samples = np.concatenate((joint_X,self.G[:,:,0]),axis=1)
+        if(self.use_h):
+            self.samples = np.concatenate((joint_X,self.h),axis=1)
         else:
             self.samples = joint_X
-        if(self.sim_g_only):
-            self.samples = self.G[:,:,0]
-
+        if(self.sim_h_only):
+            self.samples = self.h
 
         return self.samples
         # g_term = G[:,:,0]
@@ -72,7 +75,7 @@ class CPDSSS:
         # a[0]=1
 
         #Flat fading
-        self.h = self.sim_H.sim(n_samples=n_samples) * np.exp(-np.arange(self.N) / 3)
+        
         G = np.zeros((n_samples,self.N,self.NL))
         Q = np.zeros((n_samples,self.N,self.NNL))
         # from datetime import timedelta
@@ -83,10 +86,10 @@ class CPDSSS:
             # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
             # A=E.T @ H 
             #Slightly faster than doing E.T @ H
-            A = lin.toeplitz(self.h[i,:],np.concatenate(([self.h[i,0]],self.h[i,-1:0:-1])))[0::self.L,:]
-            R=A.T @ A + 0.0001*np.eye(self.N)                       
+            HE = lin.toeplitz(self.h[i,:],np.concatenate(([self.h[i,0]],self.h[i,-1:0:-1])))[0::self.L,:]
+            R=HE.T @ HE + 0.0001*np.eye(self.N)                       
             # p=A.T @ a
-            p = A[0,:].T
+            p = HE[0,:].T
             g=lin.inv(R)@p
 
             #Only take every L columns of toepltiz matrix
@@ -104,39 +107,40 @@ class CPDSSS:
         return G,Q
 
 
+    def chan_entropy(self):
+        return 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.diag(self.fading)))
 
 
 
 
-
-    def set_use_G_flag(self,g_flag=True):
+    def set_use_h_flag(self,h_flag=True):
         """Enables sim to append G in addition to X
 
         Args:
             g_flag (bool, optional): Enable G output. Defaults to True.
         """
-        self.use_G=g_flag
-        if(g_flag):
+        self.use_h=h_flag
+        if(h_flag):
             self.x_dim = self.N*self.T + self.N
         else:
             self.x_dim = self.N*self.T
 
-    def set_sim_G_only(self,sim_g=True):
+    def set_sim_h_only(self,sim_h=True):
         """Set flag to only return G when using sim()
         
         Args:
             sim_g (bool): True if you want sim() to return only G
         """
-        self.sim_g_only = sim_g
-        if(sim_g):
+        self.sim_h_only = sim_h
+        if(sim_h):
             self.x_dim = self.N
-        elif(self.use_G):
+        elif(self.use_h):
             self.x_dim = self.N*self.T + self.N
         else:
             self.x_dim = self.N*self.T
 
     
-    def get_base_X_G(self,n_samples=1000):
+    def get_base_X_h(self,n_samples=1000):
         """Generate values for G and X
 
         Args:
@@ -145,51 +149,13 @@ class CPDSSS:
         Returns:
             numpy: X, X_T, X_cond, G
         """
-        self.set_use_G_flag(g_flag=True)
+        self.set_use_h_flag(h_flag=True)
         vals = self.sim(n_samples=n_samples)
         X=vals[:,0:self.N*self.T]
         X_T=X[:,-self.N:]
         X_cond = X[:,0:-self.N]
-        G = vals[:,-self.N:]
-        return X,X_T,X_cond,G
+        return X,X_T,X_cond,self.h
 
-    def generate_G_Q(N,L,n_samples):
-        epsilon=1e-4
-        h=self.sim_H.sim(n_samples=n_samples) + 1j*np.self.sim_H.sim(n_samples=n_samples)
-        h=h*np.exp(-np.array(range(0,N))/3)
-        # H=lin.toeplitz(h,r=)
-
-'''
-function [G,Q] = generate_G_Q(N,L)
-epsilon=1e-4;
-
-h=(randn(N,1)+1i*randn(N,1)).*exp(-[0:N-1]'/3);
-h=randn(N,1).*exp(-[0:N-1]'/3); % REAL EXPERIMENT
-H=toeplitz(h,[h(1); h(end:-1:2)]);
-E=eye(N/L);E=upsample(E,L);
-
-A=E'*H;
-R=A'*A+epsilon*eye(N);
-a=[1; zeros(N/L-1,1)];
-p=A'*a;
-g=R\p;
-
-G=toeplitz(g,[g(1); g(end:-1:2)]);
-G=G*E;
-
-[V D]=eig(R);
-NNL=N-N/L;
-P=NNL;
-Q=V(:,1:NNL);
-% Q=Q';       %take hermitian to match X=SG + VQ
-% v=(randn(T,P)+1i*randn(T,P))/sqrt(2);
-
-
-M=N/L;P=N-M;
-G=randn(N,M);
-Q=randn(N,P);
-end
-'''
 
 class CPDSSS_X:
     """
