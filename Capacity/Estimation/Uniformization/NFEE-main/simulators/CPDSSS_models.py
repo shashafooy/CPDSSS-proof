@@ -100,7 +100,8 @@ class CPDSSS:
             #Only use eigenvectors associated with "zero" eigenvalue
             #  get indices of the smallest eigenvalues to find "zero" EV
             sort_indices = np.argsort(ev)
-            Q[i,:,:]=V[:,sort_indices[0:self.NNL]]
+            #Sometimes get a very small imaginary value, ignore it
+            Q[i,:,:]=np.real(V[:,sort_indices[0:self.NNL]])
         # end_time = time.time()
         # print("GQ time: ",str(timedelta(seconds = int(end_time - start_time))))       
 
