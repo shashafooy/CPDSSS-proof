@@ -32,7 +32,7 @@ class CPDSSS:
             numpy: (n_samples, dim_x) array of generated values
         """
         
-        s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.NL,self.T))
+        self.s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.NL,self.T))
         v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.NNL,self.T))
         self.h = self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)
         if(self.gaussian_approx):
@@ -49,7 +49,7 @@ class CPDSSS:
         # import timeit
         # timeit.timeit(lambda: self.sim_GQ(n_samples=200000),number=1)
 
-        self.X=np.matmul(self.G,s) + np.matmul(Q,v)
+        self.X=np.matmul(self.G,self.s) + np.matmul(Q,v)
         joint_X = self.X[:,:,0:self.T].reshape((n_samples,self.N*self.T),order='F')#order 'F' needed to make arrays stack instead of interlaced
 
         if(self.use_h):
@@ -166,13 +166,31 @@ class CPDSSS_XS(CPDSSS):
         CPDSSS.__init__(num_tx=1,N=N,L=L,use_gaussian_approx=False)
         # self.base_model=CPDSSS(num_tx=num_tx,N=N,L=L,use_gaussian_approx=False)
 
+    def use_X(self):
+        self.use_X=True
+        self.use_S=False
+        self.x_dim=self.N
+    
+    def use_S(self):
+        self.use_X=True
+        self.use_S=False
+        self.x_dim=self.NL
+    
+    def use_XS(self):
+        self.use_X=True
+        self.use_S=True
+        self.x_dim=self.N+self.NL
+
+
     def sim(self, n_samples=1000):
-        
-        self.base_model.gen_XG(n_samples=n_samples)
-        T=self.base_model.T
-        N=self.base_model.N
-        #order 'F' needed to make arrays stack instead of interlaced
-        return self.base_model.X[:,:,0:T].reshape((n_samples,N*T),order='F')
+        X = super().sim(n_samples=n_samples)
+        ret_val = np.empty()
+        if self.use_X:
+            ret_val = np.concatenate((ret_val,X),axis=1)
+        if self.use_S:
+            ret_val = np.concatenate((ret_val,self.s),axis=1)
+
+        return ret_val
     
 class CPDSSS_XG:
     """
