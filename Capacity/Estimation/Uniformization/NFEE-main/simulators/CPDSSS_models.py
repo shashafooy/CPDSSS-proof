@@ -158,14 +158,16 @@ class CPDSSS:
         return X,X_T,X_cond,self.h
 
 
-class CPDSSS_X:
+class CPDSSS_XS(CPDSSS):
     """
     Generate the output samples X for CPDSSS
     """
-    def __init__(self, num_tx, N, L):
-        self.base_model=CPDSSS(num_tx=num_tx,N=N,L=L)
+    def __init__(self, N, L):
+        CPDSSS.__init__(num_tx=1,N=N,L=L,use_gaussian_approx=False)
+        # self.base_model=CPDSSS(num_tx=num_tx,N=N,L=L,use_gaussian_approx=False)
 
     def sim(self, n_samples=1000):
+        
         self.base_model.gen_XG(n_samples=n_samples)
         T=self.base_model.T
         N=self.base_model.N
