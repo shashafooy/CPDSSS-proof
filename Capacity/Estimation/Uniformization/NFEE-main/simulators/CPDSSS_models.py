@@ -163,20 +163,20 @@ class CPDSSS_XS(CPDSSS):
     Generate the output samples X for CPDSSS
     """
     def __init__(self, N, L):
-        CPDSSS.__init__(num_tx=1,N=N,L=L,use_gaussian_approx=False)
+        CPDSSS.__init__(self,num_tx=1,N=N,L=L,use_gaussian_approx=False)
         # self.base_model=CPDSSS(num_tx=num_tx,N=N,L=L,use_gaussian_approx=False)
 
-    def use_X(self):
+    def sim_use_X(self):
         self.use_X=True
         self.use_S=False
         self.x_dim=self.N
     
-    def use_S(self):
+    def sim_use_S(self):
         self.use_X=True
         self.use_S=False
         self.x_dim=self.NL
     
-    def use_XS(self):
+    def sim_use_XS(self):
         self.use_X=True
         self.use_S=True
         self.x_dim=self.N+self.NL
@@ -184,11 +184,11 @@ class CPDSSS_XS(CPDSSS):
 
     def sim(self, n_samples=1000):
         X = super().sim(n_samples=n_samples)
-        ret_val = np.empty()
+        ret_val = np.empty((n_samples,0))
         if self.use_X:
             ret_val = np.concatenate((ret_val,X),axis=1)
         if self.use_S:
-            ret_val = np.concatenate((ret_val,self.s),axis=1)
+            ret_val = np.concatenate((ret_val,self.s[:,:,0]),axis=1)
 
         return ret_val
     

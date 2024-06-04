@@ -52,43 +52,43 @@ REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
 #util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename)) 
-base_path = 'temp_data/CPDSSS_data/N4_L2/'
+base_path = 'temp_data/CPDSSS_data/MI(h,X)/N2_L2/'
 filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
 filepath = base_path + '50k_tol_0.1_patience_10'
 filepath = base_path+'50k_N4_L2'
 filepath = base_path+'50k_N4_L2'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepath = base_path + 'NlogN_10k_K=3,T=8'
-filepath = base_path + 'NlogN_10k_K=3,T=8,samp=80k'
+filepath = base_path + 'knn=200k_T=2-7'
 
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_tol_0.1_patience_10'
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_samples'
-filepath = base_path + 'NlogN_10k_scaling'
-filepaths = [base_path + 'NlogN_10k_scaling', base_path + 'Nscaling_knn=200k_T=8']
-N=4
+# filepath = base_path + 'NlogN_10k_scaling'
+# filepaths = [base_path + 'NlogN_10k_scaling', base_path + 'Nscaling_knn=200k_T=8']
+N=2
 L=2
 # filepath=filepaths[1]
 # idx=0
-for idx,filepath in enumerate(filepaths):
-    for filename in os.listdir(filepath):
-        filename=os.path.splitext(filename)[0] #remove extention
-        T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
-        iter = range(0,completed_iter+1)
+# for idx,filepath in enumerate(filepaths):
+for filename in os.listdir(filepath):
+    filename=os.path.splitext(filename)[0] #remove extention
+    T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter = util.io.load(os.path.join(filepath, filename))
+    iter = range(0,completed_iter+1)
 
-        if 'MI_tot' not in locals():
-            MI_tot = np.empty((0,np.size(T_range)))
-            H_gxc_tot = np.empty((0,np.size(T_range)))
-            H_xxc_tot = np.empty((0,np.size(T_range)))
-            H_joint_tot = np.empty((0,np.size(T_range)))
-            H_cond_tot = np.empty((0,np.size(T_range)))
-            old_range = T_range
-    
+    if 'MI_tot' not in locals():
+        MI_tot = np.empty((0,np.size(T_range)))
+        H_gxc_tot = np.empty((0,np.size(T_range)))
+        H_xxc_tot = np.empty((0,np.size(T_range)))
+        H_joint_tot = np.empty((0,np.size(T_range)))
+        H_cond_tot = np.empty((0,np.size(T_range)))
+        old_range = T_range
 
-        MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
-        H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
-        H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
-        H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
-        H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
+
+    MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
+    H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
+    H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
+    H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
+    H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
 
 '''
 Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
@@ -149,8 +149,10 @@ if COMBINE_ENTROPIES:
 '''
 Max capacity
 '''
-import math 
-H_G = 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.eye(N)))
+from simulators.CPDSSS_models import CPDSSS
+sim_model = CPDSSS(1,N,L,False)
+H_h = sim_model.chan_entropy()
+# H_G = 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.eye(N)))
 
 
 # fig1,ax1=plt.subplots(2,2)
@@ -202,7 +204,7 @@ MI_mean=np.insert(MI_mean,0,0) # start at 0 MI
 ax3[0].cla(),ax3[0].plot(temp_range,MI_mean)
 ax3[0].set_title(r'$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$'),ax3[0].set_xlabel(r'$T$')
 ax3[1].cla(),ax3[1].plot(temp_range,np.cumsum(MI_mean),label = r'$I(\mathbf{g},\mathbf{X})$')
-ax3[1].axhline(y=H_G,linestyle='dashed', label = r'$H(\mathbf{g})$')
+ax3[1].axhline(y=H_h,linestyle='dashed', label = r'$H(\mathbf{g})$')
 ax3[1].set_title(r'$I(\mathbf{g},\mathbf{X})$'),ax3[1].set_xlabel(r'T')
 ax3[1].legend()
 
@@ -215,7 +217,7 @@ yerr=np.insert(np.nanvar(MI_tot,axis=0),0,0)
 ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean,yerr=yerr)
 ax4[0].set_title(r'$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$'),ax4[0].set_xlabel(r'$T$')
 ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr),label = r'$I(\mathbf{g},\mathbf{X})$'),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
-ax4[1].axhline(y=H_G,linestyle='dashed', label = 'H(G)'),ax4[1].legend()
+ax4[1].axhline(y=H_h,linestyle='dashed', label = 'H(G)'),ax4[1].legend()
 ax4[1].set_title(r'$I(\mathbf{g},\mathbf{X})$'),ax4[1].set_xlabel(r'T')
 fig4.tight_layout()
 
@@ -247,7 +249,7 @@ if COMBINE_ENTROPIES:
     '''Error bars with combining similar entropies'''
     fig4,ax4=plt.subplots(1,2)
     fig4.suptitle("Combined Entropies, N={}, L={}".format(N,L))
-    yerr=np.insert(np.nanstd(MI_tot_long,axis=0),0,0)
+    yerr=np.insert(np.nanvar(MI_tot_long,axis=0),0,0)
     MI_mean_long = np.insert(MI_mean_long,0,0)
     ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean_long,yerr=yerr),ax4[0].set_title('MI increase per T, error bars'),ax4[0].set_xlabel('T')
     ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean_long),yerr=np.cumsum(yerr)),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')

@@ -14,6 +14,7 @@ from datetime import timedelta
 
 import time
 import gc
+import math
 
 """
 Functions for generating the model and entropy
@@ -86,7 +87,7 @@ def print_border(msg):
 """
 Parameters for CPDSSS
 """
-N=4
+N=2
 L=2
 M=int(N/L)
 P=N-int(N/L)
@@ -102,10 +103,10 @@ completed_iter=0
 """
 Initialize arrays
 """
-MI_xs = np.empty((n_trials,len(T_range)))*np.nan
-H_x=np.empty((n_trials,len(T_range)))*np.nan
-H_s=np.empty((n_trials,len(T_range)))*np.nan
-H_xs=np.empty((n_trials,len(T_range)))*np.nan
+MI_xs = np.empty((n_trials))*np.nan
+H_x=np.empty((n_trials))*np.nan
+H_s=np.empty((n_trials))*np.nan
+H_xs=np.empty((n_trials))*np.nan
 
         
 """
@@ -115,11 +116,12 @@ File names
 today=date.today().strftime("%b_%d")
 
 base_path = 'temp_data/CPDSSS_data/MI(S,X)/N2_L2'
+path = base_path
 
 #fix filename if file already exists
-filename = update_filename(base_path,'',knn_samples,today,completed_iter,rename=False)    
+filename = update_filename(path,'',knn_samples,today,completed_iter,rename=False)    
 #create initial file
-util.io.save((MI_xs,H_x,H_s,H_xs,0), os.path.join(base_path,filename)) 
+util.io.save((MI_xs,H_x,H_s,H_xs,0), os.path.join(path,filename)) 
 
 
 
@@ -132,21 +134,22 @@ for i in range(n_trials):
 
     n_sims = knn_samples
 
-    sim_model.use_XS()
+    sim_model.sim_use_XS()
     XS = sim_model.sim(n_sims)
     X = XS[:,:sim_model.N]
     S = XS[:,-sim_model.NL:]
 
-    sim_model.use_X()
+    sim_model.sim_use_X()
     print_border("Calculate H(x), iter: {}".format(i+1))
     H_x[i] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X)
 
     H_s[i] = 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.eye(sim_model.NL)))
 
+    sim_model.sim_use_XS()
     print_border("Calculate H(x,s), iter: {}".format(i+1))
     H_xs[i] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=S)
 
-    MI_xs[i,k] = H_x[i] + H_s[i] - H_xs[i]
+    MI_xs[i] = H_x[i] + H_s[i] - H_xs[i]
     
     completed_iter = completed_iter + 1
     filename = update_filename(path,filename,n_sims,today,completed_iter)    
