@@ -32,9 +32,8 @@ def create_model(n_inputs, rng):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05):
     H=-1
-    val_tol = 0.05
     patience=10
     #redo learning if calc_ent returns error
     while H==-1:

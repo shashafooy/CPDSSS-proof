@@ -33,15 +33,14 @@ util.io.save((H_laplace,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,
 
 
 for i in range(n_trials):
-    sim_laplace = mod.Laplace(0,2,N=N)
-    true_H_laplace = sim_laplace.entropy()
-
     for N in N_range:    
+        sim_laplace = mod.Laplace(mu=0,b=2,N=N)
+        true_H_laplace = sim_laplace.entropy()        
         laplace_base = sim_laplace.sim(n_samples=knn_samples)
         
 
         ent.print_border("Calculate H(x) laplace, N={}, iter: {}".format(N,i+1))
-        H_laplace[i,N-1] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base)    
+        H_laplace[i,N-1] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01)    
         H_KL_laplace[i,N-1] = kl(laplace_base)
         MSE_uniform = 1/(i+1) * np.linalg.norm(H_laplace[:i+1,N-1] - true_H_laplace,2)**2
         MSE_KL = 1/(i+1) * np.linalg.norm(H_KL_laplace[:i+1,N-1] - true_H_laplace,2)**2
