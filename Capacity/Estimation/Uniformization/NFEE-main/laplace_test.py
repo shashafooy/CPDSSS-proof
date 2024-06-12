@@ -14,13 +14,13 @@ from ent_est.entropy import kl
 
 
 knn_samples = 200000
-n_train_samples = 10000
+n_train_samples = 30000
 n_trials = 100
-N_range=range(1,10)
+N_range=range(10,20)
 
 
-H_laplace = np.empty((n_trials,len(N_range)))
-H_KL_laplace = np.empty((n_trials,len(N_range)))
+H_laplace = np.empty((n_trials,len(N_range)))*np.nan
+H_KL_laplace = np.empty((n_trials,len(N_range)))*np.nan
 
 iter=0
 MSE_uniform=np.inf
@@ -29,7 +29,7 @@ MSE_KL=np.inf
 path = 'temp_data/laplace_test'
 today=date.today().strftime("%b_%d")
 filename = ent.update_filename(path,'',knn_samples,today,iter,rename=False)
-util.io.save((H_laplace,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
+util.io.save((N_range,H_laplace,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
 
 for i in range(n_trials):
@@ -48,6 +48,6 @@ for i in range(n_trials):
 
         if N==N_range[-1]:
             iter=iter+1
-            ent.update_filename(path,filename,knn_samples,today,iter,rename=True)
-        util.io.save((H_laplace,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
+            filename=ent.update_filename(path,filename,knn_samples,today,iter,rename=True)
+        util.io.save((N_range,H_laplace,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
