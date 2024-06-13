@@ -32,7 +32,7 @@ def create_model(n_inputs, rng):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,method='umtkl'):
     H=-1
     patience=10
     #redo learning if calc_ent returns error
@@ -47,14 +47,16 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05):
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
         start_time = time.time()
-        H,_,_,_ = estimator.calc_ent(reuse_samples=reuse, method='umtkl',k=1)
+        H,H2,_,_ = estimator.calc_ent(reuse_samples=reuse, method=method,k=1)
         end_time = time.time()        
         print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))       
 
         net.release_shared_data()
         for i in range(3): gc.collect()
-        
-    return H
+    if method=='both':
+        return H,H2
+    else:
+        return H
 
 def update_filename(path,old_name,n_samples,today,iter,rename=True):
     new_name ="CPDSSS_data_dump({0}_iter)({1}k_samples)({2})".format(iter,int(n_samples/1000),today)

@@ -36,7 +36,10 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     # knn search
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
     dist, idx = nbrs.kneighbors(y)
-    
+    zeros_mask = dist[:,k]!=0
+    dist = dist[zeros_mask,:]
+    N=dist.shape[0]
+
     if standardize == True:
         hh = dim*np.log(2*dist[:,k])+np.sum(np.log(y_std))
     else:
@@ -70,12 +73,17 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
     # knn search
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
+
+    zeros_mask = dist[:,k]!=0
     
     r = dist[:,k]
     r = np.tile(r[:, np.newaxis], (1, dim))
     lb = (y-r >= 0)*(y-r) + (y-r < 0)*0
     ub = (y+r <= 1)*(y+r) + (y+r > 1)*1
-    hh = np.log(np.prod(ub-lb, axis=1))
+
+    zeta = (ub-lb)[zeros_mask] #remove zeros, duplicate points result in 0 distance
+    N=zeta.shape[0]
+    hh = np.log(np.prod(zeta, axis=1))
         
     h = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
     
@@ -151,17 +159,21 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
     dist, idx = nbrs.kneighbors(y)
     
-    hh = np.empty(n)
-    
-    if standardize == True:
-        for j in range(n):
-            r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
-            hh[j] = np.log(np.prod(2*r*y_std))
+    # hh = np.empty(n)
+    epsilons=np.abs(y-y[idx[:,k]])
+    zeros_mask = ~np.any(epsilons==0,axis=1)
+    epsilons=epsilons[zeros_mask]
+    if standardize == True:        
+        hh=np.sum(np.log(2*epsilons*y_std),axis=1)
+        # for j in range(n):
+        #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
+        #     hh[j] = np.log(np.prod(2*r*y_std))
             
     else:
-        for j in range(n):
-            r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
-            hh[j] = np.log(np.prod(2*r))
+        hh=np.sum(np.log(2*epsilons),axis=1)
+        # for j in range(n):
+        #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
+        #     hh[j] = np.log(np.prod(2*r))
         
     h = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh)
     
@@ -190,14 +202,23 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
     dist, idx = nbrs.kneighbors(y)
     
-    hh = np.empty(n)
-    for j in range(n):
-        r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
-        lb = (y[j]-r >=0)*(y[j]-r) + (y[j]-r < 0)*0
-        ub = (y[j]+r <=1)*(y[j]+r) + (y[j]+r > 1)*1
-        hh[j] = np.log(np.prod(ub-lb))
+    epsilons = np.abs(y-y[idx[:,k]])
+    zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
+    #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
+    zeros_mask = ~np.any(zeta==0,axis=1)
+    zeta=zeta[zeros_mask]
+    hh2=np.sum(np.log(zeta),axis=1)
+    N=zeta.shape[0]
+
+    # hh = np.empty(n)
+    # for j in range(n):
+    #     # r=dist[n,k]
+    #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
+    #     lb = (y[j]-r >=0)*(y[j]-r) + (y[j]-r < 0)*0
+    #     ub = (y[j]+r <=1)*(y[j]+r) + (y[j]+r > 1)*1
+    #     hh[j] = np.sum(np.log(ub-lb))
         
-    h = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh)
+    h = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh2)
     
     return h
 
@@ -579,23 +600,28 @@ class UMestimator:
 
         if(u.shape[0]<0.01*self.samples.shape[0]):
             return -1,0,0,0
-        if method == 'umtkl': 
-            z = stats.norm.cdf(u)
-            if(z.shape[0]<0.01*self.samples.shape[0]):
-                #return fitting error if size of z is < 1% of original data
-                return -1,0,0,0
-            correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
-            h = tkl(z, k=k) + correction1
-            
+        z = stats.norm.cdf(u)
+        correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
+
+        h2=0
+        if method == 'umtkl':            
+            # if(z.shape[0]<0.01*self.samples.shape[0]):
+            #     #return fitting error if size of z is < 1% of original data
+            #     return -1,0,0,0            
+            h = tkl(z, k=k) + correction1            
         elif method == 'umtksg':
-            z = stats.norm.cdf(u)
-            correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
+            # z = stats.norm.cdf(u)
+            # correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
             h = tksg(z, k=k) + correction1
+        elif method == 'both':
+            # z = sta
+            h = tkl(z,k=k) + correction1
+            h2 = tksg(z,k=k) + correction1
             
         correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
             
         # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
-        return h+correction2,0,0,0
+        return h+correction2,h2+correction2,0,0
     
     def ksg_ent(self, k=1, reuse_samples=True, method='kl'):
         

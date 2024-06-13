@@ -4,45 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from simulators.CPDSSS_models import Laplace
+from misc_CPDSSS import viewData
 
 plt.rcParams['text.usetex']=True
 
 
-def append_data(old_data, old_T_range, new_data, new_T_range):
-    """
-    Adjust both datasets to match their T_range before appending
-    """
 
-    #Insert min_diff columns of NaN at beginning of matrix to align
-    min_diff = min(old_T_range) - min(new_T_range)
-    if(min_diff < 0): #Pad new data     
-        new_data = np.insert(new_data,[0]*abs(min_diff),np.nan,axis=1)
-    elif(min_diff > 0): #Pad old data
-        old_data = np.insert(old_data,[0]*min_diff,np.nan,axis=1)
-
-    #Insert max_diff columns of NaN at end of matrix to align
-    max_diff = max(old_T_range) - max(new_T_range)
-    if(max_diff > 0): #Pad new data
-        new_data = np.insert(new_data,[new_data.shape[1]]*max_diff,np.nan,axis=1)
-    elif(max_diff < 0): #Pad old data
-        old_data = np.insert(old_data,[old_data.shape[1]]*abs(max_diff),np.nan,axis=1)
-    
-    #Update total data and range
-    tot_data = np.append(old_data,new_data,axis=0)
-    tot_T_range = range(min(old_T_range[0],new_T_range[0]), max(old_T_range[-1],new_T_range[-1])+1)
-
-    return tot_data, tot_T_range
-
-def remove_outlier(data, num_std):
-    num_outlier = 1
-    while num_outlier > 0:
-        std = np.nanstd(data,axis=0)
-        mean = np.nanmean(data,axis=0)
-        #check if any value outside of 3*std
-        idx = (data > mean +num_std*std) |  (data < mean - num_std*std)
-        num_outlier = np.count_nonzero(idx)
-        data[idx]=np.NaN
-    return data
 
 """
 Load and combine all datasets
@@ -63,55 +30,126 @@ L=2
 # for idx,filepath in enumerate(filepaths):
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
-    _N_range,_H_unif_laplace,_H_KL_laplace,_MSE_uniform,_MSE_KL,_iter = util.io.load(os.path.join(filepath, filename))
+    _N_range,_H_unif_KL,_H_unif_KSG,_H_KL,_H_KSG,_iter = util.io.load(os.path.join(filepath, filename))
     iter = range(0,_iter+1)
 
     # Initialize arrays
-    if 'H_unif_laplace' not in locals():
-        H_unif_laplace = np.empty((0,_H_unif_laplace.shape[1]))
-        H_KL_laplace = np.empty((0,_H_KL_laplace.shape[1]))        
+    if 'N_range' not in locals():
         N_range = _N_range
+        N_size = len(N_range)
+        H_unif_KL = np.empty((0,N_size))
+        H_unif_KSG = np.empty((0,N_size))
+        H_KL = np.empty((0,N_size))        
+        H_KSG = np.empty((0,N_size))        
+       
 
 
-    H_unif_laplace,_ = append_data(H_unif_laplace,N_range,_H_unif_laplace[iter,:],_N_range)
-    H_KL_laplace,N_range = append_data(H_KL_laplace,N_range,_H_KL_laplace[iter,:],_N_range)
+    H_unif_KL,_ = viewData.append_data(H_unif_KL,N_range,_H_unif_KL,_N_range)
+    H_unif_KSG,_ = viewData.append_data(H_unif_KSG,N_range,_H_unif_KSG,_N_range)
+    H_KL,_ = viewData.append_data(H_KL,N_range,_H_KL,_N_range)
+    H_KSG,N_range = viewData.append_data(H_KSG,N_range,_H_KSG,_N_range)
     
+viewData.clean_data(H_unif_KL)
+viewData.clean_data(H_unif_KSG)
+viewData.clean_data(H_KL)
+viewData.clean_data(H_KSG)
 
-H_unif_laplace[np.isinf]=np.nan
-H_KL_laplace[np.isinf]=np.nan
 # Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
 if REMOVE_OUTLIERS:
-    H_unif_laplace = remove_outlier(data=H_unif_laplace,num_std=3)
-    H_KL_laplace = remove_outlier(data=H_KL_laplace,num_std=3)
+    H_unif_KL = viewData.remove_outlier(H_unif_KL)
+    H_unif_KSG = viewData.remove_outlier(H_unif_KSG)
+    H_KL = viewData.remove_outlier(H_KL)
+    H_KSG = viewData.remove_outlier(H_KSG)
 
 
-H_unif_mean = np.nanmean(H_unif_laplace,axis=0)
-H_KL_mean = np.nanmean(H_KL_laplace,axis=0)
+H_unif_KL_mean = np.nanmean(H_unif_KL,axis=0)
+H_unif_KSG_mean = np.nanmean(H_unif_KSG,axis=0)
+H_KL_mean = np.nanmean(H_KL,axis=0)
+H_KSG_mean = np.nanmean(H_KSG,axis=0)
 
-MSE_uniform = np.empty(len(N_range))
-MSE_KL = np.empty(len(N_range))
+H_unif_KL_std = np.nanstd(H_unif_KL,axis=0)
+H_unif_KSG_std = np.nanstd(H_unif_KSG,axis=0)
+H_KL_std = np.nanstd(H_KL,axis=0)
+H_KSG_std = np.nanstd(H_KSG,axis=0)
+
 H_true = np.empty(len(N_range))
-
 for i,N in enumerate(N_range):
     H_true[i] = Laplace(mu=0,b=2,N=N).entropy()
 
-MSE_uniform = np.nanmean((H_unif_laplace - H_true)**2,axis=0)
-MSE_KL = np.nanmean((H_KL_laplace - H_true)**2,axis=0)
 
+
+
+MSE_unif_KL = np.nanmean((H_unif_KL - H_true)**2,axis=0)
+MSE_unif_KSG = np.nanmean((H_unif_KSG - H_true)**2,axis=0)
+MSE_KL = np.nanmean((H_KL - H_true)**2,axis=0)
+MSE_KSG = np.nanmean((H_KSG - H_true)**2,axis=0)
+
+RMSE_unif_KL = np.sqrt(MSE_unif_KL)
+RMSE_unif_KSG = np.sqrt(MSE_unif_KSG)
+RMSE_KL = np.sqrt(MSE_KL)
+RMSE_KSG = np.sqrt(MSE_KSG)
+
+
+# PLOTS
+
+#entropy
 plt.figure(0)
-plt.plot(N_range,H_true,'-o',N_range,H_unif_mean,'--^',N_range,H_KL_mean,'--x')
+plt.plot(N_range,H_true,'-',
+         N_range,H_unif_KL_mean,'--^',
+         N_range,H_unif_KSG_mean,'--v',
+         N_range,H_KL_mean,'--x',
+         N_range,H_KSG_mean,'--o')
 plt.yscale("log")
 plt.title("Entropy of laplace distribution")
-plt.legend(["True H(x)","Uniform H(x)","KL H(x)"])
+plt.legend(["True H(x)","Uniform KL H(x)","Uniform KSG H(x)","KL H(x)","KSG H(x)"])
 plt.xlabel("N dimensions")
 plt.ylabel("H(x)")
 
+#Absolute error
 plt.figure(1)
-plt.plot(N_range,np.abs(H_true - H_unif_mean),'--^',N_range,abs(H_true - H_KL_mean),'--x')
+plt.plot(N_range,np.abs(H_true - H_unif_KL_mean),'--^',
+         N_range,np.abs(H_true - H_unif_KSG_mean),'--v',
+         N_range,np.abs(H_true - H_KL_mean),'--x',
+         N_range,np.abs(H_true - H_KSG_mean),'--o')
 plt.yscale("log")
 plt.title("Entropy Error")
-plt.legend(["Uniform error","KL error"])
+plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
 plt.xlabel("N dimensions")
 plt.ylabel("log error")
+
+#MSE
+plt.figure(2)
+plt.plot(N_range,MSE_unif_KL,'--^',
+         N_range,MSE_unif_KSG,'--v',
+         N_range,MSE_KL,'--x',
+         N_range,MSE_KSG,'--o')
+plt.yscale("log")
+plt.title("Entropy MSE Error")
+plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
+plt.xlabel("N dimensions")
+plt.ylabel("log MSE")
+
+#RMSE
+plt.figure(3)
+plt.plot(N_range,RMSE_unif_KL,'--^',
+         N_range,RMSE_unif_KSG,'--v',
+         N_range,RMSE_KL,'--x',
+         N_range,RMSE_KSG,'--o')
+plt.yscale("log")
+plt.title("Entropy RMSE Error")
+plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
+plt.xlabel("N dimensions")
+plt.ylabel("log RMSE")
+
+plt.figure(4)
+plt.plot(N_range,H_unif_KL_std,'--^',
+         N_range,H_unif_KSG_std,'--v',
+         N_range,H_KL_std,'--x',
+         N_range,H_KSG_std,'--o')
+plt.yscale("log")
+plt.title("Entropy std")
+plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
+plt.xlabel("N dimensions")
+plt.ylabel("log std")
 
 plt.show()

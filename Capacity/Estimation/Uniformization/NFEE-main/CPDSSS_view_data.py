@@ -3,44 +3,9 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
+from misc_CPDSSS import viewData
+
 plt.rcParams['text.usetex']=True
-
-
-def append_data(old_data, old_T_range, new_data, new_T_range):
-    """
-    Adjust both datasets to match their T_range before appending
-    """
-
-    #Insert min_diff columns of NaN at beginning of matrix to align
-    min_diff = min(old_T_range) - min(new_T_range)
-    if(min_diff < 0): #Pad new data     
-        new_data = np.insert(new_data,[0]*abs(min_diff),np.nan,axis=1)
-    elif(min_diff > 0): #Pad old data
-        old_data = np.insert(old_data,[0]*min_diff,np.nan,axis=1)
-
-    #Insert max_diff columns of NaN at end of matrix to align
-    max_diff = max(old_T_range) - max(new_T_range)
-    if(max_diff > 0): #Pad new data
-        new_data = np.insert(new_data,[new_data.shape[1]]*max_diff,np.nan,axis=1)
-    elif(max_diff < 0): #Pad old data
-        old_data = np.insert(old_data,[old_data.shape[1]]*abs(max_diff),np.nan,axis=1)
-    
-    #Update total data and range
-    tot_data = np.append(old_data,new_data,axis=0)
-    tot_T_range = range(min(old_T_range[0],new_T_range[0]), max(old_T_range[-1],new_T_range[-1])+1)
-
-    return tot_data, tot_T_range
-
-def remove_outlier(data, num_std):
-    num_outlier = 1
-    while num_outlier > 0:
-        std = np.nanstd(data,axis=0)
-        mean = np.nanmean(data,axis=0)
-        #check if any value outside of 3*std
-        idx = (data > mean +num_std*std) |  (data < mean - num_std*std)
-        num_outlier = np.count_nonzero(idx)
-        data[idx]=np.NaN
-    return data
 
 """
 Load and combine all datasets
@@ -84,21 +49,21 @@ for filename in os.listdir(filepath):
         old_range = T_range
 
 
-    MI_tot,_ = append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
-    H_gxc_tot,_=append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
-    H_xxc_tot,_=append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
-    H_joint_tot,_=append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
-    H_cond_tot,old_range=append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
+    MI_tot,_ = viewData.append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
+    H_gxc_tot,_= viewData.append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
+    H_xxc_tot,_= viewData.append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
+    H_joint_tot,_= viewData.append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
+    H_cond_tot,old_range= viewData.append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
 
 '''
 Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
 '''
 if REMOVE_OUTLIERS:
-    MI_tot = remove_outlier(data=MI_tot,num_std=3)
-    H_gxc_tot = remove_outlier(data=H_gxc_tot,num_std=3)
-    H_xxc_tot = remove_outlier(data=H_xxc_tot,num_std=3)
-    H_joint_tot = remove_outlier(data=H_joint_tot,num_std=3)
-    H_cond_tot = remove_outlier(data=H_cond_tot,num_std=3)
+    MI_tot = viewData.remove_outlier(data=MI_tot,num_std=3)
+    H_gxc_tot = viewData.remove_outlier(data=H_gxc_tot,num_std=3)
+    H_xxc_tot = viewData.remove_outlier(data=H_xxc_tot,num_std=3)
+    H_joint_tot = viewData.remove_outlier(data=H_joint_tot,num_std=3)
+    H_cond_tot = viewData.remove_outlier(data=H_cond_tot,num_std=3)
 
 
 MI_mean = np.nanmean(MI_tot,axis=0)
