@@ -52,23 +52,26 @@ File names
 """
 
 today=date.today().strftime("%b_%d")
-filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(knn_samples/1000),today)
+# filename="CPDSSS_data_dump(0_iter)({0}k_samples)({1})".format(int(knn_samples/1000),today)
+
+base_path = "temp_data/CPDSSS_data/MI(h,X)/N4_L2/"
 
 path = 'temp_data/CPDSSS_data/50k_N4_L2'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3'
 path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7,learnTol=0.05".format(int(knn_samples/1000))
-base_path = 'temp_data/CPDSSS_data/MI(h,X)/N4_L2/'
-path = base_path + "knn={}k_T=2-7".format(int(knn_samples/1000))
+
+path = base_path + "knn={}k_T=2-7/".format(int(knn_samples/1000))
+filename = "CPDSSS_data_dump({})".format(today)
 
 # path = "temp_data/CPDSSS_data/Ignore"
 # filename=os.path.join(path, filename)
 
 #fix filename if file already exists
-filename = ent.update_filename(path,'',knn_samples,today,completed_iter,rename=False)    
+filename = ent.update_filename(path,filename,completed_iter,rename=False)    
 #create initial file
-util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,0), os.path.join(path,filename)) 
+# util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,0), os.path.join(path,filename)) 
 # filename = update_filename(path,filename,n_samples,today,1) 
 
 
@@ -104,7 +107,7 @@ for i in range(n_trials):
             MI_cum[i,k] = H_x[i,k] + H_h[i,k] - H_xh[i,k]
             if k== np.size(T_range)-1:
                 completed_iter = completed_iter + 1
-                filename = ent.update_filename(path,filename,n_sims,today,completed_iter)    
+                filename = ent.update_filename(path,filename,completed_iter)    
 
             util.io.save((T_range, MI_cum,H_x,H_h,H_xh,i), os.path.join(path,filename)) 
 
@@ -113,19 +116,19 @@ for i in range(n_trials):
 
             first_tx_model.set_use_h_flag(h_flag=True)
             ent.print_border("1/4 calculating H(h,x_old), T: {0}, iter: {1}".format(T,i+1))        
-            H_gxc = ent.calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=hxc)
+            H_gxc = ent.calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=hxc,val_tol=0.02)
 
             first_tx_model.set_use_h_flag(h_flag=False)
             ent.print_border("2/4 calculating H(x_old), T: {0}, iter: {1}".format(T,i+1))
-            H_cond = ent.calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=X_cond)
+            H_cond = ent.calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=X_cond,val_tol=0.02)
 
             sim_model.set_use_h_flag(False)
             ent.print_border("3/4 calculating H(x_T, x_old), T: {0}, iter: {1}".format(T,i+1))
-            H_xxc = ent.calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X)
+            H_xxc = ent.calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=X,val_tol=0.02)
 
             sim_model.set_use_h_flag(True)
             ent.print_border("4/4 calculating H_(h,x_T,x_old), T: {0}, iter: {1}".format(T,i+1))
-            H_joint = ent.calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint)
+            H_joint = ent.calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=joint,val_tol=0.02)
 
             H_gxc_cum[i,k]=H_gxc
             H_xxc_cum[i,k]=H_xxc
@@ -134,7 +137,7 @@ for i in range(n_trials):
             MI_cum[i,k] = H_gxc + H_xxc - H_joint - H_cond
             if k== np.size(T_range)-1:
                 completed_iter = completed_iter + 1
-                filename = ent.update_filename(path,filename,n_sims,today,completed_iter)    
+                filename = ent.update_filename(path,filename,completed_iter)    
             
             ''' try using i as completed iter. matrix row is not complete, but this saves at least some data'''
             util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,i), os.path.join(path,filename)) 

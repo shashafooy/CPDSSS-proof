@@ -5,6 +5,7 @@ from datetime import timedelta
 import gc
 import os
 import time
+import re
 
 import numpy as np
 from scipy import stats
@@ -32,9 +33,9 @@ def create_model(n_inputs, rng):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,method='umtkl'):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,patience=10,method='umtkl'):
     H=-1
-    patience=10
+    # patience=10
     #redo learning if calc_ent returns error
     while H==-1:
         net=create_model(sim_model.x_dim, rng=np.random)
@@ -58,14 +59,33 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,method='
     else:
         return H
 
-def update_filename(path,old_name,n_samples,today,iter,rename=True):
-    new_name ="CPDSSS_data_dump({0}_iter)({1}k_samples)({2})".format(iter,int(n_samples/1000),today)
+def update_filename(path,old_name,iter,rename=True):
+    reg_pattern = r"\(\d{1,3}_iter\)"
+    iter_name = "({}_iter)".format(iter)
+    match = re.search(reg_pattern,old_name)
+    # Replace iteration number, append if it doesn't exist
+    if match:
+        new_name = re.sub(reg_pattern,iter_name,old_name)    
+    else:
+        new_name = old_name + iter_name
+
+    # Attach unique pid to filename
+    if str(os.getpid()) not in new_name:
+        new_name = new_name + "_" + str(os.getpid())
+
+
+    # WHILE LOOP SHOULD NOT RUN
     unique_name=new_name
     #Check if name already exists, append number to end until we obtain new name
-    i=1
+    i=0
     while os.path.isfile(os.path.join(path,unique_name + '.pkl')):
         unique_name = new_name + '_' + str(i)        
         i=i+1
+    #create file if it doesn't exists.
+    #Sometimes had race condition of two programs used the same name because 
+    #   new name file wasn't used for a few more clock cycles
+    #   creating the file right after getting unique name should prevent this
+    open(os.path.join(path,unique_name + '.pkl'),'a').close()
     new_name=unique_name 
     if(rename):
         os.rename(os.path.join(path,old_name + '.pkl'),os.path.join(path,new_name + '.pkl'))

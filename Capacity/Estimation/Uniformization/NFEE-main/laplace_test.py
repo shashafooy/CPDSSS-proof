@@ -17,7 +17,7 @@ knn_samples = 200000
 n_train_samples = 30000
 n_trials = 100
 N_range=range(1,11)
-method='umtksg'
+method='umtkl'
 # method='both'
 
 H_unif_KL = np.empty((n_trials,len(N_range)))*np.nan
@@ -31,8 +31,9 @@ MSE_KL=np.inf
 
 path = 'temp_data/laplace_test'
 today=date.today().strftime("%b_%d")
-filename = ent.update_filename(path,'',knn_samples,today,iter,rename=False)
-util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
+filename = "laplace_data({})".format(today)
+filename = ent.update_filename(path=path,old_name=filename,iter=iter,rename=False)
+# util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
 
 for i in range(n_trials):
@@ -47,7 +48,8 @@ for i in range(n_trials):
             H_unif_KSG[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01,method=method)        
             H_KSG_laplace[i,ni] = ksg(laplace_base)
         elif method == 'umtkl':
-            H_unif_KL[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01,method=method)        
+            # H_unif_KL[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base
+            #                                    ,val_tol=0.01,patience=3,method=method)        
             H_KL_laplace[i,ni] = kl(laplace_base)
         else:
             H_unif_KL[i,ni],H_unif_KSG[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01,method=method)        
@@ -62,6 +64,6 @@ for i in range(n_trials):
 
         if N==N_range[-1]:
             iter=iter+1
-            filename=ent.update_filename(path,filename,knn_samples,today,iter,rename=True)
+            filename=ent.update_filename(path,filename,iter,rename=True)
         util.io.save((N_range,H_unif_KL,H_unif_KSG,H_KL_laplace,H_KSG_laplace,iter),os.path.join(path,filename))
 
