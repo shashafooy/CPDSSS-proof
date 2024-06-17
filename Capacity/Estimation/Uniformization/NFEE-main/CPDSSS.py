@@ -41,7 +41,7 @@ def create_model(n_inputs, rng):
 
 def calc_entropy(sim_model,base_samples=None,n_samples=100):
     H=-1
-    val_tol = 0.05
+    val_tol = 0.01
     patience=10
     #redo learning if calc_ent returns error
     while H==-1:
@@ -99,8 +99,8 @@ T_range = range(2,8)
 Number of iterations
 """
 n_trials = 100 #iterations to average
-knn_samples = 200000 #samples to generate per entropy calc
-n_train_samples = 20000
+knn_samples = 500000 #samples to generate per entropy calc
+n_train_samples = 30000
 completed_iter=0
 GQ_gaussian = False
 
@@ -133,7 +133,7 @@ path = 'temp_data/CPDSSS_data/NlogN_10k_K=3,T=8,samp=40k'
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=8".format(int(knn_samples/1000))
 path = "temp_data/CPDSSS_data/N4_L2/Nscaling_knn={}k_T=2-7,learnTol=0.05".format(int(knn_samples/1000))
 base_path = 'temp_data/CPDSSS_data/MI(h,X)/N4_L2/'
-path = base_path + "knn={}k_T=2-7".format(int(knn_samples/1000))
+path = base_path + "tol=0.01,T=2-7".format(int(knn_samples/1000))
 
 # path = "temp_data/CPDSSS_data/Ignore"
 # filename=os.path.join(path, filename)

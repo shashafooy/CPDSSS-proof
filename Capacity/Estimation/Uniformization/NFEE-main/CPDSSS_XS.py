@@ -96,7 +96,7 @@ P=N-int(N/L)
 Number of iterations
 """
 n_trials = 100 #iterations to average
-knn_samples = 2000000 #samples to generate per entropy calc
+knn_samples = 200000 #samples to generate per entropy calc
 n_train_samples = 50000
 completed_iter=0
 
@@ -147,7 +147,7 @@ for i in range(n_trials):
 
     sim_model.sim_use_XS()
     print_border("Calculate H(x,s), iter: {}".format(i+1))
-    H_xs[i] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=S)
+    H_xs[i] = calc_entropy(sim_model=sim_model,n_samples=n_train_samples,base_samples=XS)
 
     MI_xs[i] = H_x[i] + H_s[i] - H_xs[i]
     
