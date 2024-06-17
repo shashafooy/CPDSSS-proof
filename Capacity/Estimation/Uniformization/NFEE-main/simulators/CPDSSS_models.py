@@ -1,5 +1,7 @@
 import numpy as np
 import scipy.linalg as lin
+import scipy.special as spec
+import scipy.stats as stats
 from simulators.complex import mvn
 import math 
 class CPDSSS:
@@ -208,3 +210,72 @@ class CPDSSS_XG:
         g_term = self.base_model.G[:,:,0]
         return np.concatenate((joint_X,g_term),axis=1)
  
+class Exponential:
+    """Class to simulate an exponential distribution
+    https://en.wikipedia.org/wiki/Exponential_distribution
+    """
+    def __init__(self,lamb):
+        self.lamb=lamb
+        self.x_dim=1
+
+    
+    def sim(self,n_samples):        
+        return np.random.default_rng().exponential(scale = 1/self.lamb, size = (n_samples,1))
+    
+    def entropy(self):
+        return 1- np.log(self.lamb)
+    
+class Exponential_sum:
+    """Class to simulate the sum of two independent exponential variables
+    https://en.wikipedia.org/wiki/Exponential_distribution
+    """
+    def __init__(self,lambda1,lambda2):
+        assert lambda1>lambda2, "lambda1 > lambda2 for this entropy test"
+        self.lambda1=lambda1
+        self.lambda2=lambda2
+        self.expo1=Exponential(lambda1)
+        self.expo2=Exponential(lambda2)
+        self.x_dim=1
+
+    def sim(self,n_samples):
+        return self.expo1.sim(n_samples) + self.expo2.sim(n_samples)
+    
+    def entropy(self):
+        return 1 + np.euler_gamma + np.log((self.lambda1-self.lambda2)/(self.lambda1*self.lambda2)) + spec.digamma(self.lambda1/(self.lambda1 - self.lambda2))
+    
+class Laplace:
+    def __init__(self,mu,b,N=1):        
+        self.mu=mu
+        self.b=b
+        self.x_dim=N
+    
+    def sim(self,n_samples):
+        return np.random.default_rng().laplace(self.mu,self.b,(n_samples,self.x_dim))
+    
+    def entropy(self):
+        return (1 + np.log(2*self.b))*self.x_dim
+    
+class Cauchy:
+    def __init__(self,mu,gamma,N=1):        
+        self.mu=mu
+        self.gamma=gamma
+        self.x_dim=N
+
+    def sim(self,n_samples):
+        return stats.cauchy.rvs(loc=self.mu,scale=self.gamma, size=(n_samples,self.x_dim))
+    
+    def entropy(self):
+        return np.log(4*np.pi*self.gamma)*self.x_dim
+    
+class Logistic:
+    def __init__(self,mu,s,N=1):
+        self.s=s
+        self.mu=mu
+        self.x_dim=N
+
+    def sim(self,n_samples):
+        return stats.logistic.rvs(loc=self.mu,scale=self.s,size=(n_samples,self.x_dim))
+    
+    def entropy(self):
+        return (np.log(self.s) + 2)*self.x_dim
+
