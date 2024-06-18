@@ -17,8 +17,8 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng):
-    n_hiddens=[100,100]
+def create_model(n_inputs, rng, n_hiddens = [100,100]):
+    n_hiddens=n_hiddens
     act_fun='tanh'
     n_mades=10
 
@@ -33,12 +33,12 @@ def create_model(n_inputs, rng):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,patience=10,method='umtkl'):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100]):
     H=-1
     # patience=10
     #redo learning if calc_ent returns error
     while H==-1:
-        net=create_model(sim_model.x_dim, rng=np.random)
+        net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens)
         estimator = entropy.UMestimator(sim_model,net)
         start_time = time.time()
         # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
@@ -85,6 +85,7 @@ def update_filename(path,old_name,iter,rename=True):
     #Sometimes had race condition of two programs used the same name because 
     #   new name file wasn't used for a few more clock cycles
     #   creating the file right after getting unique name should prevent this
+    os.makedirs(path,exist_ok=True)
     open(os.path.join(path,unique_name + '.pkl'),'a').close()
     new_name=unique_name 
     if(rename):
