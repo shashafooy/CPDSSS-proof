@@ -13,7 +13,7 @@ from ent_est.entropy import kl,ksg
 
 
 
-knn_samples = 200000
+knn_samples = 1000000
 n_train_samples = 30000
 n_trials = 100
 # N_range=range(1,11)
@@ -33,9 +33,9 @@ iter=0
 MSE_uniform=np.inf
 MSE_KL=np.inf
 
-path = 'temp_data/laplace_test/hidden_layers'
+path = 'temp_data/laplace_test/hidden_layers/1M_knn'
 today=date.today().strftime("%b_%d")
-filename = "laplace_data({})".format(today)
+filename = "hidden_layer_data({})".format(today)
 filename = ent.update_filename(path=path,old_name=filename,iter=iter,rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
