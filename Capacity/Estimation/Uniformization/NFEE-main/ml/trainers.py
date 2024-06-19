@@ -152,9 +152,9 @@ class SGD_Template:
 
                 # log info
                 if self.do_validation:
-                    logger.write('Epoch = {0:.2f}, training loss = {1}, validation loss = {2}\n'.format(epoch, trn_loss, val_loss))
+                    logger.write('Epoch = {0:.2f}, training loss = {1:.3f}, validation loss = {2:.3f}\n'.format(epoch, trn_loss, val_loss))
                 else:
-                    logger.write('Epoch = {0:.2f}, training loss = {1}\n'.format(epoch, trn_loss))
+                    logger.write('Epoch = {0:.2f}, training loss = {1:.3f}\n'.format(epoch, trn_loss))
 
             # check for convergence
             if (tol is not None and abs(diff) < tol) or iter >= maxiter or patience_left <= 0:
