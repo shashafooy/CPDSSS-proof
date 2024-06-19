@@ -12,7 +12,60 @@ import ml.step_strategies as ss
 
 
 
+def tkl_tksg(y, n=None, k=1, shuffle=True, rng=np.random):
+    
+    y = np.asarray(y, float)
+    N, dim = y.shape
+    
+    config = configparser.ConfigParser()
+    if config.read('CPDSSS.ini') != []:
+        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
+    else: 
+        n_jobs = 1
+    
+    if n is None:
+        n = N
+    else:
+        n = min(n, N)
+    
+    # permute y
+    if shuffle is True:
+        rng.shuffle(y)
+    
+    # knn search
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    dist, idx = nbrs.kneighbors(y)
 
+    # truncated KL
+    zeros_mask = dist[:,k]!=0
+    
+    r = dist[:,k]
+    r = np.tile(r[:, np.newaxis], (1, dim))
+    lb = (y-r >= 0)*(y-r) + (y-r < 0)*0
+    ub = (y+r <= 1)*(y+r) + (y+r > 1)*1
+
+    zeta = (ub-lb)[zeros_mask] #remove zeros, duplicate points result in 0 distance
+    N=zeta.shape[0]
+    hh = np.log(np.prod(zeta, axis=1))
+        
+    h_kl = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
+
+
+    # truncated KSG
+    epsilons = np.abs(y-y[idx[:,k]])
+    zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
+    #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
+    zeros_mask = ~np.any(zeta==0,axis=1)
+    zeta=zeta[zeros_mask]
+    hh2=np.sum(np.log(zeta),axis=1)
+    N=zeta.shape[0]
+
+        
+    h_ksg = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh2)
+
+
+    
+    return h_kl,h_ksg
 
 def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     
@@ -614,9 +667,9 @@ class UMestimator:
             # correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
             h = tksg(z, k=k) + correction1
         elif method == 'both':
-            # z = sta
-            h = tkl(z,k=k) + correction1
-            h2 = tksg(z,k=k) + correction1
+            h,h2 = tkl_tksg(z,k=k) + correction1
+            # h = tkl(z,k=k) + correction1
+            # h2 = tksg(z,k=k) + correction1
             
         correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
             

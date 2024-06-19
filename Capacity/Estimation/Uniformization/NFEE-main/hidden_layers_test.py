@@ -13,8 +13,8 @@ from ent_est.entropy import kl,ksg
 
 
 
-knn_samples = 200000
-n_train_samples = 10000
+knn_samples = 1000000
+n_train_samples = 30000
 n_trials = 100
 # N_range=range(1,11)
 N=8
@@ -33,9 +33,9 @@ iter=0
 MSE_uniform=np.inf
 MSE_KL=np.inf
 
-path = 'temp_data/laplace_test/hidden_layers'
+path = 'temp_data/laplace_test/hidden_layers/1M_knn'
 today=date.today().strftime("%b_%d")
-filename = "laplace_data({})".format(today)
+filename = "hidden_layer_data({})".format(today)
 filename = ent.update_filename(path=path,old_name=filename,iter=iter,rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
@@ -51,7 +51,7 @@ for i in range(n_trials):
             hidden_layers = [n_nodes]*n_layers           
 
             ent.print_border("Calculate H(x) laplace, Nodes={}, Layers={}, iter: {}".format(n_nodes,n_layers,i+1))            
-            H_unif_KL[i,ni,nj],H_unif_KSG[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.05,method=method,n_hiddens=hidden_layers)                    
+            H_unif_KL[i,ni,nj],H_unif_KSG[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01,method=method,n_hiddens=hidden_layers)                    
 
             util.io.save((layers,nodes,H_unif_KL,H_unif_KSG,H_KL_laplace,H_KSG_laplace),os.path.join(path,filename))
 
