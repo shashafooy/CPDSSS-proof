@@ -16,8 +16,8 @@ from ent_est.entropy import kl,ksg
 knn_samples = 200000
 n_train_samples = 30000
 n_trials = 100
-N_range=range(1,11)
-method='umtkl'
+N_range=range(11,21)
+method='both'
 # method='both'
 
 H_unif_KL = np.empty((n_trials,len(N_range)))*np.nan
@@ -48,8 +48,8 @@ for i in range(n_trials):
             H_unif_KSG[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01,method=method)        
             H_KSG_laplace[i,ni] = ksg(laplace_base)
         elif method == 'umtkl':
-            # H_unif_KL[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base
-            #                                    ,val_tol=0.01,patience=3,method=method)        
+            H_unif_KL[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base
+                                               ,val_tol=0.01,patience=3,method=method)        
             H_KL_laplace[i,ni] = kl(laplace_base)
         else:
             H_unif_KL[i,ni],H_unif_KSG[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01,method=method)        
