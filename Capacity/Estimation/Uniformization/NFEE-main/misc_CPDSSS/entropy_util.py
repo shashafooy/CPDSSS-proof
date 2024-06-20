@@ -33,7 +33,7 @@ def create_model(n_inputs, rng, n_hiddens = [100,100]):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100]):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100]):
     H=-1
     # patience=10
     #redo learning if calc_ent returns error
@@ -48,7 +48,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,patience
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
         start_time = time.time()
-        H,H2,_,_ = estimator.calc_ent(reuse_samples=reuse, method=method,k=1)
+        H,H2,_,_ = estimator.calc_ent(reuse_samples=reuse, method=method,k=k)
         end_time = time.time()        
         print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))       
 
