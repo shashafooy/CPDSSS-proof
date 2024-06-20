@@ -46,9 +46,9 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         hh = dim*np.log(2*dist[:,k])
         
     h = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
-    
-    return h
 
+    return h
+    
 
 def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
     
@@ -185,7 +185,11 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     Implements the KSG entropy estimation in m-dimensional case, as discribed by:
     Alexander Kraskov, Harald Stogbauer, and Peter Grassberger, "Estimating Mutual Information", Physical review E, 2004 
     """
-    
+    config = configparser.ConfigParser()
+    if config.read('CPDSSS.ini') != []:
+        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
+    else: 
+        n_jobs = 1
     y = np.asarray(y, float)
     N, dim = y.shape
     
@@ -199,7 +203,7 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
     epsilons = np.abs(y-y[idx[:,k]])

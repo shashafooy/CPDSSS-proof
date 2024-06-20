@@ -10,14 +10,14 @@ from ent_est.entropy import kl,ksg
 
 
 
-
+# ent.time_exec(lambda: kl(mod.Laplace(mu=0,b=2,N=30).sim(n_samples=20000)))
 
 
 knn_samples = 200000
 n_train_samples = 30000
 n_trials = 100
 # N_range=range(1,11)
-N=8
+N=15
 method='both'
 layers = [2,3,4]
 nodes = [100,150,200]

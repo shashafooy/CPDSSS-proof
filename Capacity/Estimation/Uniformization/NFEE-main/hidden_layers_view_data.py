@@ -43,9 +43,9 @@ for filename in os.listdir(filepath):
        
 
     H_unif_KL,_ = viewData.align_and_concatenate(H_unif_KL,_H_unif_KL,(layers,nodes),(_layers,_nodes))
-    H_unif_KL,_ = viewData.align_and_concatenate(H_unif_KSG,_H_unif_KSG,(layers,nodes),(_layers,_nodes))
+    H_unif_KSG,(layers,nodes) = viewData.align_and_concatenate(H_unif_KSG,_H_unif_KSG,(layers,nodes),(_layers,_nodes))
     H_KL,_ = viewData.align_and_concatenate(H_KL,_H_KL,(layers,nodes),(_layers,_nodes))
-    H_KSG,(layers,nodes) = viewData.align_and_concatenate(H_KSG,_H_KSG,(layers,nodes),(_layers,_nodes))
+    H_KSG,_ = viewData.align_and_concatenate(H_KSG,_H_KSG,(layers,nodes),(_layers,_nodes))
     
 viewData.clean_data(H_unif_KL)
 viewData.clean_data(H_unif_KSG)
@@ -60,15 +60,15 @@ if REMOVE_OUTLIERS:
     H_KSG = viewData.remove_outlier(H_KSG)
 
 
-H_unif_KL_mean = np.nanmean(H_unif_KL,axis=0)
-H_unif_KSG_mean = np.nanmean(H_unif_KSG,axis=0)
-H_KL_mean = np.nanmean(H_KL,axis=0)
-H_KSG_mean = np.nanmean(H_KSG,axis=0)
+mean_unif_KL = np.nanmean(H_unif_KL,axis=0)
+mean_unif_KSG = np.nanmean(H_unif_KSG,axis=0)
+mean_KL = np.nanmean(H_KL,axis=0)
+mean_KSG = np.nanmean(H_KSG,axis=0)
 
-H_unif_KL_std = np.nanstd(H_unif_KL,axis=0)
-H_unif_KSG_std = np.nanstd(H_unif_KSG,axis=0)
-H_KL_std = np.nanstd(H_KL,axis=0)
-H_KSG_std = np.nanstd(H_KSG,axis=0)
+std_unif_KL = np.nanstd(H_unif_KL,axis=0)
+std_unif_KSG = np.nanstd(H_unif_KSG,axis=0)
+std_KL = np.nanstd(H_KL,axis=0)
+std_KSG = np.nanstd(H_KSG,axis=0)
 
 H_true = Laplace(mu=0,b=2,N=N).entropy()
 
@@ -85,67 +85,92 @@ RMSE_unif_KSG = np.sqrt(MSE_unif_KSG)
 RMSE_KL = np.sqrt(MSE_KL)
 RMSE_KSG = np.sqrt(MSE_KSG)
 
+err_unif_KL = np.abs(H_unif_KL - H_true)
+err_unif_KSG = np.abs(H_unif_KSG - H_true)
+err_KL = np.abs(H_KL - H_true)
+err_KSG = np.abs(H_KSG - H_true)
+
 
 # PLOTS
 
 #entropy
-plt.figure(0)
-plt.plot(N_range,H_true,'-',
-         N_range,H_unif_KL_mean,'--^',
-         N_range,H_unif_KSG_mean,'--v',
-         N_range,H_KL_mean,'--x',
-         N_range,H_KSG_mean,'--o')
-plt.yscale("log")
-plt.title("Entropy of laplace distribution")
-plt.legend(["True H(x)","Uniform KL H(x)","Uniform KSG H(x)","KL H(x)","KSG H(x)"])
-plt.xlabel("N dimensions")
-plt.ylabel("H(x)")
+
+fig,ax=plt.subplots(1,len(layers))
+fig.suptitle("Entropy for different hidden layers, N={}".format(N))
+for i in range(len(layers)):
+    
+
+    ax[i].axhline(y=H_true,color='r',linestyle='-')
+    ax[i].axhline(y=mean_KL,color='g',linestyle='--')
+    ax[i].axhline(y=mean_KSG,color='b',linestyle='--')
+
+    ax[i].plot(
+            nodes,mean_unif_KL[i,:],'--^',
+            nodes,mean_unif_KSG[i,:],'--v',
+    )
+    # plt.yscale("log")    
+    ax[i].set_title("num hidden layers = {}".format(layers[i]))
+    ax[i].legend(["True H(x)","KL H(x)","KSG H(x)","Uniform KL H(x)","Uniform KSG H(x)"])
+    ax[i].set_xlabel("Nodes per Layer")
+    ax[i].set_ylabel("H(x)")
+
 
 #Absolute error
-plt.figure(1)
-plt.plot(N_range,np.abs(H_true - H_unif_KL_mean),'--^',
-         N_range,np.abs(H_true - H_unif_KSG_mean),'--v',
-         N_range,np.abs(H_true - H_KL_mean),'--x',
-         N_range,np.abs(H_true - H_KSG_mean),'--o')
-plt.yscale("log")
-plt.title("Entropy Error")
-plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
-plt.xlabel("N dimensions")
-plt.ylabel("log error")
+# plt.figure(1)
+# plt.plot(N_range,np.abs(H_true - H_unif_KL_mean),'--^',
+#          N_range,np.abs(H_true - H_unif_KSG_mean),'--v',
+#          N_range,np.abs(H_true - H_KL_mean),'--x',
+#          N_range,np.abs(H_true - H_KSG_mean),'--o')
+# plt.yscale("log")
+# plt.title("Entropy Error")
+# plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
+# plt.xlabel("N dimensions")
+# plt.ylabel("log error")
 
 #MSE
-plt.figure(2)
-plt.plot(N_range,MSE_unif_KL,'--^',
-         N_range,MSE_unif_KSG,'--v',
-         N_range,MSE_KL,'--x',
-         N_range,MSE_KSG,'--o')
-plt.yscale("log")
-plt.title("Entropy MSE Error")
-plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
-plt.xlabel("N dimensions")
-plt.ylabel("log MSE")
+fig,ax=plt.subplots(1,len(layers))
+fig.suptitle("MSE for different hidden layers, N={}".format(N))
 
-#RMSE
-plt.figure(3)
-plt.plot(N_range,RMSE_unif_KL,'--^',
-         N_range,RMSE_unif_KSG,'--v',
-         N_range,RMSE_KL,'--x',
-         N_range,RMSE_KSG,'--o')
-plt.yscale("log")
-plt.title("Entropy RMSE Error")
-plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
-plt.xlabel("N dimensions")
-plt.ylabel("log RMSE")
+for i in range(len(layers)):
+    ax[i].axhline(y=MSE_KL,color='g',linestyle='--')
+    ax[i].axhline(y=MSE_KSG,color='b',linestyle='--')
 
-plt.figure(4)
-plt.plot(N_range,H_unif_KL_std,'--^',
-         N_range,H_unif_KSG_std,'--v',
-         N_range,H_KL_std,'--x',
-         N_range,H_KSG_std,'--o')
-plt.yscale("log")
-plt.title("Entropy std")
-plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])
-plt.xlabel("N dimensions")
-plt.ylabel("log std")
+    ax[i].plot(
+            nodes,MSE_unif_KL[i,:],'--^',
+            nodes,MSE_unif_KSG[i,:],'--v',
+    )
+    # plt.yscale("log")    
+    ax[i].set_title("num hidden layers = {}".format(layers[i]))
+    ax[i].legend(["KL","KSG","Uniform KL","Uniform KSG"])
+    ax[i].set_xlabel("Nodes per Layer")
+    ax[i].set_ylabel("H(x) MSE")
+    ax[i].set_yscale("log")
+    if i==0:
+        y_lim = ax[i].get_ylim()
+    ax[i].set_ylim(y_lim)
+
+fig,ax=plt.subplots(1,len(layers))
+fig.suptitle("RMSE for different hidden layers, N={}".format(N))
+
+for i in range(len(layers)):
+    ax[i].axhline(y=RMSE_KL,color='g',linestyle='--')
+    ax[i].axhline(y=RMSE_KSG,color='b',linestyle='--')
+    ax[i].scatter(np.tile(120,(H_unif_KL.shape[0],1)),np.abs(H_KL - H_true))
+
+    nodes_matrix = np.tile(nodes,(H_unif_KL.shape[0],1))
+    ax[i].scatter(nodes_matrix,err_unif_KL[:,i],marker='x')
+    ax[i].scatter(nodes_matrix,err_unif_KSG[:,i])
+    
+    # plt.yscale("log")    
+    ax[i].set_title("num hidden layers = {}".format(layers[i]))
+    ax[i].legend(["KL","KSG","Uniform KL","Uniform KSG"])
+    ax[i].set_xlabel("Nodes per Layer")
+    ax[i].set_ylabel("H(x) RMSE")
+    ax[i].set_yscale("log")
+
+    if i==0:
+        y_lim = ax[i].get_ylim()
+    ax[i].set_ylim(y_lim)
+
 
 plt.show()

@@ -29,6 +29,8 @@ L=2
 # idx=0
 # for idx,filepath in enumerate(filepaths):
 for filename in os.listdir(filepath):
+    if not os.path.isfile(os.path.join(filepath,filename)):
+        continue
     filename=os.path.splitext(filename)[0] #remove extention
     _N_range,_H_unif_KL,_H_unif_KSG,_H_KL,_H_KSG,_iter = util.io.load(os.path.join(filepath, filename))
     iter = range(0,_iter+1)
@@ -89,6 +91,10 @@ RMSE_unif_KSG = np.sqrt(MSE_unif_KSG)
 RMSE_KL = np.sqrt(MSE_KL)
 RMSE_KSG = np.sqrt(MSE_KSG)
 
+err_unif_KL = np.abs(H_true - H_unif_KL_mean)
+err_unif_KSG = np.abs(H_true - H_unif_KSG_mean)
+err_KL = np.abs(H_true - H_KL_mean)
+err_KSG = np.abs(H_true - H_KSG_mean)
 
 # PLOTS
 
@@ -107,10 +113,10 @@ plt.ylabel("H(x)")
 
 #Absolute error
 plt.figure(1)
-plt.plot(N_range,np.abs(H_true - H_unif_KL_mean),'--^',
-         N_range,np.abs(H_true - H_unif_KSG_mean),'--v',
-         N_range,np.abs(H_true - H_KL_mean),'--x',
-         N_range,np.abs(H_true - H_KSG_mean),'--o')
+plt.plot(N_range,err_unif_KL,'--^',
+         N_range,err_unif_KSG,'--v',
+         N_range,err_KL,'--x',
+         N_range,err_KSG,'--o')
 plt.yscale("log")
 plt.title("Entropy Error")
 plt.legend(["Uniform KL","Uniform KSG","KL","KSG"])

@@ -96,4 +96,18 @@ def print_border(msg):
     print("-"*len(msg) + "\n" + msg + "\n" + "-"*len(msg))
 
 
+def time_exec(func,print_time=True):
+    """Time how long the given function takes
 
+    Args:
+        func (Lambda): Lambda function with the given code that will run. e.g. lambda: myfunc(x,y)
+        print_time (Bool): Set True to print the total time
+    """
+    start_time = time.time()
+    result = func()
+    end_time = time.time()
+    tot_time = end_time - start_time
+    print(f"Elapsed Time: {tot_time:.4f} sec")
+    return result, tot_time
+    
+    
