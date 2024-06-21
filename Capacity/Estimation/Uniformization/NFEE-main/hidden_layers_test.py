@@ -17,7 +17,7 @@ knn_samples = 1000000
 n_train_samples = 30000
 n_trials = 100
 # N_range=range(1,11)
-N=8
+N=15
 method='both'
 layers = [2,3,4]
 nodes = [100,150,200]
@@ -33,7 +33,7 @@ iter=0
 MSE_uniform=np.inf
 MSE_KL=np.inf
 
-path = 'temp_data/laplace_test/hidden_layers/1M_knn'
+path = 'temp_data/laplace_test/hidden_layers/15N_1M_knn'
 today=date.today().strftime("%b_%d")
 filename = "hidden_layer_data({})".format(today)
 filename = ent.update_filename(path=path,old_name=filename,iter=iter,rename=False)
