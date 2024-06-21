@@ -33,11 +33,11 @@ def create_model(n_inputs, rng, n_hiddens = [100,100]):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100]):
-    H=-1
+def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100]):
+    H = None
     # patience=10
     #redo learning if calc_ent returns error
-    while H==-1:
+    while H is None:
         net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens)
         estimator = entropy.UMestimator(sim_model,net)
         start_time = time.time()
@@ -48,7 +48,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,val_tol=0.05,patience
         estimator.samples = estimator.samples if base_samples is None else base_samples
         reuse = False if base_samples is None else True
         start_time = time.time()
-        H,H2,_,_ = estimator.calc_ent(reuse_samples=reuse, method=method,k=1)
+        H,H2,_,_ = estimator.calc_ent(reuse_samples=reuse, method=method,k=k)
         end_time = time.time()        
         print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))       
 
@@ -96,4 +96,18 @@ def print_border(msg):
     print("-"*len(msg) + "\n" + msg + "\n" + "-"*len(msg))
 
 
+def time_exec(func,print_time=True):
+    """Time how long the given function takes
 
+    Args:
+        func (Lambda): Lambda function with the given code that will run. e.g. lambda: myfunc(x,y)
+        print_time (Bool): Set True to print the total time
+    """
+    start_time = time.time()
+    result = func()
+    end_time = time.time()
+    tot_time = end_time - start_time
+    print(f"Elapsed Time: {tot_time:.4f} sec")
+    return result, tot_time
+    
+    

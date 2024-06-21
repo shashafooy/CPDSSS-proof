@@ -18,8 +18,8 @@ def align_and_concatenate(old_data, new_data, old_range, new_range):
 
     #Find first row that contains all NaN
     nan_mask = np.isnan(new_data)
-    is_nan_row = np.all(nan_mask,axis=1)
-    first_nan_row = np.argmax(is_nan_row) if np.any(is_nan_row) else -1
+    is_nan_row = np.all(nan_mask,axis=1) if num_dims>0 else nan_mask
+    first_nan_row = np.max(np.argmax(is_nan_row,axis=0)) if np.any(is_nan_row) else -1
     new_data = new_data[:first_nan_row,...]
     
     # Determine the union of ranges for each dimension

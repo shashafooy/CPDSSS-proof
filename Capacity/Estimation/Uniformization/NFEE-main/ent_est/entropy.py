@@ -12,10 +12,17 @@ import ml.step_strategies as ss
 
 
 
-def tkl_tksg(y, n=None, k=1, shuffle=True, rng=np.random):
+def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
     
     y = np.asarray(y, float)
     N, dim = y.shape
+    if isinstance(k,list):
+        max_k=k[-1]
+        k_range = range(1,max_k+1)
+    else:
+        max_k=k
+        k_range = range(k,k+1)
+    # k=k if max_k is None else max_k
     
     config = configparser.ConfigParser()
     if config.read('CPDSSS.ini') != []:
@@ -33,37 +40,43 @@ def tkl_tksg(y, n=None, k=1, shuffle=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
-    # truncated KL
-    zeros_mask = dist[:,k]!=0
-    
-    r = dist[:,k]
-    r = np.tile(r[:, np.newaxis], (1, dim))
-    lb = (y-r >= 0)*(y-r) + (y-r < 0)*0
-    ub = (y+r <= 1)*(y+r) + (y+r > 1)*1
+    # k_range = range(1,max_k+1) if max_k is not None else range(k,k+1)
 
-    zeta = (ub-lb)[zeros_mask] #remove zeros, duplicate points result in 0 distance
-    N=zeta.shape[0]
-    hh = np.log(np.prod(zeta, axis=1))
+    h_kl=np.empty(len(k_range))
+    h_ksg=np.empty(len(k_range))
+    for i,k in enumerate(k_range):
+        # truncated KL
+        zeros_mask = dist[:,k]!=0
         
-    h_kl = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
+        r = dist[:,k]
+        r = np.tile(r[:, np.newaxis], (1, dim))
+        lb = (y-r >= 0)*(y-r) + (y-r < 0)*0
+        ub = (y+r <= 1)*(y+r) + (y+r > 1)*1
+
+        zeta = (ub-lb)[zeros_mask] #remove zeros, duplicate points result in 0 distance
+        N=zeta.shape[0]
+        hh = np.log(np.prod(zeta, axis=1))
+            
+        h_kl[i] = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
 
 
-    # truncated KSG
-    epsilons = np.abs(y-y[idx[:,k]])
-    zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
-    #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
-    zeros_mask = ~np.any(zeta==0,axis=1)
-    zeta=zeta[zeros_mask]
-    hh2=np.sum(np.log(zeta),axis=1)
-    N=zeta.shape[0]
+        # truncated KSG
+        epsilons = np.abs(y-y[idx[:,k]])
+        zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
+        #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
+        zeros_mask = ~np.any(zeta==0,axis=1)
+        zeta=zeta[zeros_mask]
+        hh2=np.sum(np.log(zeta),axis=1)
+        N=zeta.shape[0]
 
-        
-    h_ksg = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh2)
+            
+        h_ksg[i] = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh2)
 
-
+    #If we only used 1 k value, return that value, not an array
+    (h_kl,h_ksg)=(h_kl,h_ksg) if len(k_range)>1 else (h_kl[0],h_ksg[0])
     
     return h_kl,h_ksg
 
@@ -99,9 +112,9 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         hh = dim*np.log(2*dist[:,k])
         
     h = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
-    
-    return h
 
+    return h
+    
 
 def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
     
@@ -238,7 +251,11 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     Implements the KSG entropy estimation in m-dimensional case, as discribed by:
     Alexander Kraskov, Harald Stogbauer, and Peter Grassberger, "Estimating Mutual Information", Physical review E, 2004 
     """
-    
+    config = configparser.ConfigParser()
+    if config.read('CPDSSS.ini') != []:
+        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
+    else: 
+        n_jobs = 1
     y = np.asarray(y, float)
     N, dim = y.shape
     
@@ -252,7 +269,7 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
     epsilons = np.abs(y-y[idx[:,k]])
@@ -652,7 +669,7 @@ class UMestimator:
 
 
         if(u.shape[0]<0.01*self.samples.shape[0]):
-            return -1,0,0,0
+            return None,0,0,0
         z = stats.norm.cdf(u)
         correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
 
