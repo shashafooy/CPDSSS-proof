@@ -40,7 +40,7 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     # k_range = range(1,max_k+1) if max_k is not None else range(k,k+1)
@@ -669,7 +669,7 @@ class UMestimator:
 
 
         if(u.shape[0]<0.01*self.samples.shape[0]):
-            return -1,0,0,0
+            return None,0,0,0
         z = stats.norm.cdf(u)
         correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
 

@@ -34,10 +34,10 @@ def create_model(n_inputs, rng, n_hiddens = [100,100]):
             )
 
 def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100]):
-    H=-1
+    H = None
     # patience=10
     #redo learning if calc_ent returns error
-    while H==-1:
+    while H is None:
         net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens)
         estimator = entropy.UMestimator(sim_model,net)
         start_time = time.time()
