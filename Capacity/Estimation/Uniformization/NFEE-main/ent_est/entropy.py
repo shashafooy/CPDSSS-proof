@@ -80,6 +80,59 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
     
     return h_kl,h_ksg
 
+def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
+    y = np.asarray(y, float)
+    
+    if standardize == True:
+        y_std = np.std(y, axis=0)
+        y = y/y_std
+        
+    N, dim = y.shape
+    
+    if n is None:
+        n = N
+    else:
+        n = min(n, N)
+    
+    # permute y
+    if shuffle is True:
+        rng.shuffle(y)
+    
+    # knn search
+    # print("starting distance search")
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
+    dist, idx = nbrs.kneighbors(y)
+
+    # KL
+    zeros_mask = dist[:,k]!=0
+    dist = dist[zeros_mask,:]
+    
+
+    if standardize == True:
+        hh = dim*np.log(2*dist[:,k])+np.sum(np.log(y_std))
+    else:
+        hh = dim*np.log(2*dist[:,k])
+    N=hh.shape[0]    
+    hkl = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
+
+ 
+
+    # KSG
+    epsilons=np.abs(y-y[idx[:,k]])
+    zeros_mask = ~np.any(epsilons==0,axis=1)
+    epsilons=epsilons[zeros_mask]
+    if standardize == True:        
+        hh=np.sum(np.log(2*epsilons*y_std),axis=1)            
+    else:
+        hh=np.sum(np.log(2*epsilons),axis=1)
+    N=hh.shape[0]
+    hksg = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh)
+    
+    # print("finished knn")
+    return hkl,hksg
+
+
+
 def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     
     y = np.asarray(y, float)
@@ -240,7 +293,8 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         # for j in range(n):
         #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
         #     hh[j] = np.log(np.prod(2*r))
-        
+    
+    N=hh.shape[0]
     h = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh)
     
     return h
