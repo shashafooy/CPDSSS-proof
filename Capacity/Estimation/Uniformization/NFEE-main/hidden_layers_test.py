@@ -5,7 +5,7 @@ import misc_CPDSSS.entropy_util as ent
 import simulators.CPDSSS_models as mod
 import util.io
 
-from ent_est.entropy import kl,ksg
+from ent_est.entropy import kl_ksg
 
 
 
@@ -45,12 +45,18 @@ for i in range(n_trials):
     sim_laplace = mod.Laplace(mu=0,b=2,N=N)
     true_H_laplace = sim_laplace.entropy()        
     laplace_base = sim_laplace.sim(n_samples=knn_samples)
-    H_KL_laplace[i] = kl(laplace_base)
-    H_KSG_laplace[i] = ksg(laplace_base)
+    # ent.print_border("Starting iteration {i} KL KSG in background")
+
+    # KNN might take awhile, run in background
+    thread = ent.BackgroundThread(target = kl_ksg,args=(laplace_base,))
+    thread.start()
+
+    # knn_thread = threading.Thread(target=kl_ksg,name="KL KSG",args=laplace_base)
+
+    # H_KL_laplace[i],H_KSG_laplace[i] = kl_ksg(laplace_base)
     for ni,n_layers in enumerate(layers):    
         for nj,n_nodes in enumerate(nodes):              
             hidden_layers = [n_nodes]*n_layers           
-
             ent.print_border("Calculate H(x) laplace, Nodes={}, Layers={}, iter: {}".format(n_nodes,n_layers,i+1))            
             H_unif_KL[i,ni,nj],H_unif_KSG[i,ni] = ent.calc_entropy(
                 sim_model = sim_laplace, 
@@ -63,6 +69,8 @@ for i in range(n_trials):
             util.io.save((layers,nodes,H_unif_KL,H_unif_KSG,H_KL_laplace,H_KSG_laplace),os.path.join(path,filename))
 
     
+    H_KL_laplace[i],H_KSG_laplace[i] = thread.get_result() #get results after waiting for thread
+
     filename=ent.update_filename(path,filename,i+1,rename=True)
     util.io.save((layers,nodes,H_unif_KL,H_unif_KSG,H_KL_laplace,H_KSG_laplace),os.path.join(path,filename))
 

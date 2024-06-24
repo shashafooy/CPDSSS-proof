@@ -4,6 +4,7 @@ Functions for generating the model and entropy
 from datetime import timedelta
 import gc
 import os
+from threading import Thread
 import time
 import re
 
@@ -109,5 +110,25 @@ def time_exec(func,print_time=True):
     tot_time = end_time - start_time
     print(f"Elapsed Time: {tot_time:.4f} sec")
     return result, tot_time
+    
+
+class BackgroundThread(Thread):
+    def __init__(self, group = None, target = None, name = None, args = (), kwargs = {}):
+        Thread.__init__(self,group, target, name, args, kwargs)
+        self._return = None
+    # def __init__(self,func,args=()):
+    #     super().__init__()
+    #     self.func=func
+    #     self.args=args
+    #     self.result=None
+
+    def run(self):
+        if self._target is not None:
+            self._return = self._target(*self._args,**self._kwargs)
+        # self.result = self.func(*self.args)
+
+    def get_result(self):
+        Thread.join(self)
+        return self._return
     
     
