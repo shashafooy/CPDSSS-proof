@@ -10,6 +10,8 @@ import configparser
 import ml.trainers as trainers
 import ml.step_strategies as ss
 
+from misc_CPDSSS.util import BackgroundThread
+
 
 
 def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
@@ -719,30 +721,36 @@ class UMestimator:
             ax[1].hist(u,bins=40,density=True),ax[1].set_title("Transformed Gaussian")
             ax[2].hist(samples,bins=100,density=True),ax[2].set_title("Original Data")
             
+        
 
-
-
+        #Made a bad gaussian estimate
         if(u.shape[0]<0.01*self.samples.shape[0]):
             return None,0,0,0
+        
+        
         z = stats.norm.cdf(u)
         correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
 
         h2=0
-        if method == 'umtkl':            
-            # if(z.shape[0]<0.01*self.samples.shape[0]):
-            #     #return fitting error if size of z is < 1% of original data
-            #     return -1,0,0,0            
-            h = tkl(z, k=k) + correction1            
-        elif method == 'umtksg':
-            # z = stats.norm.cdf(u)
-            # correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
-            h = tksg(z, k=k) + correction1
+        
+        if method == 'umtkl':                        
+            h_thread = BackgroundThread(target = tkl,args=(z,None,k))
+            # h = tkl(z, k=k) + correction1            
+        elif method == 'umtksg':            
+            h_thread = BackgroundThread(target = tksg,args=(z,None,k))
+            # h = tksg(z, k=k) + correction1
         elif method == 'both':
-            h,h2 = tkl_tksg(z,k=k) + correction1
-            # h = tkl(z,k=k) + correction1
-            # h2 = tksg(z,k=k) + correction1
+            h_thread = BackgroundThread(target = tkl_tksg,args=(z,None,k))
+            # h,h2 = tkl_tksg(z,k=k) + correction1
+        h_thread.start()        
             
         correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
+
+        result = h_thread.get_result()
+        if method == 'both':
+            (h,h2)=result + correction1
+        else:
+            h=result + correction1
             
         # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
         return h+correction2,h2+correction2,0,0
