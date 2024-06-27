@@ -2,10 +2,11 @@ from datetime import date
 import os
 import numpy as np
 import misc_CPDSSS.entropy_util as ent
+import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
 
-from ent_est.entropy import kl,ksg
+from ent_est.entropy import kl_ksg
 
 
 
@@ -26,8 +27,8 @@ k_list=list(range(1,21))
 
 H_unif_KL = np.empty((n_trials,len(k_list)))*np.nan
 H_unif_KSG = np.empty((n_trials,len(k_list)))*np.nan
-H_KL_laplace = np.empty((n_trials))*np.nan
-H_KSG_laplace = np.empty((n_trials))*np.nan
+H_KL_laplace = np.empty((n_trials,len(k_list)))*np.nan
+H_KSG_laplace = np.empty((n_trials,len(k_list)))*np.nan
     
 iter=0
 MSE_uniform=np.inf
@@ -36,21 +37,25 @@ MSE_KL=np.inf
 path = 'temp_data/k_knn_test/1M_knn'
 today=date.today().strftime("%b_%d")
 filename = "knn_data({})".format(today)
-filename = ent.update_filename(path=path,old_name=filename,iter=iter,rename=False)
+filename = misc.update_filename(path=path,old_name=filename,iter=iter,rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
 
+
 for i in range(n_trials):
+    
     sim_laplace = mod.Laplace(mu=0,b=2,N=N)
-    true_H_laplace = sim_laplace.entropy()        
+    true_H_laplace = sim_laplace.entropy() 
     laplace_base = sim_laplace.sim(n_samples=knn_samples)
-    H_KL_laplace[i] = kl(laplace_base)
-    H_KSG_laplace[i] = ksg(laplace_base)
 
-    
+    thread = misc.BackgroundThread(target = kl_ksg,args=(laplace_base,None,k_list))           
+    thread.start()
+
+    # H_KL_laplace[i] = kl(laplace_base)
+    # H_KSG_laplace[i] = ksg(laplace_base)   
     
 
-    ent.print_border("Calculate H(x) laplace, iter: {}".format(i+1))            
+    misc.print_border("Calculate H(x) laplace, iter: {}".format(i+1))            
     H_unif_KL[i,:],H_unif_KSG[i,:] = ent.calc_entropy(
         sim_model = sim_laplace, 
         n_samples = n_train_samples,
@@ -60,9 +65,9 @@ for i in range(n_trials):
         k=k_list)                    
 
     
-
+    H_KL_laplace[i,:], H_KSG_laplace[i,:] = thread.get_result()
     
-    filename=ent.update_filename(path,filename,i+1,rename=True)
+    filename=misc.update_filename(path,filename,i+1,rename=True)
     util.io.save((k_list,H_unif_KL,H_unif_KSG,H_KL_laplace,H_KSG_laplace),os.path.join(path,filename))
     
 
