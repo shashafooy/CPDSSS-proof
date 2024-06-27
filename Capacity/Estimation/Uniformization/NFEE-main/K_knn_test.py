@@ -13,7 +13,7 @@ from ent_est.entropy import kl,ksg
 # hh = ent.time_exec(lambda: kl(mod.Laplace(mu=0,b=2,N=10).sim(n_samples=100000),k=5))
 
 
-knn_samples = 100000
+knn_samples = 1000000
 n_train_samples = 30000
 n_trials = 100
 val_tol = 0.01
