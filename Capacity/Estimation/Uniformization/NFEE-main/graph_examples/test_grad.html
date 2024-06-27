@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="d3viz/css/d3viz.css"/>
+	<link rel="stylesheet" href="d3viz/css/d3-context-menu.css"/>
+	<script type="text/javascript" src="d3viz/js/d3viz.js"></script>
+	<script type="text/javascript" src="d3viz/js/d3.v3.min.js"></script>
+	<script type="text/javascript" src="d3viz/js/dagre-d3.min.js"></script>
+	<script type="text/javascript" src="d3viz/js/graphlib-dot.min.js"></script>
+	<script type="text/javascript" src="d3viz/js/d3-context-menu.js"></script>
+</head>
+<body>
+	<div id='menu' class='menuBar'>
+	    <input name="resetNodes" 
+	           type="button" 
+	           value="Reset nodes"
+	           onclick="resetNodes()"/>
+	    <input name="releaseNodes" 
+	           type="button" 
+	           value="Release nodes"
+	           onclick="releaseNodes()"/>
+	</div>
+
+	<script type="text/javascript">
+		// Backend graph in DOT format
+		var dotGraph = graphlibDot.read("digraph G {\n\tgraph [bb=\"0,0,911.79,819\"];\n\tnode [label=\"\\N\"];\n\tn1\t[apply_op=DimShuffle,\n\t\theight=0.5,\n\t\tlabel=DimShuffle,\n\t\tnode_type=apply,\n\t\tpos=\"62.394,714\",\n\t\tshape=ellipse,\n\t\twidth=1.7332];\n\tn7\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"140.39,627\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn1 -> n7\t[label=\"1 bscalar\",\n\t\tlp=\"96.394,670.5\",\n\t\tpos=\"e,96.436,638.29 58.436,695.91 57.025,685.57 57.094,672.57 63.394,663 69.206,654.17 77.839,647.54 87.246,642.57\"];\n\tn2\t[dtype=bscalar,\n\t\tfillcolor=SpringGreen,\n\t\theight=0.5,\n\t\tlabel=1,\n\t\tnode_type=constant_input,\n\t\tpos=\"62.394,801\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn2 -> n1\t[color=dodgerblue,\n\t\tlabel=bscalar,\n\t\tlp=\"88.394,757.5\",\n\t\tpos=\"e,62.394,732.18 62.394,782.8 62.394,771.16 62.394,755.55 62.394,742.24\"];\n\tn4\t[apply_op=DimShuffle,\n\t\theight=0.5,\n\t\tlabel=DimShuffle,\n\t\tnode_type=apply,\n\t\tpos=\"330.39,714\",\n\t\tshape=ellipse,\n\t\twidth=1.7332];\n\tn4 -> n7\t[label=\"0 bscalar\",\n\t\tlp=\"185.39,670.5\",\n\t\tpos=\"e,140.06,645.12 271.06,708.18 226.08,703.31 169.21,694.14 152.39,678 146.17,672.02 142.93,663.43 141.32,655.05\"];\n\tn12\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"456.39,627\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn4 -> n12\t[label=\"1 dmatrix\",\n\t\tlp=\"411.39,670.5\",\n\t\tpos=\"e,419.25,640.52 343.01,696.01 351.53,685.45 363.53,672.18 376.39,663 386.52,655.78 398.37,649.59 409.8,644.52\"];\n\tn31\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"330.39,192\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn4 -> n31\t[label=\"1 int64\",\n\t\tlp=\"356.39,453\",\n\t\tpos=\"e,330.39,210.26 330.39,695.74 330.39,678.57 330.39,651.46 330.39,628 330.39,628 330.39,628 330.39,278 330.39,258.75 330.39,237.05 \\\n330.39,220.4\"];\n\tn5\t[dtype=bscalar,\n\t\tfillcolor=SpringGreen,\n\t\theight=0.5,\n\t\tlabel=2,\n\t\tnode_type=constant_input,\n\t\tpos=\"330.39,801\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn5 -> n4\t[color=dodgerblue,\n\t\tlabel=bscalar,\n\t\tlp=\"356.39,757.5\",\n\t\tpos=\"e,330.39,732.18 330.39,782.8 330.39,771.16 330.39,755.55 330.39,742.24\"];\n\tn9\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"232.39,540\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn7 -> n9\t[label=\"1 dmatrix\",\n\t\tlp=\"183.39,583.5\",\n\t\tpos=\"e,186.85,550.64 139.15,608.59 139.31,598.12 141.21,585.11 148.39,576 155.88,566.5 166.4,559.55 177.47,554.48\"];\n\tn33\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"255.39,105\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn9 -> n33\t[label=\"1 int64\",\n\t\tlp=\"265.39,322.5\",\n\t\tpos=\"e,250.24,123.08 234.65,521.78 236.69,504.63 239.39,477.54 239.39,454 239.39,454 239.39,454 239.39,191 239.39,171.41 243.55,149.72 \\\n247.62,133.15\"];\n\tn10\t[dtype=dmatrix,\n\t\tfillcolor=limegreen,\n\t\theight=0.5,\n\t\tlabel=x,\n\t\tnode_type=input,\n\t\tpos=\"446.39,714\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn10 -> n9\t[label=\"0 dmatrix\",\n\t\tlp=\"348.39,627\",\n\t\tpos=\"e,243.1,558.01 419.18,702.68 392.9,692.69 356.84,678.92 355.39,678 309.31,648.54 269.88,597.26 248.8,566.48\"];\n\tn10 -> n12\t[label=\"0 dmatrix\",\n\t\tlp=\"486.39,670.5\",\n\t\tpos=\"e,454.37,645.18 448.42,695.8 449.79,684.16 451.62,668.55 453.19,655.24\"];\n\tn14\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"667.39,540\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn12 -> n14\t[label=\"0 dmatrix\",\n\t\tlp=\"609.39,583.5\",\n\t\tpos=\"e,633.77,554.55 489.83,612.53 526.22,597.87 584.53,574.38 624.32,558.35\"];\n\tn17\t[apply_op=Subtensor,\n\t\tfillcolor=\"#FFAAFF\",\n\t\theight=0.5,\n\t\tlabel=Subtensor,\n\t\tnode_type=apply,\n\t\tpos=\"570.39,453\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.6249];\n\tn14 -> n17\t[color=dodgerblue,\n\t\tlabel=\"0 dmatrix\",\n\t\tlp=\"676.39,496.5\",\n\t\tpos=\"e,599.55,468.8 656.46,521.96 649.29,511.64 639.27,498.64 628.39,489 622.33,483.62 615.33,478.6 608.34,474.14\"];\n\tn27\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"774.39,453\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn14 -> n27\t[label=\"0 dscalar\",\n\t\tlp=\"766.39,496.5\",\n\t\tpos=\"e,756.08,470.12 689.63,523.3 697.83,517.38 707.13,510.5 715.39,504 726.39,495.35 738.2,485.47 748.35,476.78\"];\n\tn15\t[dtype=dmatrix,\n\t\tfillcolor=limegreen,\n\t\theight=0.5,\n\t\tlabel=y,\n\t\tnode_type=input,\n\t\tpos=\"667.39,627\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn15 -> n14\t[label=\"1 dmatrix\",\n\t\tlp=\"702.39,583.5\",\n\t\tpos=\"e,667.39,558.18 667.39,608.8 667.39,597.16 667.39,581.55 667.39,568.24\"];\n\tn21\t[apply_op=Elemwise,\n\t\tfillcolor=\"#FFAABB\",\n\t\theight=0.5,\n\t\tlabel=Elemwise,\n\t\tnode_type=apply,\n\t\tpos=\"570.39,366\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=1.5526];\n\tn17 -> n21\t[label=\"0 int64\",\n\t\tlp=\"596.39,409.5\",\n\t\tpos=\"e,570.39,384.18 570.39,434.8 570.39,423.16 570.39,407.55 570.39,394.24\"];\n\tn18\t[dtype=int64,\n\t\tfillcolor=SpringGreen,\n\t\theight=0.5,\n\t\tlabel=0,\n\t\tnode_type=constant_input,\n\t\tpos=\"431.39,540\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn18 -> n17\t[label=\"1 int64\",\n\t\tlp=\"534.39,496.5\",\n\t\tpos=\"e,545.2,469.4 458.53,522.41 480.8,508.79 512.47,489.42 536.43,474.77\"];\n\tn29\t[apply_op=IncSubtensor,\n\t\tfillcolor=\"#FFAAFF\",\n\t\theight=0.5,\n\t\tlabel=IncSubtensor,\n\t\tnode_type=apply,\n\t\tpos=\"485.39,279\",\n\t\tshape=ellipse,\n\t\tstyle=filled,\n\t\ttype=colored,\n\t\twidth=2.022];\n\tn18 -> n29\t[label=\"2 int64\",\n\t\tlp=\"437.39,409.5\",\n\t\tpos=\"e,471.05,296.76 424.39,521.84 414.69,495.6 399.62,444.13 411.39,402 421.73,365.03 446.67,328.11 464.74,304.73\"];\n\tn19\t[dtype=int64,\n\t\tfillcolor=SpringGreen,\n\t\theight=0.5,\n\t\tlabel=0,\n\t\tnode_type=constant_input,\n\t\tpos=\"545.39,540\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn19 -> n17\t[label=\"2 int64\",\n\t\tlp=\"598.39,496.5\",\n\t\tpos=\"e,572.94,471.06 560.97,521.65 564.81,516.35 568.39,510.26 570.39,504 572.7,496.81 573.44,488.73 573.41,481.2\"];\n\tn19 -> n29\t[label=\"3 int64\",\n\t\tlp=\"500.39,409.5\",\n\t\tpos=\"e,481.79,297.03 518.2,524.8 510.47,519.37 502.93,512.42 498.39,504 464.08,440.33 472.7,351.17 480.03,307\"];\n\tn21 -> n29\t[label=\"1 dscalar\",\n\t\tlp=\"565.39,322.5\",\n\t\tpos=\"e,502.02,296.63 554.01,348.61 541.27,335.88 523.43,318.03 509.13,303.74\"];\n\tn22\t[dtype=dscalar,\n\t\tfillcolor=SpringGreen,\n\t\theight=0.5,\n\t\tlabel=1.,\n\t\tnode_type=constant_input,\n\t\tpos=\"673.39,453\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn22 -> n21\t[label=\"1 dscalar\",\n\t\tlp=\"674.39,409.5\",\n\t\tpos=\"e,597.28,381.87 659.14,434.73 650.3,424.57 638.36,411.83 626.39,402 620.1,396.83 612.99,391.84 606,387.32\"];\n\tn24\t[apply_op=DimShuffle,\n\t\theight=0.5,\n\t\tlabel=DimShuffle,\n\t\tnode_type=apply,\n\t\tpos=\"849.39,540\",\n\t\tshape=ellipse,\n\t\twidth=1.7332];\n\tn24 -> n27\t[label=\"1 dscalar\",\n\t\tlp=\"869.39,496.5\",\n\t\tpos=\"e,802.9,468.62 844.59,521.91 841.06,511.56 835.47,498.57 827.39,489 822.86,483.62 817.29,478.75 811.48,474.46\"];\n\tn25\t[dtype=dscalar,\n\t\tfillcolor=SpringGreen,\n\t\theight=0.5,\n\t\tlabel=0.,\n\t\tnode_type=constant_input,\n\t\tpos=\"849.39,627\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=0.75];\n\tn25 -> n24\t[color=dodgerblue,\n\t\tlabel=dscalar,\n\t\tlp=\"875.39,583.5\",\n\t\tpos=\"e,849.39,558.18 849.39,608.8 849.39,597.16 849.39,581.55 849.39,568.24\"];\n\tn27 -> n29\t[label=\"0 dscalar\",\n\t\tlp=\"732.39,366\",\n\t\tpos=\"e,538.61,291.32 758.36,435.63 729.62,407.17 666.34,348.42 602.39,315 585.67,306.26 566.43,299.36 548.44,294.09\"];\n\tn29 -> n31\t[label=\"0 int64\",\n\t\tlp=\"442.39,235.5\",\n\t\tpos=\"e,357.35,207.78 456.97,262.41 431.45,248.42 393.87,227.81 366.29,212.68\"];\n\tn31 -> n33\t[label=\"0 int64\",\n\t\tlp=\"322.39,148.5\",\n\t\tpos=\"e,270.07,122.63 315.93,174.61 304.8,161.99 289.24,144.36 276.69,130.13\"];\n\tn34\t[dtype=dmatrix,\n\t\tfillcolor=dodgerblue,\n\t\theight=0.5,\n\t\tlabel=dmatrix,\n\t\tnode_type=output,\n\t\tpos=\"255.39,18\",\n\t\tshape=box,\n\t\tstyle=filled,\n\t\twidth=1.0139];\n\tn33 -> n34\t[label=dmatrix,\n\t\tlp=\"283.89,61.5\",\n\t\tpos=\"e,255.39,36.175 255.39,86.799 255.39,75.163 255.39,59.548 255.39,46.237\"];\n}\n");
+		// Frontend graph for visualization
+		var graph = {};
+		
+		var forceLayout;
+		var isProfiled = false; // true if profiling information available
+		var useProfileColors = false;
+		var fixOnInit = true; // fix nodes on initialization
+		var maxProfilePer = 0;
+		var profileColors = ["#fff5f0","#fee0d2","#fcbba1","#fc9272","#fb6a4a","#ef3b2c","#cb181d","#a50f15"];
+		var pad = 10;
+		var isEditNode = false; // true if node is edited
+		var menuItems = [
+			{
+				title: 'Edit',
+				action: function(elm, d, i) { editNode(elm, d); }
+			},
+			{
+				title: 'Release',
+				action: function(elm, d, i) { releaseNode(d); }
+			}
+		];
+
+		// Create main panel
+		d3.select('body').select('svg').remove();
+		var svg = d3.select('body').append('svg')
+			.attr('width', '100%')
+			.attr('height', '95%');
+		var pane = svg.append('g');
+		
+		// Zoom behaviour
+		var zoom = d3.behavior.zoom()
+			.scaleExtent([0.2, 8])
+			.on('zoom', function(d) {
+				var trans = d3.event.translate;
+				trans[0] += 300;
+				trans[1] += 100;
+				pane.attr('transform', 'translate(' + trans + ') scale(' + d3.event.scale + ')');
+			});
+		svg.call(zoom);
+		zoom.event(svg);
+		svg.on("dblclick.zoom", null);
+		
+		// Edges
+		var edgeDiv = d3.select('body').append('div')
+			.attr('class', 'edgeTooltip')
+			.style('opacity', 0.0);
+		
+		// Div for node details	
+		var nodeInfo = d3.select('body').append('div')
+			.attr('class', 'nodeInfo')
+			.style('opacity', 0.0);
+		
+		// Definition head of edges
+		var markerData = [
+			{'id': 'n', 'color': 'black'},
+			{'id': 'r', 'color': 'red'},
+			{'id': 'b', 'color': 'dodgerblue'}];
+		svg.append("defs").selectAll('marker').data(markerData).enter().append("marker")
+		    .attr("id", function(d) { return 'edgeArrow_' + d.id;})
+		    .attr("markerWidth", 4)
+		    .attr("markerHeight", 4)
+		    .attr("refX", 2)
+		    .attr("refY", 2)
+		    .attr("orient", "auto")
+		  	.append("path")
+		    .attr("d", "M0,0 L4,2 L0,4 Z")
+		    .attr('fill', function(d) { return d.color;});
+	
+		// Initialize graph
+		processDotGraph(dotGraph);		
+		graph = frontEndGraph(dotGraph);
+		drawGraph();
+	</script>
+</body>
+</html>

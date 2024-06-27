@@ -9,6 +9,12 @@ python==3.9.7
 conda install -c conda-forge pygpu theano
 
 
+
+To show Theano graphs
+pip install pydot
+sudo apt install graphviz
+
+
 Linux Install
 conda create -n unif
 https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#debian
