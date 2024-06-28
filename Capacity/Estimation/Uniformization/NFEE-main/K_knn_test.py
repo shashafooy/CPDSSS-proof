@@ -5,6 +5,8 @@ import misc_CPDSSS.entropy_util as ent
 import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
+import time
+from datetime import timedelta
 
 from ent_est.entropy import kl_ksg
 
@@ -18,6 +20,8 @@ knn_samples = 1000000
 n_train_samples = 30000
 n_trials = 100
 val_tol = 0.01
+val_tol = None
+patience=5
 # N_range=range(1,11)
 N=15
 method='both'
@@ -25,8 +29,8 @@ k_list=list(range(1,21))
 
 # method='both'
 
-H_unif_KL = np.empty((n_trials,len(k_list)))*np.nan
-H_unif_KSG = np.empty((n_trials,len(k_list)))*np.nan
+H_unif_KL = np.empty((2*n_trials,len(k_list)))*np.nan
+H_unif_KSG = np.empty((2*n_trials,len(k_list)))*np.nan
 H_KL_laplace = np.empty((n_trials,len(k_list)))*np.nan
 H_KSG_laplace = np.empty((n_trials,len(k_list)))*np.nan
     
@@ -55,17 +59,35 @@ for i in range(n_trials):
     # H_KSG_laplace[i] = ksg(laplace_base)   
     
 
-    misc.print_border("Calculate H(x) laplace, iter: {}".format(i+1))            
-    H_unif_KL[i,:],H_unif_KSG[i,:] = ent.calc_entropy(
-        sim_model = sim_laplace, 
-        n_samples = n_train_samples,
-        base_samples=laplace_base,
-        val_tol=val_tol,
-        method=method,
-        k=k_list)                    
+    misc.print_border("Calculate H(x) laplace, iter: {}".format(i+1))
+    estimator = ent.learn_model(sim_model=sim_laplace,n_samples=n_train_samples,val_tol=val_tol)            
 
-    
+    H_unif_KL[2*i,:], H_unif_KSG[2*i,:] = ent.knn_entropy(
+        estimator=estimator,
+        base_samples=laplace_base,
+        k=k_list,
+        method=method)
+    H_unif_KL[2*i+1,:], H_unif_KSG[2*i+1,:] = ent.knn_entropy(
+        estimator=estimator,
+        base_samples=sim_laplace.sim(n_samples=knn_samples),
+        k=k_list,
+        method=method)
+
+
+
+
+    # H_unif_KL[i,:],H_unif_KSG[i,:] = ent.calc_entropy(
+    #     sim_model = sim_laplace, 
+    #     n_samples = n_train_samples,
+    #     base_samples=laplace_base,
+    #     val_tol=val_tol,
+    #     method=method,
+    #     k=k_list)                    
+
+    start_time = time.time()
     H_KL_laplace[i,:], H_KSG_laplace[i,:] = thread.get_result()
+    end_time = time.time()
+    print("knn idle time: ",str(timedelta(seconds = int(end_time - start_time))))       
     
     filename=misc.update_filename(path,filename,i+1,rename=True)
     util.io.save((k_list,H_unif_KL,H_unif_KSG,H_KL_laplace,H_KSG_laplace),os.path.join(path,filename))

@@ -772,7 +772,7 @@ class UMestimator:
             h=result + correction1
             
         # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
-        return h+correction2,h2+correction2,0,0
+        return h+correction2,h2+correction2
     
     def ksg_ent(self, k=1, reuse_samples=True, method='kl'):
         
