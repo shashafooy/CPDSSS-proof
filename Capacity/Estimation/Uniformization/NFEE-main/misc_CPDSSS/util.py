@@ -5,6 +5,8 @@ import os
 from threading import Thread
 import time
 import re
+from theano.printing import pydotprint
+import theano.d3viz as d3v
 
 
 
@@ -88,4 +90,7 @@ class BackgroundThread(Thread):
         return self.result_read
 
     
+def print_theano_graph(obj,path):
+    pydotprint(obj,path+".png")
+    d3v.d3viz(obj,path+".html")
     
