@@ -13,6 +13,9 @@ def align_and_concatenate(old_data, new_data, old_range, new_range):
     Returns:
         (Float,tuple): Concatenated_data,combined_range
     """
+    #add to list if input is a numpy array instead of tuple
+    old_range = [old_range] if isinstance(old_range,np.ndarray) else old_range 
+    new_range = [new_range] if isinstance(new_range,np.ndarray) else new_range
     # Determine the number of dimensions (excluding the 'iter' dimension)
     num_dims = old_data.ndim - 1
 

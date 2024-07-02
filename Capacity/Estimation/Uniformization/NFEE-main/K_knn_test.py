@@ -17,15 +17,15 @@ from ent_est.entropy import kl_ksg
 
 
 knn_samples = 1000000
-n_train_samples = 30000
+n_train_samples = 100000
 n_trials = 100
-val_tol = 0.01
 val_tol = None
+# val_tol = 0.5
 patience=5
 # N_range=range(1,11)
 N=15
 method='both'
-k_list=list(range(1,21))
+k_list=list(range(1,11))
 
 # method='both'
 
@@ -38,7 +38,7 @@ iter=0
 MSE_uniform=np.inf
 MSE_KL=np.inf
 
-path = 'temp_data/k_knn_test/1M_knn'
+path = 'temp_data/k_knn_test/1M_knn_no_tol'
 today=date.today().strftime("%b_%d")
 filename = "knn_data({})".format(today)
 filename = misc.update_filename(path=path,old_name=filename,iter=iter,rename=False)
@@ -52,15 +52,15 @@ for i in range(n_trials):
     true_H_laplace = sim_laplace.entropy() 
     laplace_base = sim_laplace.sim(n_samples=knn_samples)
 
-    thread = misc.BackgroundThread(target = kl_ksg,args=(laplace_base,None,k_list))           
-    thread.start()
+    # thread = misc.BackgroundThread(target = kl_ksg,args=(laplace_base,None,k_list))           
+    # thread.start()
 
     # H_KL_laplace[i] = kl(laplace_base)
     # H_KSG_laplace[i] = ksg(laplace_base)   
     
 
     misc.print_border("Calculate H(x) laplace, iter: {}".format(i+1))
-    estimator = ent.learn_model(sim_model=sim_laplace,n_samples=n_train_samples,val_tol=val_tol)            
+    estimator = ent.learn_model(sim_model=sim_laplace,n_samples=n_train_samples,val_tol=val_tol,patience=patience)            
 
     H_unif_KL[2*i,:], H_unif_KSG[2*i,:] = ent.knn_entropy(
         estimator=estimator,
@@ -84,10 +84,10 @@ for i in range(n_trials):
     #     method=method,
     #     k=k_list)                    
 
-    start_time = time.time()
-    H_KL_laplace[i,:], H_KSG_laplace[i,:] = thread.get_result()
-    end_time = time.time()
-    print("knn idle time: ",str(timedelta(seconds = int(end_time - start_time))))       
+    # start_time = time.time()
+    # H_KL_laplace[i,:], H_KSG_laplace[i,:] = thread.get_result()
+    # end_time = time.time()
+    # print("knn idle time: ",str(timedelta(seconds = int(end_time - start_time))))       
     
     filename=misc.update_filename(path,filename,i+1,rename=True)
     util.io.save((k_list,H_unif_KL,H_unif_KSG,H_KL_laplace,H_KSG_laplace),os.path.join(path,filename))

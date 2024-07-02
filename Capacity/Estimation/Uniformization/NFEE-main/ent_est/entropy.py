@@ -47,8 +47,8 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
 
     # k_range = range(1,max_k+1) if max_k is not None else range(k,k+1)
 
-    h_kl=np.empty(len(k_range))
-    h_ksg=np.empty(len(k_range))
+    h_kl=np.zeros(len(k_range))
+    h_ksg=np.zeros(len(k_range))
     for i,k in enumerate(k_range):
         # truncated KL
         zeros_mask = dist[:,k]!=0
@@ -66,13 +66,20 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
 
 
         # truncated KSG
-        epsilons = np.abs(y-y[idx[:,k]])
-        zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
+        # epsilons = np.abs(y-y[idx[:,k]])
+        y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+        epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)
+        zeta2 = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
         #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
-        zeros_mask = ~np.any(zeta==0,axis=1)
-        zeta=zeta[zeros_mask]
-        hh2=np.sum(np.log(zeta),axis=1)
-        N=zeta.shape[0]
+        zeros_mask = ~np.any(zeta2==0,axis=1)
+        zeta2=zeta2[zeros_mask]
+        hh2=np.sum(np.log(zeta2),axis=1)
+        N=zeta2.shape[0]
+
+        # hh3 = np.zeros(n)
+        # for j in range(n):
+        #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
+        #     hh3[j] = np.log(np.prod(2*r))
 
             
         h_ksg[i] = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh2)
@@ -137,7 +144,9 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     
 
         # KSG
-        epsilons=np.abs(y-y[idx[:,k]])
+        # epsilons=np.abs(y-y[idx[:,k]])
+        y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+        epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)
         zeros_mask = ~np.any(epsilons==0,axis=1)
         epsilons=epsilons[zeros_mask]
         if standardize == True:        
@@ -300,7 +309,9 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     dist, idx = nbrs.kneighbors(y)
     
     # hh = np.empty(n)
-    epsilons=np.abs(y-y[idx[:,k]])
+    # epsilons=np.abs(y-y[idx[:,k]])
+    y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+    epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)
     zeros_mask = ~np.any(epsilons==0,axis=1)
     epsilons=epsilons[zeros_mask]
     if standardize == True:        
@@ -347,7 +358,9 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
-    epsilons = np.abs(y-y[idx[:,k]])
+    # epsilons = np.abs(y-y[idx[:,k]])
+    y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+    epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)    
     zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
     #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
     zeros_mask = ~np.any(zeta==0,axis=1)
@@ -710,7 +723,8 @@ class UMestimator:
         self.n_samples = n_samples
         self.x_dim = self.samples.shape[1]
         
-        monitor_every = min(10 ** 5 / float(n_samples), 1.0)
+        #Scale so validation occurs at most every 10**5 / minibatch during training
+        monitor_every = min(10 ** 5 / float(n_samples), 1.0) 
         logger.write('training model...\n')
         learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=patience, val_tol=val_tol, minibatch=128)
         logger.write('training done\n')

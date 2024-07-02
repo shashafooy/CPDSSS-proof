@@ -75,7 +75,7 @@ def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,
 
     return estimator
 
-def knn_entropy(estimator,base_samples=None,k=1,method='umtkl'):
+def knn_entropy(estimator: entropy.UMestimator,base_samples=None,k=1,method='umtkl'):
     estimator.samples = estimator.samples if base_samples is None else base_samples
     reuse = False if base_samples is None else True
     start_time = time.time()
