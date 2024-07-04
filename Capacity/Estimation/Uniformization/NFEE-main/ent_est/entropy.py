@@ -14,7 +14,7 @@ from misc_CPDSSS.util import BackgroundThread
 
 
 
-def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
+def tkl_tksg(y, n=None, k=1, max_k=None, algorithm = 'auto', shuffle=True, rng=np.random):
     
     y = np.asarray(y, float)
     N, dim = y.shape
@@ -41,8 +41,12 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
     if shuffle is True:
         rng.shuffle(y)
     
+    #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
+    algorithm = 'brute' if dim>30 else 'kd_tree'
+
+
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     # k_range = range(1,max_k+1) if max_k is not None else range(k,k+1)
@@ -218,9 +222,12 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
     # permute y
     if shuffle is True:
         rng.shuffle(y)
-    
+
+    #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
+    algorithm = 'brute' if dim>30 else 'kd_tree'
+
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     zeros_mask = dist[:,k]!=0
@@ -354,8 +361,11 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     if shuffle is True:
         rng.shuffle(y)
     
+    #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
+    algorithm = 'brute' if dim>30 else 'kd_tree'
+
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
     # epsilons = np.abs(y-y[idx[:,k]])
@@ -726,11 +736,20 @@ class UMestimator:
         #Scale so validation occurs at most every 10**5 / minibatch during training
         monitor_every = min(10 ** 5 / float(n_samples), 1.0) 
         logger.write('training model...\n')
-        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=patience, val_tol=val_tol, minibatch=128)
+        learn_density(
+            self.model, 
+            self.samples, 
+            monitor_every=monitor_every, 
+            logger=logger, 
+            rng=rng, 
+            patience=patience, 
+            val_tol=val_tol, 
+            minibatch=128
+            )
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtkl',SHOW_PDF_PLOTS=False):
-
+        import theano #used to attach GPU to a thread
         if reuse_samples:
             samples = self.samples
         else:

@@ -7,6 +7,7 @@ import os
 from threading import Thread
 import time
 import re
+import multiprocessing as mp
 
 import numpy as np
 from scipy import stats
@@ -18,10 +19,9 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng, n_hiddens = [100,100]):
+def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=10):
     n_hiddens=n_hiddens
     act_fun='tanh'
-    n_mades=10
 
     import ml.models.mafs as mafs
 
@@ -34,12 +34,12 @@ def create_model(n_inputs, rng, n_hiddens = [100,100]):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100]):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100],n_stages=10):
     H = None
     # patience=10
     #redo learning if calc_ent returns error
     while H is None:
-        estimator = learn_model(sim_model,n_samples,val_tol,patience,n_hiddens)
+        estimator = learn_model(sim_model,n_samples,val_tol,patience,n_hiddens,n_stages)
         H = knn_entropy(estimator,base_samples,k,method)        
 
 
@@ -64,8 +64,8 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,pati
     else:
         return H
 
-def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,100]):
-    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens)
+def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,100],n_stages=10):
+    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
     estimator = entropy.UMestimator(sim_model,net)
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
@@ -76,6 +76,7 @@ def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,
     return estimator
 
 def knn_entropy(estimator: entropy.UMestimator,base_samples=None,k=1,method='umtkl'):
+    import theano
     estimator.samples = estimator.samples if base_samples is None else base_samples
     reuse = False if base_samples is None else True
     start_time = time.time()
@@ -87,5 +88,14 @@ def knn_entropy(estimator: entropy.UMestimator,base_samples=None,k=1,method='umt
     else:
         return H
 
-    
+
+def thread_exp():
+    '''Experiment to try running a theano function in a thread'''
+    import theano   
+    import simulators.CPDSSS_models as mod
+
+    net=create_model(4, rng=np.random,n_hiddens=[100,100],n_mades=10)
+    samples = mod.Laplace(0,2,4).sim(1000)
+    return net.calc_random_numbers(samples)
+
     

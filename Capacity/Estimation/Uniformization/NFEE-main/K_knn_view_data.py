@@ -20,7 +20,7 @@ min_T=0
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
-filepath = 'temp_data/k_knn_test/1M_knn'
+filepath = 'temp_data/k_knn_test/1M_knn_no_tol'
 N=15
 
 # filepath=filepaths[1]
@@ -95,10 +95,10 @@ err_KSG = np.abs(H_KSG - H_true)
 
 plt.figure(1)
 plt.axhline(y=H_true,linestyle='--')
-plt.plot(k_list,mean_unif_KL,'b^')
-plt.plot(k_list,mean_unif_KSG,'bv')
-plt.plot(k_list,mean_KL,'r^')
-plt.plot(k_list,mean_KSG,'rv')
+plt.plot(k_list,mean_unif_KL,'o')
+plt.plot(k_list,mean_unif_KSG,'s')
+plt.plot(k_list,mean_KL,'o')
+plt.plot(k_list,mean_KSG,'s')
 plt.yscale("log")    
 plt.title("H(x) for different K knn values")
 plt.legend(["True H(x)","unif KL H(x)","unif KSG H(x)","KL H(x)","KSG H(x)"])
@@ -106,10 +106,10 @@ plt.xlabel("K value for knn")
 plt.ylabel("H(x)")
 
 plt.figure(2)
-plt.plot(k_list,RMSE_unif_KL,'b^',)
-plt.plot(k_list,RMSE_unif_KSG,'bv',)
-plt.plot(k_list,RMSE_KL,'r^',)
-plt.plot(k_list,RMSE_KSG,'rv',)
+plt.plot(k_list,RMSE_unif_KL,'bo',)
+plt.plot(k_list,RMSE_unif_KSG,'bs',)
+plt.plot(k_list,RMSE_KL,'ro',)
+plt.plot(k_list,RMSE_KSG,'rs',)
 plt.yscale("log")    
 plt.title("RMSE for different K knn values")
 plt.legend(["unif KL H(x)","unif KSG H(x)","KL H(x)","KSG H(x)"])
