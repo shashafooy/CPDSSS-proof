@@ -23,9 +23,8 @@ patience=5
 N=15
 method='both'
 # layers = [2,3,4]
-stages = np.arange(5,20,4)
+stages = np.arange(12,19,2) #theano gradient breaks for stages>=20
 
-# method='both'
 
 H_unif_KL = np.empty((n_trials,len(stages)))*np.nan
 H_unif_KSG = np.empty((n_trials,len(stages)))*np.nan
@@ -59,7 +58,7 @@ for i in range(n_trials):
         estimator = ent.learn_model(sim_laplace,n_train_samples,val_tol,patience,n_stages=n_stages)
 
         H_unif_KL[2*i,ns],H_unif_KSG[2*i,ns] = ent.knn_entropy(estimator,laplace_base,method=method)                    
-        H_unif_KL[2*i+1,ns],H_unif_KSG[2*i+1,ns] = ent.knn_entropy(estimator,laplace_base,method=method)                    
+        H_unif_KL[2*i+1,ns],H_unif_KSG[2*i+1,ns] = ent.knn_entropy(estimator,sim_laplace.sim(knn_samples),method=method)                    
 
         #if thread finishes early, get results, but only once
         if ~thread.used_result() and not thread.is_alive():

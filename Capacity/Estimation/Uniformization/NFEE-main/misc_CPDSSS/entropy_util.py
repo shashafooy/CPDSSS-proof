@@ -30,6 +30,7 @@ def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=10):
                 n_hiddens=n_hiddens,
                 act_fun=act_fun,
                 n_mades=n_mades,
+                input_order='random',
                 mode='random',
                 rng=rng
             )
