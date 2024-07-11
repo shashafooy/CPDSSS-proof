@@ -63,10 +63,10 @@ mean_unif_KSG = np.nanmean(H_unif_KSG,axis=0)
 mean_KL = np.nanmean(H_KL,axis=0)
 mean_KSG = np.nanmean(H_KSG,axis=0)
 
-std_unif_KL = np.nanstd(H_unif_KL,axis=0)
-std_unif_KSG = np.nanstd(H_unif_KSG,axis=0)
-std_KL = np.nanstd(H_KL,axis=0)
-std_KSG = np.nanstd(H_KSG,axis=0)
+std_unif_KL = np.nanvar(H_unif_KL,axis=0)
+std_unif_KSG = np.nanvar(H_unif_KSG,axis=0)
+std_KL = np.nanvar(H_KL,axis=0)
+std_KSG = np.nanvar(H_KSG,axis=0)
 
 H_true = Laplace(mu=0,b=2,N=N).entropy()
 

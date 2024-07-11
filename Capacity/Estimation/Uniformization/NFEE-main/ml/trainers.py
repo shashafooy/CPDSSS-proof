@@ -30,6 +30,7 @@ class SGD_Template:
         :param val_target: theano variable representing the validation target
         """
 
+        self.val_target=val_target
         # prepare training data
         self.n_trn_data = self._get_n_data(trn_data)
         self.trn_data = [theano.shared(x.astype(dtype), borrow=True) for x in trn_data]
@@ -38,17 +39,17 @@ class SGD_Template:
         self.trn_inputs = [model.input] if trn_target is None else [model.input, trn_target]
         self.make_update = None  # to be implemented by a subclass
 
-        # if model uses batch norm, compile a theano function for setting up stats
-        if getattr(model, 'batch_norm', False):
-            self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
-            self.set_batch_norm_stats = theano.function(
-                inputs=[],
-                givens=list(zip(self.trn_inputs, self.trn_data)),
-                updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
-            )
-        else:
-            self.batch_norm_givens = []
-            self.set_batch_norm_stats = None
+        # # if model uses batch norm, compile a theano function for setting up stats
+        # if getattr(model, 'batch_norm', False):
+        #     self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
+        #     self.set_batch_norm_stats = theano.function(
+        #         inputs=[],
+        #         givens=list(zip(self.trn_inputs, self.trn_data)),
+        #         updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
+        #     )
+        # else:
+        #     self.batch_norm_givens = []
+        #     self.set_batch_norm_stats = None
 
         # if validation data is given, then set up validation too
         self.do_validation = val_data is not None
@@ -66,6 +67,19 @@ class SGD_Template:
             # create checkpointer to store best model
             self.checkpointer = ModelCheckpointer(model)
             self.best_val_loss = float('inf')
+
+        # if model uses batch norm, compile a theano function for setting up stats. Use validation data if available (less memory)
+        if getattr(model, 'batch_norm', False):
+            self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
+            self.set_batch_norm_stats = theano.function(
+                inputs=[],
+                givens=list(zip(self.trn_inputs, self.val_data if self.do_validation else self.trn_data)),
+                updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
+            )
+        else:
+            self.batch_norm_givens = []
+            self.set_batch_norm_stats = None
+
 
         # initialize some variables
         self.trn_loss = float('inf')
@@ -177,8 +191,10 @@ class SGD_Template:
                     ax.semilogx(progress_epc, progress_trn, 'b', label='training')
                     ax.semilogx(progress_epc, progress_val, 'r', label='validation')
                     ax.vlines(best_epoch, ax.get_ylim()[0], ax.get_ylim()[1], color='g', linestyles='dashed', label='best')
+                    if self.val_target is not None: ax.axhline(self.val_target, label='target')
                     ax.set_xlabel('epochs')
                     ax.set_ylabel('loss')
+                    ax.grid()
                     ax.legend()
 
                 else:
