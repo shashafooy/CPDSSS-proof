@@ -35,7 +35,7 @@ def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=10):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100],n_stages=10):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100],n_stages=14):
     H = None
     # patience=10
     #redo learning if calc_ent returns error
@@ -65,7 +65,7 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,pati
     else:
         return H
 
-def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,100],n_stages=10):
+def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,100],n_stages=14):
     net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
     estimator = entropy.UMestimator(sim_model,net)
     start_time = time.time()
