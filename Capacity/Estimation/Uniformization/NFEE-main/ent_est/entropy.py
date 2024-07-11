@@ -549,7 +549,7 @@ def est_alpha_for_lnc(dim, k, N=5e5, eps=5e-3, rng=np.random):
     
     
     
-def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None):
+def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None, target=None):
     """    Train model to learn the density p(x).
 
 
@@ -566,6 +566,7 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
         logger (_type_, optional): _description_. Defaults to sys.stdout.
         rng (_type_, optional): _description_. Defaults to np.random.
         val_tol (_type_, optional): Tolerance if validation loss has improved. Defaults to None.
+        target (_type_,optional): Target optimal validation value. Defaults to None
 
     Returns:
         _type_: Trained model
@@ -592,7 +593,8 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             trn_loss=model.trn_loss if regularizer is None else model.trn_loss + regularizer,
             val_data=[xs_val],
             val_loss=model.trn_loss,
-            step=step
+            step=step,
+            val_target = target
         )
         trainer.train(
             minibatch=minibatch,
@@ -714,6 +716,7 @@ class UMestimator:
         self.samples = None
         self.n_samples = None
         self.xdim = None
+        self.target = sim_model.entropy()
         
     def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None):
         """Learn the transformation to push a gaussian towards target distribution
@@ -744,7 +747,8 @@ class UMestimator:
             rng=rng, 
             patience=patience, 
             val_tol=val_tol, 
-            minibatch=128
+            minibatch=128,
+            target=self.target
             )
         logger.write('training done\n')
         
