@@ -191,11 +191,14 @@ class SGD_Template:
                     ax.semilogx(progress_epc, progress_trn, 'b', label='training')
                     ax.semilogx(progress_epc, progress_val, 'r', label='validation')
                     ax.vlines(best_epoch, ax.get_ylim()[0], ax.get_ylim()[1], color='g', linestyles='dashed', label='best')
-                    if self.val_target is not None: ax.axhline(self.val_target, label='target')
+                    if self.val_target is not None: 
+                        ax.axhline(self.val_target, label='target')
+                        ax.set_title(f"Training progress, error: {np.abs(self.best_val_loss-self.val_target):.3f}")
                     ax.set_xlabel('epochs')
                     ax.set_ylabel('loss')
                     ax.grid()
                     ax.legend()
+                    
 
                 else:
                     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)

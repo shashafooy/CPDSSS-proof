@@ -19,7 +19,7 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=10):
+def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=14):
     n_hiddens=n_hiddens
     act_fun='tanh'
 
