@@ -758,8 +758,19 @@ class UMestimator:
             samples = self.samples
         else:
             samples = self.sim_model.sim(self.n_samples)
-        
-        u = self.model.calc_random_numbers(samples)
+
+
+        '''Memory can grow too large if evaluated for all samples, limit to 1M samples at a time'''
+        u=[]
+        max_samp = int(1000000 / samples.shape[1]) #approximately 1M total points
+        for i in range(0, samples.shape[0], max_samp):
+            u.append(self.model.calc_random_numbers(samples[i:i+max_samp,:]))
+
+        # Concatenate the results into a single array
+        u = np.concatenate(u)
+
+
+        # u = self.model.calc_random_numbers(samples)
         #remove extreme data that isn't within 99.9999% of the norm dist
         idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
         u = u[idx]
@@ -800,7 +811,13 @@ class UMestimator:
             # h,h2 = tkl_tksg(z,k=k) + correction1
         h_thread.start()        
             
-        correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
+        # correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
+        logdet=[]                
+        for i in range(0, samples.shape[0], max_samp):
+            logdet.append(self.model.logdet_jacobi_u(samples[i:i+max_samp,:]))
+        # Concatenate the results into a single array
+        logdet = np.concatenate(logdet)
+        correction2 = -np.mean(logdet[idx])
 
         result = h_thread.get_result()
         if method == 'both':
