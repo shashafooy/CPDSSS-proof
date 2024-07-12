@@ -19,7 +19,7 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=10):
+def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=14):
     n_hiddens=n_hiddens
     act_fun='tanh'
 
@@ -35,7 +35,7 @@ def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=10):
                 rng=rng
             )
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100],n_stages=10):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,patience=10,method='umtkl',n_hiddens=[100,100],n_stages=14):
     H = None
     # patience=10
     #redo learning if calc_ent returns error

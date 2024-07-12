@@ -549,7 +549,7 @@ def est_alpha_for_lnc(dim, k, N=5e5, eps=5e-3, rng=np.random):
     
     
     
-def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None, target=None):
+def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None, target=None, show_progress=False):
     """    Train model to learn the density p(x).
 
 
@@ -601,7 +601,8 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             patience=patience,
             monitor_every=monitor_every,
             logger=logger,
-            val_Tol=val_tol
+            val_Tol=val_tol,
+            show_progress=show_progress
         )
 
     else:
@@ -718,7 +719,7 @@ class UMestimator:
         self.xdim = None
         self.target = sim_model.entropy()
         
-    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None):
+    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None, show_progress=False, minibatch = 128):
         """Learn the transformation to push a gaussian towards target distribution
 
         Args:
@@ -747,8 +748,9 @@ class UMestimator:
             rng=rng, 
             patience=patience, 
             val_tol=val_tol, 
-            minibatch=128,
-            target=self.target
+            minibatch=minibatch,
+            target=self.target,
+            show_progress=show_progress
             )
         logger.write('training done\n')
         
