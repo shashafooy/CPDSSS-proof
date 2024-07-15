@@ -113,7 +113,9 @@ class CPDSSS:
     def chan_entropy(self):
         return 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.diag(self.fading)))
 
-
+    def entropy(self):
+        """Unknown entropy"""
+        return None
 
 
     def set_use_h_flag(self,h_flag=True):

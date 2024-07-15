@@ -14,7 +14,7 @@ from misc_CPDSSS.util import BackgroundThread
 
 
 
-def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
+def tkl_tksg(y, n=None, k=1, max_k=None, algorithm = 'auto', shuffle=True, rng=np.random):
     
     y = np.asarray(y, float)
     N, dim = y.shape
@@ -41,14 +41,18 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
     if shuffle is True:
         rng.shuffle(y)
     
+    #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
+    algorithm = 'brute' if dim>30 else 'kd_tree'
+
+
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     # k_range = range(1,max_k+1) if max_k is not None else range(k,k+1)
 
-    h_kl=np.empty(len(k_range))
-    h_ksg=np.empty(len(k_range))
+    h_kl=np.zeros(len(k_range))
+    h_ksg=np.zeros(len(k_range))
     for i,k in enumerate(k_range):
         # truncated KL
         zeros_mask = dist[:,k]!=0
@@ -66,13 +70,20 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
 
 
         # truncated KSG
-        epsilons = np.abs(y-y[idx[:,k]])
-        zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
+        # epsilons = np.abs(y-y[idx[:,k]])
+        y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+        epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)
+        zeta2 = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
         #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
-        zeros_mask = ~np.any(zeta==0,axis=1)
-        zeta=zeta[zeros_mask]
-        hh2=np.sum(np.log(zeta),axis=1)
-        N=zeta.shape[0]
+        zeros_mask = ~np.any(zeta2==0,axis=1)
+        zeta2=zeta2[zeros_mask]
+        hh2=np.sum(np.log(zeta2),axis=1)
+        N=zeta2.shape[0]
+
+        # hh3 = np.zeros(n)
+        # for j in range(n):
+        #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
+        #     hh3[j] = np.log(np.prod(2*r))
 
             
         h_ksg[i] = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh2)
@@ -85,6 +96,20 @@ def tkl_tksg(y, n=None, k=1, max_k=None,shuffle=True, rng=np.random):
 def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     y = np.asarray(y, float)
     
+    if isinstance(k,list):
+        max_k=k[-1]
+        k_range=range(1,max_k+1)
+    else:
+        max_k=k
+        k_range=range(k,k+1)
+
+    config = configparser.ConfigParser()
+    if config.read('CPDSSS.ini') != []:
+        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
+    else: 
+        n_jobs = 1
+
+
     if standardize == True:
         y_std = np.std(y, axis=0)
         y = y/y_std
@@ -102,36 +127,43 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     
     # knn search
     # print("starting distance search")
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
+    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm='auto', metric='chebyshev').fit(y)
     dist, idx = nbrs.kneighbors(y)
 
-    # KL
-    zeros_mask = dist[:,k]!=0
-    dist = dist[zeros_mask,:]
+    h_kl=np.empty(len(k_range))
+    h_ksg=np.empty(len(k_range))
+    for i,k in enumerate(k_range):
+
+        # KL
+        zeros_mask = dist[:,k]!=0
+        dist = dist[zeros_mask,:]
+        
+
+        if standardize == True:
+            hh = dim*np.log(2*dist[:,k])+np.sum(np.log(y_std))
+        else:
+            hh = dim*np.log(2*dist[:,k])
+        N=hh.shape[0]    
+        h_kl[i] = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
     
 
-    if standardize == True:
-        hh = dim*np.log(2*dist[:,k])+np.sum(np.log(y_std))
-    else:
-        hh = dim*np.log(2*dist[:,k])
-    N=hh.shape[0]    
-    hkl = -spl.digamma(k)+spl.digamma(N)+np.mean(hh)
-
- 
-
-    # KSG
-    epsilons=np.abs(y-y[idx[:,k]])
-    zeros_mask = ~np.any(epsilons==0,axis=1)
-    epsilons=epsilons[zeros_mask]
-    if standardize == True:        
-        hh=np.sum(np.log(2*epsilons*y_std),axis=1)            
-    else:
-        hh=np.sum(np.log(2*epsilons),axis=1)
-    N=hh.shape[0]
-    hksg = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh)
+        # KSG
+        # epsilons=np.abs(y-y[idx[:,k]])
+        y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+        epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)
+        zeros_mask = ~np.any(epsilons==0,axis=1)
+        epsilons=epsilons[zeros_mask]
+        if standardize == True:        
+            hh=np.sum(np.log(2*epsilons*y_std),axis=1)            
+        else:
+            hh=np.sum(np.log(2*epsilons),axis=1)
+        N=hh.shape[0]
+        h_ksg[i] = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh)
     
+    h_kl,h_ksg=(h_kl,h_ksg) if len(k_range)>1 else (h_kl[0],h_ksg[0])
+
     # print("finished knn")
-    return hkl,hksg
+    return h_kl,h_ksg
 
 
 
@@ -190,9 +222,12 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
     # permute y
     if shuffle is True:
         rng.shuffle(y)
-    
+
+    #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
+    algorithm = 'brute' if dim>30 else 'kd_tree'
+
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     zeros_mask = dist[:,k]!=0
@@ -281,7 +316,9 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     dist, idx = nbrs.kneighbors(y)
     
     # hh = np.empty(n)
-    epsilons=np.abs(y-y[idx[:,k]])
+    # epsilons=np.abs(y-y[idx[:,k]])
+    y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+    epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)
     zeros_mask = ~np.any(epsilons==0,axis=1)
     epsilons=epsilons[zeros_mask]
     if standardize == True:        
@@ -324,11 +361,16 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     if shuffle is True:
         rng.shuffle(y)
     
+    #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
+    algorithm = 'brute' if dim>30 else 'kd_tree'
+
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
-    epsilons = np.abs(y-y[idx[:,k]])
+    # epsilons = np.abs(y-y[idx[:,k]])
+    y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
+    epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)    
     zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
     #remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
     zeros_mask = ~np.any(zeta==0,axis=1)
@@ -507,7 +549,7 @@ def est_alpha_for_lnc(dim, k, N=5e5, eps=5e-3, rng=np.random):
     
     
     
-def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None):
+def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None, target=None, show_progress=False):
     """    Train model to learn the density p(x).
 
 
@@ -524,6 +566,7 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
         logger (_type_, optional): _description_. Defaults to sys.stdout.
         rng (_type_, optional): _description_. Defaults to np.random.
         val_tol (_type_, optional): Tolerance if validation loss has improved. Defaults to None.
+        target (_type_,optional): Target optimal validation value. Defaults to None
 
     Returns:
         _type_: Trained model
@@ -550,14 +593,16 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             trn_loss=model.trn_loss if regularizer is None else model.trn_loss + regularizer,
             val_data=[xs_val],
             val_loss=model.trn_loss,
-            step=step
+            step=step,
+            val_target = target
         )
         trainer.train(
             minibatch=minibatch,
             patience=patience,
             monitor_every=monitor_every,
             logger=logger,
-            val_Tol=val_tol
+            val_Tol=val_tol,
+            show_progress=show_progress
         )
 
     else:
@@ -672,8 +717,9 @@ class UMestimator:
         self.samples = None
         self.n_samples = None
         self.xdim = None
+        self.target = sim_model.entropy()
         
-    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None):
+    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None, show_progress=False, minibatch = 128):
         """Learn the transformation to push a gaussian towards target distribution
 
         Args:
@@ -691,19 +737,42 @@ class UMestimator:
         self.n_samples = n_samples
         self.x_dim = self.samples.shape[1]
         
-        monitor_every = min(10 ** 5 / float(n_samples), 1.0)
+        #Scale so validation occurs at most every 10**5 / minibatch during training
+        monitor_every = min(10 ** 5 / float(n_samples), 1.0) 
         logger.write('training model...\n')
-        learn_density(self.model, self.samples, monitor_every=monitor_every, logger=logger, rng=rng, patience=patience, val_tol=val_tol, minibatch=128)
+        learn_density(
+            self.model, 
+            self.samples, 
+            monitor_every=monitor_every, 
+            logger=logger, 
+            rng=rng, 
+            patience=patience, 
+            val_tol=val_tol, 
+            minibatch=minibatch,
+            target=self.target,
+            show_progress=show_progress
+            )
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtkl',SHOW_PDF_PLOTS=False):
-
+        import theano #used to attach GPU to a thread
         if reuse_samples:
             samples = self.samples
         else:
             samples = self.sim_model.sim(self.n_samples)
-        
-        u = self.model.calc_random_numbers(samples)
+
+
+        '''Memory can grow too large if evaluated for all samples, limit to 1M samples at a time'''
+        u=[]
+        max_samp = int(1000000 / samples.shape[1]) #approximately 1M total points
+        for i in range(0, samples.shape[0], max_samp):
+            u.append(self.model.calc_random_numbers(samples[i:i+max_samp,:]))
+
+        # Concatenate the results into a single array
+        u = np.concatenate(u)
+
+
+        # u = self.model.calc_random_numbers(samples)
         #remove extreme data that isn't within 99.9999% of the norm dist
         idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
         u = u[idx]
@@ -744,7 +813,13 @@ class UMestimator:
             # h,h2 = tkl_tksg(z,k=k) + correction1
         h_thread.start()        
             
-        correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
+        # correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
+        logdet=[]                
+        for i in range(0, samples.shape[0], max_samp):
+            logdet.append(self.model.logdet_jacobi_u(samples[i:i+max_samp,:]))
+        # Concatenate the results into a single array
+        logdet = np.concatenate(logdet)
+        correction2 = -np.mean(logdet[idx])
 
         result = h_thread.get_result()
         if method == 'both':
@@ -753,7 +828,7 @@ class UMestimator:
             h=result + correction1
             
         # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
-        return h+correction2,h2+correction2,0,0
+        return h+correction2,h2+correction2
     
     def ksg_ent(self, k=1, reuse_samples=True, method='kl'):
         

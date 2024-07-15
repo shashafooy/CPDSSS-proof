@@ -155,7 +155,7 @@ fig.suptitle("RMSE for different hidden layers, N={}".format(N))
 for i in range(len(layers)):
     ax[i].axhline(y=RMSE_KL,color='g',linestyle='--')
     ax[i].axhline(y=RMSE_KSG,color='b',linestyle='--')
-    ax[i].scatter(np.tile(120,(H_unif_KL.shape[0],1)),np.abs(H_KL - H_true))
+    # ax[i].scatter(np.tile(120,(H_unif_KL.shape[0],1)),np.abs(H_KL - H_true))
 
     nodes_matrix = np.tile(nodes,(H_unif_KL.shape[0],1))
     ax[i].scatter(nodes_matrix,err_unif_KL[:,i],marker='x')
