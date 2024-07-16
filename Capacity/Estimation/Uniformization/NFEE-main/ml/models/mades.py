@@ -173,6 +173,47 @@ def create_weights(n_inputs, n_hiddens, n_comps, rng=np.random):
 
         return Ws, bs, Wm, bm, Wp, bp, Wa, ba
 
+def create_weights_transpose(n_inputs, n_hiddens, n_comps, rng=np.random):
+    """
+    Creates all learnable weight matrices and bias vectors.
+    :param n_inputs: the number of inputs
+    :param n_hiddens: a list with the number of hidden units
+    :param n_comps: number of gaussian components
+    :param rng: random number generator
+    :return: weights and biases, as theano shared variables
+    """
+
+    Ws = []
+    bs = []
+
+    n_units = np.concatenate(([n_inputs], n_hiddens))
+
+    for l, (N0, N1) in enumerate(zip(n_units[:-1], n_units[1:])):
+        W = theano.shared((rng.randn(N1, N0) / np.sqrt(N0 + 1)).astype(dtype), name='W' + str(l+1), borrow=True)
+        b = theano.shared(np.zeros(N1, dtype=dtype), name='b' + str(l+1), borrow=True)
+        Ws.append(W)
+        bs.append(b)
+
+    if n_comps is None:
+
+        Wm = theano.shared((rng.randn(n_inputs, n_units[-1]) / np.sqrt(n_units[-1] + 1)).astype(dtype), name='Wm', borrow=True)
+        Wp = theano.shared((rng.randn(n_inputs, n_units[-1]) / np.sqrt(n_units[-1] + 1)).astype(dtype), name='Wp', borrow=True)
+        bm = theano.shared(np.zeros(n_inputs, dtype=dtype), name='bm', borrow=True)
+        bp = theano.shared(np.zeros(n_inputs, dtype=dtype), name='bp', borrow=True)
+
+        return Ws, bs, Wm, bm, Wp, bp
+
+    else:
+
+        Wm = theano.shared((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1)).astype(dtype), name='Wm', borrow=True)
+        Wp = theano.shared((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1)).astype(dtype), name='Wp', borrow=True)
+        Wa = theano.shared((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1)).astype(dtype), name='Wa', borrow=True)
+        bm = theano.shared(rng.randn(n_inputs, n_comps).astype(dtype), name='bm', borrow=True)
+        bp = theano.shared(rng.randn(n_inputs, n_comps).astype(dtype), name='bp', borrow=True)
+        ba = theano.shared(rng.randn(n_inputs, n_comps).astype(dtype), name='ba', borrow=True)
+
+        return Ws, bs, Wm, bm, Wp, bp, Wa, ba
+
 
 def create_weights_conditional(n_inputs, n_outputs, n_hiddens, n_comps, rng):
     """
@@ -259,6 +300,7 @@ class GaussianMade:
         degrees = create_degrees(n_inputs, n_hiddens, input_order, mode, rng)
         Ms, Mmp = create_masks(degrees)
         Ws, bs, Wm, bm, Wp, bp = create_weights(n_inputs, n_hiddens, None, rng)
+        # Ws, bs, Wm, bm, Wp, bp = create_weights_transpose(n_inputs, n_hiddens, None, rng)
         self.parms = Ws + bs + [Wm, bm, Wp, bp]
         self.input_order = degrees[0]
 
@@ -272,21 +314,28 @@ class GaussianMade:
         # feedforward propagation
         for l, (M, W, b) in enumerate(zip(Ms, Ws, bs)):
             h = f(tt.dot(h, M * W) + b)
+            # h = f(tt.dot(M*W,h) + b)
             h.name = 'h' + str(l + 1)
 
         # output means
         self.m = tt.dot(h, Mmp * Wm) + bm
+        # self.m = tt.dot(Mmp * Wm, h) + bm
         self.m.name = 'm'
 
         # output log precisions
         self.logp = tt.dot(h, Mmp * Wp) + bp
+        # self.logp = tt.dot(Mmp * Wp, h) + bp
         self.logp.name = 'logp'
 
         # random numbers driving made
         self.u = tt.exp(0.5 * self.logp) * (self.input - self.m)
+        # self.u = 1/self.logp * (self.input - self.m)
 
         # log likelihoods
         self.L = -0.5 * (n_inputs * np.log(2 * np.pi) + tt.sum(self.u ** 2 - self.logp, axis=1))
+        # self.L = (0.5 * n_inputs * np.log(2 * np.pi) + 0.5* tt.sum(self.u ** 2 - 2*tt.log(self.logp), axis=1))
+        # self.L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5* tt.sum(self.u ** 2 - 2*tt.log(self.logp), axis=0)
+
         self.L.name = 'L'
 
         # train objective

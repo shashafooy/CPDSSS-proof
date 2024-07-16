@@ -60,6 +60,7 @@ class MaskedAutoregressiveFlow:
             # inverse autoregressive transform
             self.u = made.u
             self.logdet_dudx += 0.5 * tt.sum(made.logp, axis=1)
+            # self.logdet_dudx += tt.sum(tt.log(made.logp),axis=1) #If using sigma instead of exp(alpha)
 
             # batch normalization
             if batch_norm:
