@@ -549,7 +549,7 @@ def est_alpha_for_lnc(dim, k, N=5e5, eps=5e-3, rng=np.random):
     
     
     
-def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-4), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None, target=None, show_progress=False):
+def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.Adam(a=1.e-3,bm=0.99), minibatch=100, patience=20, monitor_every=1, logger=sys.stdout, rng=np.random, val_tol=None, target=None, show_progress=False, fine_tune=False):
     """    Train model to learn the density p(x).
 
 
@@ -605,6 +605,20 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             show_progress=show_progress
         )
 
+        if fine_tune:
+            #update step algorithm with smaller step size
+            step = ss.Adam(a=step.a*0.05, bm=step.bm, bv=step.bv, eps=step.eps)
+            trainer.update_step(model=model, trn_loss=model.trn_loss, step=step)
+
+            trainer.train(
+                minibatch=minibatch,
+                patience=patience,
+                monitor_every=monitor_every,
+                logger=logger,
+                val_Tol=val_tol,
+                show_progress=show_progress
+            )
+        trainer.release_shared_data()
     else:
 
         # prepare weights
@@ -719,7 +733,7 @@ class UMestimator:
         self.xdim = None
         self.target = sim_model.entropy()
         
-    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None, show_progress=False, minibatch = 128):
+    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None, show_progress=False, minibatch = 128, fine_tune=False, step = ss.Adam()):
         """Learn the transformation to push a gaussian towards target distribution
 
         Args:
@@ -750,7 +764,9 @@ class UMestimator:
             val_tol=val_tol, 
             minibatch=minibatch,
             target=self.target,
-            show_progress=show_progress
+            show_progress=show_progress,
+            fine_tune=fine_tune,
+            step=step
             )
         logger.write('training done\n')
         

@@ -178,7 +178,7 @@ class SGD_Template:
                     logger.write('Below training tolerance\n')
                 if patience_left<=0:
                     logger.write('Ran out of patience\n')
-                self.release_shared_data()
+                # self.release_shared_data()
                 break
 
         # plot progress
@@ -267,12 +267,12 @@ class SGD(SGD_Template):
         idx = tt.ivector('idx')
         grads = tt.grad(trn_loss, model.parms)
         grads = [tt.switch(tt.isnan(g), 0., g) for g in grads]
-        grads = grads if max_norm is None else util.ml.total_norm_constraint(grads, max_norm)
+        self.grads = grads if max_norm is None else util.ml.total_norm_constraint(grads, max_norm)
         self.make_update = theano.function(
             inputs=[idx],
             outputs=trn_loss,
             givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
-            updates=step.updates(model.parms, grads)
+            updates=step.updates(model.parms, self.grads)
         )
 
         if self.do_validation:
@@ -283,6 +283,14 @@ class SGD(SGD_Template):
                 outputs=val_loss,
                 givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
+    def update_step(self,model,trn_loss,step=ss.Adam()):
+        idx = tt.ivector('idx')
+        self.make_update = theano.function(
+            inputs=[idx],
+            outputs=trn_loss,
+            givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
+            updates=step.updates(model.parms, self.grads)
+        )
 
 
 class WeightedSGD(SGD_Template):

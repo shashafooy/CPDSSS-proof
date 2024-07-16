@@ -83,6 +83,7 @@ class MaskedAutoregressiveFlow:
         self.eval_lprob_f = None
         self.eval_grad_f = None
         self.eval_us_f = None
+        self._eval_trn_loss = None
 
     def reset_theano_functions(self):
         """
@@ -119,6 +120,30 @@ class MaskedAutoregressiveFlow:
         lprob = self.eval_lprob_f(x[np.newaxis, :])[0] if x.ndim == 1 else self.eval_lprob_f(x)
 
         return lprob if log else np.exp(lprob)
+    
+    def eval_trnloss(self, x):
+        """
+        Evaluate the training loss for the given input data. Data will be split and evaluated
+        in sections to reduce GPU memory
+        :param x: data, each row is a data sample with the columns as the dimension
+        """
+
+        if self._eval_trn_loss is None:
+            self._eval_trn_loss = theano.function(
+                inputs = [self.input],
+                outputs = self.trn_loss
+            )
+
+        trn_loss=[]
+        n_size = []
+        x = np.asarray(x, dtype=dtype)
+        max_samp = int(1000000 / x.shape[1]) #approximately 1M total points
+        for i in range(0, x.shape[0], max_samp):
+            trn_loss.append(self._eval_trn_loss(x[i:i+max_samp,:]))
+            n_size.append(x[i:i+max_samp,:].shape[0])
+        #combine means
+        return sum(np.asarray(trn_loss)*np.asarray(n_size))/(sum(n_size))
+
 
     def grad_log_p(self, x):
         """

@@ -65,12 +65,12 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,pati
     else:
         return H
 
-def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,100],n_stages=14):
+def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,100],n_stages=14, fine_tune=False):
     net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
     estimator = entropy.UMestimator(sim_model,net)
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
-    estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim),val_tol=val_tol,patience=patience)
+    estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim),val_tol=val_tol,patience=patience, fine_tune=fine_tune)
     end_time = time.time()        
     print("learning time: ",str(timedelta(seconds = int(end_time - start_time))))
 
