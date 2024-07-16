@@ -20,7 +20,8 @@ min_T=0
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
-filepath = 'temp_data/stages_test/15N_1M_knn'
+filepath = 'temp_data/num_hidden_nodes/15N_1M_knn'
+
 #load previously saved KNN for N=15 1M samples
 N,H_KL,H_KSG = util.io.load('temp_data/KL_KSG/N15_1M/kl_ksg')
 # N=15
@@ -30,18 +31,20 @@ N,H_KL,H_KSG = util.io.load('temp_data/KL_KSG/N15_1M/kl_ksg')
 # for idx,filepath in enumerate(filepaths):
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
-    _stages,_H_unif_KL,_H_unif_KSG,_,_ = util.io.load(os.path.join(filepath, filename))
+    _hidden_nodes,_H_unif_KL,_H_unif_KSG,_,_ = util.io.load(os.path.join(filepath, filename))
 
     # Initialize arrays
     if 'H_unif_KL' not in locals():
-        stages = _stages
-        tot_stages = len(stages)
-        H_unif_KL = np.empty((0,tot_stages))
-        H_unif_KSG = np.empty((0,tot_stages))       
+        hidden_nodes = _hidden_nodes
+        tot_hidden = len(hidden_nodes)
+        H_unif_KL = np.empty((0,tot_hidden))
+        H_unif_KSG = np.empty((0,tot_hidden))       
 
-    H_unif_KL,_ = viewData.align_and_concatenate(H_unif_KL,_H_unif_KL,(stages),(_stages))
-    H_unif_KSG,(stages) = viewData.align_and_concatenate(H_unif_KSG,_H_unif_KSG,(stages),(_stages))
+    H_unif_KL,_ = viewData.align_and_concatenate(H_unif_KL,_H_unif_KL,(hidden_nodes),(_hidden_nodes))
+    H_unif_KSG,(hidden_nodes) = viewData.align_and_concatenate(H_unif_KSG,_H_unif_KSG,(hidden_nodes),(_hidden_nodes))
     
+
+
 viewData.clean_data(H_unif_KL)
 viewData.clean_data(H_unif_KSG)
 viewData.clean_data(H_KL)
@@ -92,25 +95,25 @@ err_KSG = np.abs(H_KSG - H_true)
 
 plt.figure(1)
 plt.axhline(y=H_true,linestyle='--')
-plt.plot(stages,mean_unif_KL,'bo')
-plt.plot(stages,mean_unif_KSG,'bs')
+plt.plot(hidden_nodes,mean_unif_KL,'bo')
+plt.plot(hidden_nodes,mean_unif_KSG,'rs')
 plt.axhline(mean_KL,color='b')
 plt.axhline(mean_KSG,color = 'r')
 plt.yscale("log")    
-plt.title("H(x) for different MAF stages")
+plt.title("H(x) for different number of hidden nodes")
 plt.legend(["True H(x)","unif KL H(x)","unif KSG H(x)","KL H(x)","KSG H(x)"])
-plt.xlabel("N MAF stages")
+plt.xlabel("hidden nodes per layer")
 plt.ylabel("H(x)")
 
 plt.figure(2)
-plt.plot(stages,RMSE_unif_KL,'bo',)
-plt.plot(stages,RMSE_unif_KSG,'rs',)
+plt.plot(hidden_nodes,RMSE_unif_KL,'bo',)
+plt.plot(hidden_nodes,RMSE_unif_KSG,'rs',)
 plt.axhline(RMSE_KL,color='b')
 plt.axhline(RMSE_KSG,color='r')
 plt.yscale("log")    
-plt.title("RMSE for different MAF stages")
+plt.title("RMSE for different number of hidden nodes")
 plt.legend(["unif KL H(x)","unif KSG H(x)","KL H(x)","KSG H(x)"])
-plt.xlabel("N MAF stages")
+plt.xlabel("hidden nodes per layer")
 plt.ylabel("RMSE H(x)")
 
 
