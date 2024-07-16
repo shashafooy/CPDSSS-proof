@@ -4,6 +4,7 @@ import numpy as np
 import theano
 import theano.tensor as tt
 
+dtype = theano.config.floatX
 
 class StepStrategy:
     """Abstract class for the step size strategy of stochastic gradient training."""
@@ -91,10 +92,10 @@ class Adam(StepStrategy):
         assert 0 < bv < 1, 'bv must be strictly between 0 and 1.'
         assert eps > 0, 'eps must be positive.'
 
-        self.a = a
-        self.bm = bm
-        self.bv = bv
-        self.eps = eps
+        self.a = np.asarray(a, dtype = dtype)
+        self.bm = np.asarray(bm, dtype = dtype)
+        self.bv = np.asarray(bv, dtype = dtype)
+        self.eps = np.asarray(eps, dtype = dtype)
 
     def updates(self, parms, grads):
         """Return a list of updates to be made, both to adams's running averages and the parameters."""
@@ -108,8 +109,8 @@ class Adam(StepStrategy):
         acc_m = [theano.shared(np.zeros_like(p.get_value(borrow=True)), borrow=True) for p in parms]
         acc_v = [theano.shared(np.zeros_like(p.get_value(borrow=True)), borrow=True) for p in parms]
 
-        new_acc_m = [self.bm * am + (1-self.bm) * g for g, am in zip(grads, acc_m)]
-        new_acc_v = [self.bv * av + (1-self.bv) * g**2 for g, av in zip(grads, acc_v)]
+        new_acc_m = [self.bm * am + (1-self.bm).astype(dtype) * g for g, am in zip(grads, acc_m)]
+        new_acc_v = [self.bv * av + (1-self.bv).astype(dtype) * g**2 for g, av in zip(grads, acc_v)]
 
         step = self.a * tt.sqrt(1-new_bv_t) / (1-new_bm_t)
         eps = self.eps * (1-new_bv_t)
