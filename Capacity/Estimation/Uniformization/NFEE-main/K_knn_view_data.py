@@ -44,7 +44,7 @@ for filename in os.listdir(filepath):
     H_KL,_ = viewData.align_and_concatenate(H_KL,_H_KL,k_list,_k_list)
     H_KSG,k_list = viewData.align_and_concatenate(H_KSG,_H_KSG,k_list,_k_list)
 
-k_list=k_list[0]    
+# k_list=k_list[0]    
 viewData.clean_data(H_unif_KL)
 viewData.clean_data(H_unif_KSG)
 viewData.clean_data(H_KL)
@@ -106,10 +106,10 @@ plt.xlabel("K value for knn")
 plt.ylabel("H(x)")
 
 plt.figure(2)
-plt.plot(k_list,RMSE_unif_KL,'bo',)
-plt.plot(k_list,RMSE_unif_KSG,'bs',)
-plt.plot(k_list,RMSE_KL,'ro',)
-plt.plot(k_list,RMSE_KSG,'rs',)
+plt.plot(k_list,RMSE_unif_KL,'o',)
+plt.plot(k_list,RMSE_unif_KSG,'s',)
+plt.plot(k_list,RMSE_KL,'o',)
+plt.plot(k_list,RMSE_KSG,'s',)
 plt.yscale("log")    
 plt.title("RMSE for different K knn values")
 plt.legend(["unif KL H(x)","unif KSG H(x)","KL H(x)","KSG H(x)"])

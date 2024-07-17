@@ -21,7 +21,7 @@ REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
 filepath = 'temp_data/laplace_test/hidden_layers/15N_1M_knn'
-N=8
+N=15
 
 # filepath=filepaths[1]
 # idx=0
