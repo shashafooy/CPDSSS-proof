@@ -939,12 +939,14 @@ class UMestimator:
         return h+correction2,h2+correction2
     
     def knn_thread(self,data,k=1,method='umtksg'):        
-        """Start the knn algorithm in a thread. Use knn_get_data() to wait for result
+        """Start the knn algorithm in a thread and return the background thread for the user to handle
 
         Args:
             data (_type_): Uniformized data points
             k (int, optional): K value for knn. Defaults to 1.
             method (str, optional): type of truncated KNN to use ('umtkl','umtksg','both'). Defaults to 'umtksg'.        
+        Returns:
+            BackgroundThread: thread running the knn algorithm
         """
         if method == 'umtkl':                        
             self.h_thread = BackgroundThread(target = tkl,args=(data,None,k))
@@ -955,7 +957,8 @@ class UMestimator:
         elif method == 'both':
             self.h_thread = BackgroundThread(target = tkl_tksg,args=(data,None,k))
             # h,h2 = tkl_tksg(z,k=k) + correction1
-        self.h_thread.start()        
+        self.h_thread.start()   
+        return self.h_thread     
         
 
     def knn_running(self):
