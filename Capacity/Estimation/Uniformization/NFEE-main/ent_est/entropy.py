@@ -771,6 +771,9 @@ class UMestimator:
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtkl',SHOW_PDF_PLOTS=False):
+        #TODO look at converting this function to evaluate u,correction1,correction2 (main process).
+        #       then evaluate tknn outside of this function (threading)
+
         import theano #used to attach GPU to a thread
         if reuse_samples:
             samples = self.samples

@@ -24,7 +24,7 @@ N=15
 method='both'
 # layers = [2,3,4]
 # stages = np.arange(12,19,2) #theano gradient breaks for stages>=20
-hidden_nodes = np.arange(100,400+1,50)
+hidden_nodes = np.arange(450,600+1,50)
 n_layers = 2
 
 

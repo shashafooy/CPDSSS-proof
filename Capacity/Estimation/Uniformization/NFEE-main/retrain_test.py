@@ -103,17 +103,18 @@ for i in range(n_trials):
 
         util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
     
-    if thread is not None and i>0:
-        #get previous knn value
-        KL[i-1],KSG[i-1] = thread.get_result()
+    # if thread is not None and i>0:
+    #     #get previous knn value
+    #     KL[i-1],KSG[i-1] = thread.get_result()
 
-    thread = misc.BackgroundThread(target = ent.knn_entropy,args=(estimator,laplace_base[:10000],1,method))
-    thread.start()
+    # thread = misc.BackgroundThread(target = ent.knn_entropy,args=(estimator,laplace_base[:10000],1,method))
+    # thread.start()
 
+    KL[i-1],KSG[i-1] = ent.knn_entropy(estimator,laplace_base,method=method)
     filename=misc.update_filename(path,filename,i+1,rename=True)
     util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
 
-KL[-1],KSG[-1] = thread.get_result()
+# KL[-1],KSG[-1] = thread.get_result()
 util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
         
 
