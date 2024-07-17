@@ -1,6 +1,7 @@
 """
 Functions for general utility such as updaing filenames or threading
 """
+from datetime import timedelta
 import os
 from threading import Thread
 import time
@@ -78,8 +79,15 @@ class BackgroundThread(Thread):
             self._return = self._target(*self._args,**self._kwargs)
         # self.result = self.func(*self.args)
 
-    def get_result(self):
+    def get_result(self,print_time=False):
+        waiting=False
+        if Thread.is_alive():
+            waiting=True
+            start_time = time.time()
         Thread.join(self)
+        if waiting and print_time:
+            end_time = time.time()
+            print(f"thread wait time: {str(timedelta(seconds=int(end_time-start_time)))}")
         self.result_read=True
         return self._return
     

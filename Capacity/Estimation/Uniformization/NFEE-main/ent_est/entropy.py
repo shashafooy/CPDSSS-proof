@@ -860,8 +860,115 @@ class UMestimator:
             return kl(samples, k=k)
         elif method == 'ksg':
             return ksg(samples, k=k)
+        elif method =='both':
+            return kl_ksg(samples, k=k)
+        
+    def uniform_correction(self, reuse_samples=True, SHOW_PDF_PLOTS=False):
+        """Generate uniformized data and the associated entropy correction terms
+
+        Args:
+            reuse_samples (bool, optional): Use the samples currently stored, otherwise generate new samples. Defaults to True.
+            SHOW_PDF_PLOTS (bool, optional): Display histogram of given data, gaussian, and uniform transforms. Defaults to False.
+
+        Returns:
+            _type_: Uniformized points, Jacobian entropy correction term
+        """
+        if reuse_samples:
+            samples = self.samples
+        else:
+            samples = self.sim_model.sim(self.n_samples)
+
+
+        '''Memory can grow too large if evaluated for all samples, limit to 1M samples at a time'''
+        u=[]
+        max_samp = int(1000000 / samples.shape[1]) #approximately 1M total points
+        for i in range(0, samples.shape[0], max_samp):
+            u.append(self.model.calc_random_numbers(samples[i:i+max_samp,:]))
+
+        # Concatenate the results into a single array
+        u = np.concatenate(u)
+        # u = self.model.calc_random_numbers(samples)
+
+        #remove extreme data that isn't within 99.9999% of the norm dist
+        idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
+        u = u[idx]
+
+        if(SHOW_PDF_PLOTS==True):
+            import matplotlib.pyplot as plt
+            fig,ax=plt.subplots(1,3)
+            x=np.linspace(-0.1,1.1,100)
+            ax[0].plot(x,stats.uniform.pdf(x),lw=5)
+            x=np.linspace(stats.norm.ppf(1e-6),stats.norm.ppf(1-1e-6),100)
+            ax[1].plot(x,stats.norm.pdf(x),lw=5)
+            ax[2].plot(x,stats.norm.pdf(x),lw=5)
+
+            ax[0].hist(stats.norm.cdf(u),bins=40,density=True),ax[0].set_title("Transformed Uniform")
+            ax[1].hist(u,bins=40,density=True),ax[1].set_title("Transformed Gaussian")
+            ax[2].hist(samples,bins=100,density=True),ax[2].set_title("Original Data")
+            
+        
+
+        #Made a bad gaussian estimate
+        if(u.shape[0]<0.01*self.samples.shape[0]):
+            return None,0,0,0
         
         
+        '''Jacobian correction from the CDF'''
+        uniform = stats.norm.cdf(u)
+        correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
+    
+        '''Jacobian correction from g(x)'''
+        logdet=[]                
+        for i in range(0, samples.shape[0], max_samp):
+            logdet.append(self.model.logdet_jacobi_u(samples[i:i+max_samp,:]))
+        # Concatenate the results into a single array
+        logdet = np.concatenate(logdet)
+        correction2 = -np.mean(logdet[idx])
+        #calculating logdet in one shot can lead to large memory requirement
+        # correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
+
+        return uniform, correction1 + correction2
+
+        result = h_thread.get_result()
+        if method == 'both':
+            (h,h2)=result + correction1
+        else:
+            h=result + correction1
+            
+        # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
+        return h+correction2,h2+correction2
+    
+    def knn_thread(self,data,k=1,method='umtksg'):        
+        """Start the knn algorithm in a thread and return the background thread for the user to handle
+
+        Args:
+            data (_type_): Uniformized data points
+            k (int, optional): K value for knn. Defaults to 1.
+            method (str, optional): type of truncated KNN to use ('umtkl','umtksg','both'). Defaults to 'umtksg'.        
+        Returns:
+            BackgroundThread: thread running the knn algorithm
+        """
+        if method == 'umtkl':                        
+            self.h_thread = BackgroundThread(target = tkl,args=(data,None,k))
+            # h = tkl(z, k=k) + correction1            
+        elif method == 'umtksg':            
+            self.h_thread = BackgroundThread(target = tksg,args=(data,None,k))
+            # h = tksg(z, k=k) + correction1
+        elif method == 'both':
+            self.h_thread = BackgroundThread(target = tkl_tksg,args=(data,None,k))
+            # h,h2 = tkl_tksg(z,k=k) + correction1
+        self.h_thread.start()   
+        return self.h_thread     
+        
+
+    def knn_running(self):
+        return self.h_thread.is_alive()
+
+    def knn_get_data(self):
+        return self.h_thread.get_result()
+
+        
+
     
 class UMestimator_mi:
     

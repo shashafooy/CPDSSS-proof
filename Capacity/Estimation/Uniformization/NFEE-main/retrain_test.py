@@ -63,10 +63,9 @@ for i in range(n_trials):
     #Use same rng seed for each minibatch
 
     best_err = float('inf')
+    estimator = entropy.UMestimator(sim_laplace,base_net)
 
-    for j in range(num_trainings):
-
-        estimator = entropy.UMestimator(sim_laplace,base_net)
+    for j in range(num_trainings):        
         start_time = time.time()
         estimator.learn_transformation(
             n_samples=n_train,
@@ -103,18 +102,24 @@ for i in range(n_trials):
 
         util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
     
-    # if thread is not None and i>0:
-    #     #get previous knn value
-    #     KL[i-1],KSG[i-1] = thread.get_result()
+    #get previous knn value from thread
+    if i>0:        
+        KL[i-1],KSG[i-1] = thread.get_result(print_time=True)
 
     # thread = misc.BackgroundThread(target = ent.knn_entropy,args=(estimator,laplace_base[:10000],1,method))
     # thread.start()
 
-    KL[i-1],KSG[i-1] = ent.knn_entropy(estimator,laplace_base,method=method)
+    estimator.samples = laplace_base
+    uniform,correction = estimator.uniform_correction()
+    thread = estimator.knn_thread(uniform,method=method)
+
+    # KL[i-1],KSG[i-1] = ent.knn_entropy(estimator,laplace_base,method=method)
+
     filename=misc.update_filename(path,filename,i+1,rename=True)
     util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
 
-# KL[-1],KSG[-1] = thread.get_result()
+#get thread results from last iteration
+KL[-1],KSG[-1] = thread.get_result(print_time=True)
 util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
         
 
