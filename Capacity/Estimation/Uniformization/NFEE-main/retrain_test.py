@@ -34,6 +34,8 @@ val_error = np.empty((n_trials,num_trainings))*np.nan
 test_error = np.empty((n_trials,num_trainings))*np.nan
 duration = np.empty((n_trials,num_trainings))*np.nan
 step_sizes = 0.001*np.logspace(0,-(num_trainings-1),num_trainings)
+KL = np.empty((n_trials))*np.nan
+KSG = np.empty((n_trials))*np.nan
 
 import re
 pattern = r"error:\s*(0\.\d+)"
@@ -47,7 +49,9 @@ filename = misc.update_filename(path=path,old_name=filename,iter=iter,rename=Fal
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
 sim_laplace = mod.Laplace(mu=0,b=2,N=N)
-true_H_laplace = sim_laplace.entropy()        
+true_H_laplace = sim_laplace.entropy()    
+
+thread = None
 
 for i in range(n_trials):
     
@@ -97,10 +101,21 @@ for i in range(n_trials):
         else:
             checkpointer.restore()
 
-        util.io.save((step_sizes,N,val_error,duration),os.path.join(path,filename))
+        util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
+    
+    # if thread is not None and i>0:
+    #     #get previous knn value
+    #     KL[i-1],KSG[i-1] = thread.get_result()
 
+    # thread = misc.BackgroundThread(target = ent.knn_entropy,args=(estimator,laplace_base[:10000],1,method))
+    # thread.start()
+
+    KL[i-1],KSG[i-1] = ent.knn_entropy(estimator,laplace_base,method=method)
     filename=misc.update_filename(path,filename,i+1,rename=True)
-    util.io.save((step_sizes,N,val_error,duration),os.path.join(path,filename))
+    util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
+
+# KL[-1],KSG[-1] = thread.get_result()
+util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
         
 
 
