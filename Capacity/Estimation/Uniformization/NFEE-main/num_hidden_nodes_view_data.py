@@ -83,10 +83,10 @@ RMSE_unif_KSG = np.sqrt(MSE_unif_KSG)
 RMSE_KL = np.sqrt(MSE_KL)
 RMSE_KSG = np.sqrt(MSE_KSG)
 
-err_unif_KL = np.abs(H_unif_KL - H_true)
-err_unif_KSG = np.abs(H_unif_KSG - H_true)
-err_KL = np.abs(H_KL - H_true)
-err_KSG = np.abs(H_KSG - H_true)
+err_unif_KL = np.nanmean(np.abs(H_unif_KL - H_true),axis=0)
+err_unif_KSG = np.nanmean(np.abs(H_unif_KSG - H_true),axis=0)
+err_KL = np.nanmean(np.abs(H_KL - H_true),axis=0)
+err_KSG = np.nanmean(np.abs(H_KSG - H_true),axis=0)
 
 
 # PLOTS
@@ -115,6 +115,17 @@ plt.title("RMSE for different number of hidden nodes")
 plt.legend(["unif KL H(x)","unif KSG H(x)","KL H(x)","KSG H(x)"])
 plt.xlabel("hidden nodes per layer")
 plt.ylabel("RMSE H(x)")
+
+plt.figure(3)
+plt.plot(hidden_nodes,err_unif_KL,'bo',)
+plt.plot(hidden_nodes,err_unif_KSG,'rs',)
+plt.axhline(err_KL,color='b')
+plt.axhline(err_KSG,color='r')
+plt.yscale("log")    
+plt.title("error for different number of hidden nodes")
+plt.legend(["unif KL H(x)","unif KSG H(x)","KL H(x)","KSG H(x)"])
+plt.xlabel("hidden nodes per layer")
+plt.ylabel("error H(x)")
 
 
 plt.show()

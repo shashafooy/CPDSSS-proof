@@ -368,7 +368,7 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
-    # epsilons = np.abs(y-y[idx[:,k]])
+
     y_dup = np.tile(y[:,np.newaxis,:],(1,k,1)) #duplicate last axis to add k dimension
     epsilons = np.max(np.abs(y_dup-y[idx[:,1:k+1]]),axis=1)    
     zeta = np.minimum(y+epsilons,1) - np.maximum(y-epsilons,0)
@@ -378,14 +378,6 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     hh2=np.sum(np.log(zeta),axis=1)
     N=zeta.shape[0]
 
-    # hh = np.empty(n)
-    # for j in range(n):
-    #     # r=dist[n,k]
-    #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
-    #     lb = (y[j]-r >=0)*(y[j]-r) + (y[j]-r < 0)*0
-    #     ub = (y[j]+r <=1)*(y[j]+r) + (y[j]+r > 1)*1
-    #     hh[j] = np.sum(np.log(ub-lb))
-        
     h = -spl.digamma(k)+spl.digamma(N)+(dim-1)/k+np.mean(hh2)
     
     return h
@@ -607,7 +599,7 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
 
         if fine_tune:
             #update step algorithm with smaller step size
-            step = ss.Adam(a=step.a*0.05, bm=step.bm, bv=step.bv, eps=step.eps)
+            step = ss.Adam(a=step.a*0.01, bm=step.bm, bv=step.bv, eps=step.eps)
             trainer.update_step(model=model, trn_loss=model.trn_loss, step=step)
 
             trainer.train(
@@ -770,7 +762,7 @@ class UMestimator:
             )
         logger.write('training done\n')
         
-    def calc_ent(self, k=1, reuse_samples=True, method='umtkl',SHOW_PDF_PLOTS=False):
+    def calc_ent(self, k=1, reuse_samples=True, method='umtksg',SHOW_PDF_PLOTS=False):
         #TODO look at converting this function to evaluate u,correction1,correction2 (main process).
         #       then evaluate tknn outside of this function (threading)
 

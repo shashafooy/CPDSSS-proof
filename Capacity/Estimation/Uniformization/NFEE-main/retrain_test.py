@@ -100,7 +100,7 @@ for i in range(n_trials):
         else:
             checkpointer.restore()
 
-        util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
+        util.io.save((step_sizes,N,val_error,test_error,duration,KL,KSG),os.path.join(path,filename))
     
     #get previous knn value from thread
     if i>0:        
@@ -120,7 +120,7 @@ for i in range(n_trials):
 
 #get thread results from last iteration
 KL[-1],KSG[-1] = thread.get_result(print_time=True)
-util.io.save((step_sizes,N,val_error,duration,KL,KSG),os.path.join(path,filename))
+util.io.save((step_sizes,N,val_error,test_error,duration,KL,KSG),os.path.join(path,filename))
         
 
 

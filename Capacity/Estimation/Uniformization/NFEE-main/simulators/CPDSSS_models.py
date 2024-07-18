@@ -5,7 +5,7 @@ import scipy.stats as stats
 from simulators.complex import mvn
 import math 
 class CPDSSS:
-    def __init__(self, num_tx, N, L, use_gaussian_approx=True):
+    def __init__(self, num_tx, N, L, use_gaussian_approx=False):
         self.T=num_tx
         self.N=N
         self.L=L
@@ -19,8 +19,8 @@ class CPDSSS:
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
 
         self.gaussian_approx = use_gaussian_approx        
-        self.set_use_h_flag(h_flag=False)
-        self.sim_h_only = False
+        self.use_chan_in_sim()
+        self._sim_chan_only = False
 
         self.fading = np.exp(-np.arange(self.N) / 3)
 
@@ -37,6 +37,11 @@ class CPDSSS:
         self.s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples,self.NL,self.T))
         v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples,self.NNL,self.T))
         self.h = self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)
+
+        if(self._sim_chan_only): #return early if we only need channel
+            self.samples = self.h
+            return self.h
+
         if(self.gaussian_approx):
             g = self.sim_g.sim(n_samples=n_samples)
             self.G = np.zeros((n_samples,self.N,self.NL))
@@ -54,12 +59,10 @@ class CPDSSS:
         self.X=np.matmul(self.G,self.s) + np.matmul(Q,v)
         joint_X = self.X[:,:,0:self.T].reshape((n_samples,self.N*self.T),order='F')#order 'F' needed to make arrays stack instead of interlaced
 
-        if(self.use_h):
+        if(self._use_chan):
             self.samples = np.concatenate((joint_X,self.h),axis=1)
         else:
-            self.samples = joint_X
-        if(self.sim_h_only):
-            self.samples = self.h
+            self.samples = joint_X        
 
         return self.samples
         # g_term = G[:,:,0]
@@ -118,28 +121,28 @@ class CPDSSS:
         return None
 
 
-    def set_use_h_flag(self,h_flag=True):
+    def use_chan_in_sim(self,h_flag=True):
         """Enables sim to append G in addition to X
 
         Args:
             g_flag (bool, optional): Enable G output. Defaults to True.
         """
-        self.use_h=h_flag
+        self._use_chan=h_flag
         if(h_flag):
             self.x_dim = self.N*self.T + self.N
         else:
             self.x_dim = self.N*self.T
 
-    def set_sim_h_only(self,sim_h=True):
+    def only_sim_chan(self,sim_h=True):
         """Set flag to only return G when using sim()
         
         Args:
             sim_g (bool): True if you want sim() to return only G
         """
-        self.sim_h_only = sim_h
+        self._sim_chan_only = sim_h
         if(sim_h):
             self.x_dim = self.N
-        elif(self.use_h):
+        elif(self._use_chan):
             self.x_dim = self.N*self.T + self.N
         else:
             self.x_dim = self.N*self.T
@@ -154,7 +157,7 @@ class CPDSSS:
         Returns:
             numpy: X, X_T, X_cond, G
         """
-        self.set_use_h_flag(h_flag=True)
+        self.use_chan_in_sim(h_flag=True)
         vals = self.sim(n_samples=n_samples)
         X=vals[:,0:self.N*self.T]
         X_T=X[:,-self.N:]
