@@ -72,7 +72,7 @@ def calc_entropy_thread(sim_model,n_train,base_samples):
     thread = estimator.knn_thread(uniform)
     return thread,correction
 
-def learn_model(sim_model,n_samples=100,val_tol=None,patience=5,n_hiddens=[200,200],n_stages=14, fine_tune=True):
+def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,200],n_stages=14, fine_tune=True):
     net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
     estimator = entropy.UMestimator(sim_model,net)
     start_time = time.time()
