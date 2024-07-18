@@ -64,8 +64,15 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.05,pati
         return H[0],H[1]
     else:
         return H
+    
+def calc_entropy_thread(sim_model,n_train,base_samples):
+    estimator = learn_model(sim_model,n_train)
+    estimator.samples=base_samples
+    uniform,correction = estimator.uniform_correction()
+    thread = estimator.knn_thread(uniform)
+    return thread,correction
 
-def learn_model(sim_model,n_samples=100,val_tol=0.01,patience=10,n_hiddens=[100,100],n_stages=14, fine_tune=False):
+def learn_model(sim_model,n_samples=100,val_tol=None,patience=5,n_hiddens=[200,200],n_stages=14, fine_tune=True):
     net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
     estimator = entropy.UMestimator(sim_model,net)
     start_time = time.time()
