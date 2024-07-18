@@ -764,83 +764,20 @@ class UMestimator:
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtksg',SHOW_PDF_PLOTS=False):
+        
         #TODO look at converting this function to evaluate u,correction1,correction2 (main process).
         #       then evaluate tknn outside of this function (threading)
 
-        import theano #used to attach GPU to a thread
-        if reuse_samples:
-            samples = self.samples
-        else:
-            samples = self.sim_model.sim(self.n_samples)
 
+        uniform,correction = self.uniform_correction(reuse_samples,SHOW_PDF_PLOTS)
+        thread = self.knn_thread(uniform,k,method)
+        H = thread.get_result()
 
-        '''Memory can grow too large if evaluated for all samples, limit to 1M samples at a time'''
-        u=[]
-        max_samp = int(1000000 / samples.shape[1]) #approximately 1M total points
-        for i in range(0, samples.shape[0], max_samp):
-            u.append(self.model.calc_random_numbers(samples[i:i+max_samp,:]))
-
-        # Concatenate the results into a single array
-        u = np.concatenate(u)
-
-
-        # u = self.model.calc_random_numbers(samples)
-        #remove extreme data that isn't within 99.9999% of the norm dist
-        idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
-        u = u[idx]
-
-        if(SHOW_PDF_PLOTS==True):
-            import matplotlib.pyplot as plt
-            fig,ax=plt.subplots(1,3)
-            x=np.linspace(-0.1,1.1,100)
-            ax[0].plot(x,stats.uniform.pdf(x),lw=5)
-            x=np.linspace(stats.norm.ppf(1e-6),stats.norm.ppf(1-1e-6),100)
-            ax[1].plot(x,stats.norm.pdf(x),lw=5)
-            ax[2].plot(x,stats.norm.pdf(x),lw=5)
-
-            ax[0].hist(stats.norm.cdf(u),bins=40,density=True),ax[0].set_title("Transformed Uniform")
-            ax[1].hist(u,bins=40,density=True),ax[1].set_title("Transformed Gaussian")
-            ax[2].hist(samples,bins=100,density=True),ax[2].set_title("Original Data")
-            
-        
-
-        #Made a bad gaussian estimate
-        if(u.shape[0]<0.01*self.samples.shape[0]):
-            return None,0,0,0
-        
-        
-        z = stats.norm.cdf(u)
-        correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
-
-        h2=0
-        
-        if method == 'umtkl':                        
-            h_thread = BackgroundThread(target = tkl,args=(z,None,k))
-            # h = tkl(z, k=k) + correction1            
-        elif method == 'umtksg':            
-            h_thread = BackgroundThread(target = tksg,args=(z,None,k))
-            # h = tksg(z, k=k) + correction1
-        elif method == 'both':
-            h_thread = BackgroundThread(target = tkl_tksg,args=(z,None,k))
-            # h,h2 = tkl_tksg(z,k=k) + correction1
-        h_thread.start()        
-            
-        # correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
-        logdet=[]                
-        for i in range(0, samples.shape[0], max_samp):
-            logdet.append(self.model.logdet_jacobi_u(samples[i:i+max_samp,:]))
-        # Concatenate the results into a single array
-        logdet = np.concatenate(logdet)
-        correction2 = -np.mean(logdet[idx])
-
-        result = h_thread.get_result()
-        if method == 'both':
-            (h,h2)=result + correction1
-        else:
-            h=result + correction1
+        #If method is 'both', then H is a tuple with (H_KL,H_KSG)
+        return H + correction
             
         # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
-        return h+correction2,h2+correction2
+        # return h+correction2,h2+correction2
     
     def ksg_ent(self, k=1, reuse_samples=True, method='kl'):
         
@@ -874,7 +811,7 @@ class UMestimator:
 
         '''Memory can grow too large if evaluated for all samples, limit to 1M samples at a time'''
         u=[]
-        max_samp = int(1000000 / samples.shape[1]) #approximately 1M total points
+        max_samp = int(2000000 / samples.shape[1]) #approximately 1M total points
         for i in range(0, samples.shape[0], max_samp):
             u.append(self.model.calc_random_numbers(samples[i:i+max_samp,:]))
 
@@ -954,11 +891,6 @@ class UMestimator:
         return self.h_thread     
         
 
-    def knn_running(self):
-        return self.h_thread.is_alive()
-
-    def knn_get_data(self):
-        return self.h_thread.get_result()
 
         
 

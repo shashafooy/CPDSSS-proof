@@ -29,7 +29,6 @@ Number of iterations
 n_trials = 100 #iterations to average
 min_knn_samples = 1000000 #samples to generate per entropy calc
 n_train_samples = 100000
-completed_iter=0
 GQ_gaussian = False
 
 
@@ -65,7 +64,7 @@ filename = "CPDSSS_data({})".format(today)
 
 
 #fix filename if file already exists
-filename = misc.update_filename(path,filename,completed_iter,rename=False)     
+filename = misc.update_filename(path,filename,-1,rename=False)     
 
 
 """

@@ -17,20 +17,21 @@ REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
 #util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename)) 
-base_path = 'temp_data/CPDSSS_data/MI(h,X)/N2_L2/'
+base_path = 'temp_data/CPDSSS_data/MI(h,X)/N4_L2/'
 filepaths = [base_path+'50k_high_epoch', base_path + '50k_samples']
 filepath = base_path + '50k_tol_0.1_patience_10'
 filepath = base_path+'50k_N4_L2'
 filepath = base_path+'50k_N4_L2'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepath = base_path + 'NlogN_10k_K=3,T=8'
-filepath = base_path + 'knn=200k_T=2-7'
+# filepath = base_path + 'knn=200k_T=2-7'
+filepath = base_path + 'coarse-fine_75k_x_dims'
 
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_tol_0.1_patience_10'
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_samples'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepaths = [base_path + 'NlogN_10k_scaling', base_path + 'Nscaling_knn=200k_T=8']
-N=2
+N=4
 L=2
 # filepath=filepaths[1]
 # idx=0
@@ -49,11 +50,11 @@ for filename in os.listdir(filepath):
         old_range = T_range
 
 
-    MI_tot,_ = viewData.append_data(MI_tot,old_range,MI_cum[iter,:],T_range)
-    H_gxc_tot,_= viewData.append_data(H_gxc_tot,old_range,H_gxc_cum[iter,:],T_range)
-    H_xxc_tot,_= viewData.append_data(H_xxc_tot,old_range,H_xxc_cum[iter,:],T_range)
-    H_joint_tot,_= viewData.append_data(H_joint_tot,old_range,H_joint_cum[iter,:],T_range)
-    H_cond_tot,old_range= viewData.append_data(H_cond_tot,old_range,H_cond_cum[iter,:],T_range)
+    MI_tot,_ = viewData.align_and_concatenate(MI_tot,MI_cum,old_range,T_range)
+    H_gxc_tot,_= viewData.align_and_concatenate(H_gxc_tot,H_gxc_cum,old_range,T_range)
+    H_xxc_tot,_= viewData.align_and_concatenate(H_xxc_tot,H_xxc_cum,old_range,T_range)
+    H_joint_tot,_= viewData.align_and_concatenate(H_joint_tot,H_joint_cum,old_range,T_range)
+    H_cond_tot,old_range= viewData.align_and_concatenate(H_cond_tot,H_cond_cum,old_range,T_range)
 
 '''
 Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.

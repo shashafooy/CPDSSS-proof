@@ -189,7 +189,7 @@ class SGD_Template:
 
                 # check if we will do fine tuning
                 if fine_tune:
-                    logger.write('Start fine tuning')
+                    logger.write('Start fine tuning\n')
                     self.update_step()
                     patience_left=patience
                     fine_tune=False

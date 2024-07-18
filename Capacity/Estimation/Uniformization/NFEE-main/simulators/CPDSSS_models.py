@@ -4,6 +4,8 @@ import scipy.special as spec
 import scipy.stats as stats
 from simulators.complex import mvn
 import math 
+from joblib import Parallel,delayed
+
 class CPDSSS:
     def __init__(self, num_tx, N, L, use_gaussian_approx=False):
         self.T=num_tx
@@ -81,38 +83,42 @@ class CPDSSS:
 
         #Flat fading
         
-        G = np.zeros((n_samples,self.N,self.NL))
-        Q = np.zeros((n_samples,self.N,self.NNL))
+        # G = np.zeros((n_samples,self.N,self.NL))
+        # Q = np.zeros((n_samples,self.N,self.NNL))
         # from datetime import timedelta
         # import time
 
+        
         # start_time = time.time()
-        for i in range(n_samples):
-            # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
+        results = Parallel(n_jobs=-1)(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+
+        G = np.array([result[0] for result in results])
+        Q = np.array([result[1] for result in results])
+        
+        return G,Q
+    
+    def _gen_GQ_sample(self,h):
+        # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
             # A=E.T @ H 
             #Slightly faster than doing E.T @ H
-            HE = lin.toeplitz(self.h[i,:],np.concatenate(([self.h[i,0]],self.h[i,-1:0:-1])))[0::self.L,:]
-            R=HE.T @ HE + 0.0001*np.eye(self.N)                       
-            # p=A.T @ a
-            p = HE[0,:].T
-            g=lin.inv(R)@p
-
-            #Only take every L columns of toepltiz matrix
-            # Slightly faster than doing G@E
-            G[i,:,:]=lin.toeplitz(g,np.concatenate(([g[0]], g[-1:0:-1])))[:,0::self.L]
-            
-            ev,V = lin.eig(R)
-            #Only use eigenvectors associated with "zero" eigenvalue
-            #  get indices of the smallest eigenvalues to find "zero" EV
-            sort_indices = np.argsort(ev)
-            #Sometimes get a very small imaginary value, ignore it
-            Q[i,:,:]=np.real(V[:,sort_indices[0:self.NNL]])
-        # end_time = time.time()
-        # print("GQ time: ",str(timedelta(seconds = int(end_time - start_time))))       
+        HE = lin.toeplitz(h,np.concatenate(([h[0]],h[-1:0:-1])))[0::self.L,:]
+        R=HE.T @ HE + 0.0001*np.eye(self.N)                       
+        p = HE[0,:].T
+        g=lin.inv(R)@p
+        #Only take every L columns of toepltiz matrix
+        # Slightly faster than doing G@E
+        G=lin.toeplitz(g,np.concatenate(([g[0]], g[-1:0:-1])))[:,0::self.L]
+        
+        ev,V = lin.eig(R)
+        #Only use eigenvectors associated with "zero" eigenvalue
+        #  get indices of the smallest eigenvalues to find "zero" EV
+        sort_indices = np.argsort(ev)
+        #Sometimes get a very small imaginary value, ignore it
+        Q=np.real(V[:,sort_indices[0:self.NNL]])
 
         return G,Q
 
-
+    
     def chan_entropy(self):
         return 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.diag(self.fading)))
 
