@@ -81,7 +81,7 @@ class BackgroundThread(Thread):
 
     def get_result(self,print_time=False):
         waiting=False
-        if Thread.is_alive():
+        if self.is_alive():
             waiting=True
             start_time = time.time()
         Thread.join(self)
