@@ -594,23 +594,24 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             monitor_every=monitor_every,
             logger=logger,
             val_Tol=val_tol,
-            show_progress=show_progress
+            show_progress=show_progress,
+            fine_tune=fine_tune
         )
 
-        if fine_tune:
-            #update step algorithm with smaller step size
-            step = ss.Adam(a=step.a*0.05, bm=step.bm, bv=step.bv, eps=step.eps)
-            trainer.update_step(model=model, trn_loss=model.trn_loss, step=step)
+        # if fine_tune:
+        #     #update step algorithm with smaller step size
+        #     step = ss.Adam(a=step.a*0.05, bm=step.bm, bv=step.bv, eps=step.eps)
+        #     trainer.update_step(model=model, trn_loss=model.trn_loss, step=step)
 
-            trainer.train(
-                minibatch=minibatch,
-                patience=patience,
-                monitor_every=monitor_every,
-                logger=logger,
-                val_Tol=val_tol,
-                show_progress=show_progress
-            )
-        trainer.release_shared_data()
+        #     trainer.train(
+        #         minibatch=minibatch,
+        #         patience=patience,
+        #         monitor_every=monitor_every,
+        #         logger=logger,
+        #         val_Tol=val_tol,
+        #         show_progress=show_progress
+        #     )
+        # trainer.release_shared_data()
     else:
 
         # prepare weights

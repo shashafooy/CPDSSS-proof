@@ -4,6 +4,7 @@ import numpy as np
 import theano
 import theano.tensor as tt
 import matplotlib.pyplot as plt
+import abc
 
 import ml.step_strategies as ss
 import ml.data_streams as ds
@@ -20,6 +21,7 @@ class SGD_Template:
     Minibatch stochastic gradient descent. Supports early stopping on validation set.
     This is an abstract template that has to be implemented by separate subclasses.
     """
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, model, trn_data, trn_target, val_data, val_target):
         """
@@ -69,23 +71,29 @@ class SGD_Template:
             self.best_val_loss = float('inf')
 
         # if model uses batch norm, compile a theano function for setting up stats. Use validation data if available (less memory)
-        if getattr(model, 'batch_norm', False):
-            self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
-            self.set_batch_norm_stats = theano.function(
-                inputs=[],
-                givens=list(zip(self.trn_inputs, self.val_data if self.do_validation else self.trn_data)),
-                updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
-            )
-        else:
-            self.batch_norm_givens = []
-            self.set_batch_norm_stats = None
+        # if getattr(model, 'batch_norm', False):
+        #     self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
+        #     self.set_batch_norm_stats = theano.function(
+        #         inputs=[],
+        #         givens=list(zip(self.trn_inputs, self.val_data if self.do_validation else self.trn_data)),
+        #         updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
+        #     )
+        # else:
+        self.batch_norm_givens = []
+        self.set_batch_norm_stats = None
+        
 
 
         # initialize some variables
         self.trn_loss = float('inf')
         self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
 
-    def train(self, minibatch=None, tol=None, maxepochs=None, monitor_every=None, patience=None, logger=sys.stdout, show_progress=False, val_in_same_plot=True, val_Tol=None):
+    @abc.abstractmethod
+    def update_step(self):
+        """Method to update the step size used for self.make_update"""
+        return
+
+    def train(self, minibatch=None, tol=None, maxepochs=None, monitor_every=None, patience=None, logger=sys.stdout, show_progress=False, val_in_same_plot=True, val_Tol=None, fine_tune=False):
         """
         Trains the model.
         :param minibatch: minibatch size
@@ -178,8 +186,17 @@ class SGD_Template:
                     logger.write('Below training tolerance\n')
                 if patience_left<=0:
                     logger.write('Ran out of patience\n')
-                # self.release_shared_data()
-                break
+
+                # check if we will do fine tuning
+                if fine_tune:
+                    logger.write('Start fine tuning')
+                    self.update_step()
+                    patience_left=patience
+                    fine_tune=False
+                    continue
+                else:
+                    self.release_shared_data()
+                    break
 
         # plot progress
         if show_progress:
@@ -263,6 +280,9 @@ class SGD(SGD_Template):
 
         SGD_Template.__init__(self, model, trn_data, trn_target, val_data, val_target)
 
+        self.trn_loss_func = trn_loss
+        self.model=model
+        self.step = step
         # compile theano function for a single training update
         idx = tt.ivector('idx')
         grads = tt.grad(trn_loss, model.parms)
@@ -283,13 +303,17 @@ class SGD(SGD_Template):
                 outputs=val_loss,
                 givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
-    def update_step(self,model,trn_loss,step=ss.Adam()):
+    def update_step(self):
+        """update the step size to use smaller step size for fine tuning during training
+        """
+        step = ss.Adam(a=self.step.a*0.05, bm=self.step.bm, bv=self.step.bv, eps=self.step.eps)
+
         idx = tt.ivector('idx')
         self.make_update = theano.function(
             inputs=[idx],
-            outputs=trn_loss,
+            outputs=self.model.trn_loss,
             givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
-            updates=step.updates(model.parms, self.grads)
+            updates=step.updates(self.model.parms, self.grads)
         )
 
 
@@ -356,6 +380,8 @@ class WeightedSGD(SGD_Template):
                 outputs=tt.mean(val_weights * val_losses) + val_reg,
                 givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
+    def update_step(self):
+        return super().update_step()
 
 
 class ModelCheckpointer:
