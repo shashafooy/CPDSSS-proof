@@ -65,8 +65,16 @@ def align_and_concatenate(old_data, new_data, old_range = (0), new_range = (0)):
 
 
 def append_data(old_data, old_T_range, new_data, new_T_range):
-    """
-    Adjust both datasets to match their T_range before appending
+    """Old method for combining data sets by aligning and zero padding such that the T ranges match
+
+    Args:
+        old_data (_type_): numpy dataset 1, shape(n_sample,range)
+        old_T_range (_type_): values associated with the 2nd dimension of old_data
+        new_data (_type_): numpy dataset 2, shape(n_sample,range)
+        new_T_range (_type_): values associated with the 2nd dimension of new_data
+
+    Returns:
+        _type_: concatenated data
     """
     #Find first row that contains all NaN
     nan_mask = np.isnan(new_data)
@@ -95,6 +103,15 @@ def append_data(old_data, old_T_range, new_data, new_T_range):
     return tot_data, tot_T_range
 
 def remove_outlier(data, num_std=3):
+    """Remove any outliers in the data set outside of the given number of standard deviations
+
+    Args:
+        data (_type_): data array
+        num_std (int, optional): number of std before considered an outlier. Defaults to 3.
+
+    Returns:
+        _type_: data with outliers removed
+    """
     num_outlier = 1
     while num_outlier > 0:
         std = np.nanstd(data,axis=0)
@@ -106,7 +123,9 @@ def remove_outlier(data, num_std=3):
     return data
 
 def clean_data(data):
-    '''
-    Remove any invalid data such as Inf and replace with NaN
-    '''
+    """Remove any invalid points in the data such as NaN
+
+    Args:
+        data (_type_): data array
+    """
     data[np.isinf(data)]=np.nan

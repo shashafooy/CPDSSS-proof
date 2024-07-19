@@ -41,17 +41,20 @@ class SGD_Template:
         self.trn_inputs = [model.input] if trn_target is None else [model.input, trn_target]
         self.make_update = None  # to be implemented by a subclass
 
-        # # if model uses batch norm, compile a theano function for setting up stats
-        # if getattr(model, 'batch_norm', False):
-        #     self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
-        #     self.set_batch_norm_stats = theano.function(
-        #         inputs=[],
-        #         givens=list(zip(self.trn_inputs, self.trn_data)),
-        #         updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
-        #     )
-        # else:
-        #     self.batch_norm_givens = []
-        #     self.set_batch_norm_stats = None
+        
+        """Do not use batch_norm_stats due to memory consumption if dataset is too large"""
+        # if model uses batch norm, compile a theano function for setting up stats.
+        # A large enough dataset, and thus validation set should not need to evaluate batch norm mean/variances
+        if getattr(model, 'batch_norm', False) and self.n_trn_data < 100000:
+            self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
+            self.set_batch_norm_stats = theano.function(
+                inputs=[],
+                givens=list(zip(self.trn_inputs, self.trn_data)),
+                updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
+            )
+        else:
+            self.batch_norm_givens = []
+            self.set_batch_norm_stats = None
 
         # if validation data is given, then set up validation too
         self.do_validation = val_data is not None
@@ -70,26 +73,12 @@ class SGD_Template:
             self.checkpointer = ModelCheckpointer(model)
             self.best_val_loss = float('inf')
 
-        # if model uses batch norm, compile a theano function for setting up stats. Use validation data if available (less memory)
-        # if getattr(model, 'batch_norm', False):
-        #     self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
-        #     self.set_batch_norm_stats = theano.function(
-        #         inputs=[],
-        #         givens=list(zip(self.trn_inputs, self.val_data if self.do_validation else self.trn_data)),
-        #         updates=[(bn.bm, bn.m) for bn in model.bns] + [(bn.bv, bn.v) for bn in model.bns]
-        #     )
-        # else:
-        self.batch_norm_givens = []
-        self.set_batch_norm_stats = None
-        
-
-
         # initialize some variables
         self.trn_loss = float('inf')
         self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
 
     @abc.abstractmethod
-    def update_step(self):
+    def reduce_step_size(self):
         """Method to update the step size used for self.make_update"""
         return
 
@@ -162,9 +151,7 @@ class SGD_Template:
                             logger.write('>') #marking for best epoch
                             
                         self.checkpointer.checkpoint() #Still save best epoch, even if improvement is minor
-                        best_epoch = epoch
-                        #only reset patience if the improvement is larger than tolerance
-                        # patience_left = patience 
+                        best_epoch = epoch                        
 
                 # monitor progress
                 if show_progress:
@@ -188,9 +175,10 @@ class SGD_Template:
                     logger.write('Ran out of patience\n')
 
                 # check if we will do fine tuning
-                if fine_tune:
+                if fine_tune:                    
                     logger.write('Start fine tuning\n')
-                    self.update_step()
+                    # Reduce step size and resume training loop
+                    self.reduce_step_size()
                     patience_left=patience
                     fine_tune=False
                     continue
@@ -288,6 +276,7 @@ class SGD(SGD_Template):
         grads = tt.grad(trn_loss, model.parms)
         grads = [tt.switch(tt.isnan(g), 0., g) for g in grads]
         self.grads = grads if max_norm is None else util.ml.total_norm_constraint(grads, max_norm)
+        #generate function for gradient descent using the given step algorithm and gradient
         self.make_update = theano.function(
             inputs=[idx],
             outputs=trn_loss,
@@ -303,7 +292,7 @@ class SGD(SGD_Template):
                 outputs=val_loss,
                 givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
-    def update_step(self):
+    def reduce_step_size(self):
         """update the step size to use smaller step size for fine tuning during training
         """
         step = ss.Adam(a=self.step.a*0.05, bm=self.step.bm, bv=self.step.bv, eps=self.step.eps)
@@ -380,8 +369,8 @@ class WeightedSGD(SGD_Template):
                 outputs=tt.mean(val_weights * val_losses) + val_reg,
                 givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
-    def update_step(self):
-        return super().update_step()
+    def reduce_step_size(self):
+        return super().reduce_step_size()
 
 
 class ModelCheckpointer:

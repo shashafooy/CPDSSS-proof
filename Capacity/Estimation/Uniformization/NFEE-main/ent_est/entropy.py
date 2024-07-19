@@ -15,6 +15,21 @@ from misc_CPDSSS.util import BackgroundThread
 
 
 def tkl_tksg(y, n=None, k=1, max_k=None, algorithm = 'auto', shuffle=True, rng=np.random):
+    """Evaluate truncated knn KL and KSG algorithms
+    Ziqiao Ao and Jinglai Li. “Entropy estimation via uniformization”
+
+    Args:
+        y (_type_): data points to find the distances of
+        n (_type_, optional): number of samples. Defaults to None.
+        k (int,list, optional): number of neighbors to find. Entropy for multiple values may be found if k is a list. Defaults to 1.
+        max_k (int, optional): maximum k value if K is a range. Defaults to None.
+        algorithm (str, optional): type of nearestNeighbors algorithm to use ('auto','ball_tree','kd_tree','brute'). Defaults to 'auto'.
+        shuffle (bool, optional): True to shuffle the data samples. Defaults to True.
+        rng (_type_, optional): type of rng generator. Defaults to np.random.
+
+    Returns:
+        _type_: entropy estimate, return list if k is a list
+    """
     
     y = np.asarray(y, float)
     N, dim = y.shape
@@ -94,6 +109,18 @@ def tkl_tksg(y, n=None, k=1, max_k=None, algorithm = 'auto', shuffle=True, rng=n
     return h_kl,h_ksg
 
 def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
+    """Evaluate knn KL and KSG algorithms    
+
+    Args:
+        y (_type_): data points to find the distances of
+        n (_type_, optional): number of samples. Defaults to None.
+        k (int,list, optional): number of neighbors to find. May also be a list to find multiple neighborsDefaults to 1.
+        shuffle (bool, optional): True to shuffle the data samples. Defaults to True.
+        rng (_type_, optional): type of rng generator. Defaults to np.random.
+
+    Returns:
+        _type_: entropy estimate, returns list of estimates in K is a list
+    """
     y = np.asarray(y, float)
     
     if isinstance(k,list):
@@ -168,6 +195,18 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
 
 
 def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
+    """Evaluate knn KL algorithms    
+
+    Args:
+        y (_type_): data points to find the distances of
+        n (_type_, optional): number of samples. Defaults to None.
+        k (int, optional): number of neighbors to find. Defaults to 1.
+        shuffle (bool, optional): True to shuffle the data samples. Defaults to True.
+        rng (_type_, optional): type of rng generator. Defaults to np.random.
+
+    Returns:
+        _type_: entropy estimate
+    """
     
     y = np.asarray(y, float)
     
@@ -204,6 +243,19 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     
 
 def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
+    """Evaluate truncated knn KL and KSG algorithms
+    Ziqiao Ao and Jinglai Li. “Entropy estimation via uniformization”
+
+    Args:
+        y (_type_): data points to find the knn distances of
+        n (_type_, optional): number of samples. Defaults to None.
+        k (int, optional): number of neighbors to find. Defaults to 1.        
+        shuffle (bool, optional): True to shuffle the data samples. Defaults to True.
+        rng (_type_, optional): type of rng generator. Defaults to np.random.
+
+    Returns:
+        _type_: entropy estimate
+    """
     
     y = np.asarray(y, float)
     N, dim = y.shape
@@ -247,6 +299,20 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
 
 
 def mi_kl(y, dim_x, n=None, k=1, shuffle=True, rng=np.random):
+    """Evaluate mutual informtion version of  knn KL algorithms
+    Ziqiao Ao and Jinglai Li. “Entropy estimation via uniformization”
+
+    Args:
+        y (_type_): data points to find the knn distances of
+        dim_x (_type_): dimension to split the data set y into two parts
+        n (_type_, optional): number of samples. Defaults to None.
+        k (int, optional): number of neighbors to find. Defaults to 1.        
+        shuffle (bool, optional): True to shuffle the data samples. Defaults to True.
+        rng (_type_, optional): type of rng generator. Defaults to np.random.
+
+    Returns:
+        _type_: mutual information estimate
+    """
     
     y = np.asarray(y, float)
     
@@ -597,21 +663,6 @@ def learn_density(model, xs, ws=None, regularizer=None, val_frac=0.05, step=ss.A
             show_progress=show_progress,
             fine_tune=fine_tune
         )
-
-        # if fine_tune:
-        #     #update step algorithm with smaller step size
-        #     step = ss.Adam(a=step.a*0.05, bm=step.bm, bv=step.bv, eps=step.eps)
-        #     trainer.update_step(model=model, trn_loss=model.trn_loss, step=step)
-
-        #     trainer.train(
-        #         minibatch=minibatch,
-        #         patience=patience,
-        #         monitor_every=monitor_every,
-        #         logger=logger,
-        #         val_Tol=val_tol,
-        #         show_progress=show_progress
-        #     )
-        # trainer.release_shared_data()
     else:
 
         # prepare weights
@@ -718,6 +769,12 @@ def learn_conditional_density(model, xs, ys, ws=None, regularizer=None, val_frac
 class UMestimator:
     
     def __init__(self, sim_model, model):
+        """Estimator class to hold the given neural net model and associated functions to train and evaluate entropy
+
+        Args:
+            sim_model (_type_): class that generates points from target distribution
+            model (_type_): model to be learned
+        """
         
         self.sim_model = sim_model
         self.model = model
@@ -726,7 +783,7 @@ class UMestimator:
         self.xdim = None
         self.target = sim_model.entropy()
         
-    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=10,val_tol=None, show_progress=False, minibatch = 128, fine_tune=False, step = ss.Adam()):
+    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=5,val_tol=None, show_progress=False, minibatch = 256, fine_tune=False, step = ss.Adam()):
         """Learn the transformation to push a gaussian towards target distribution
 
         Args:
@@ -735,6 +792,10 @@ class UMestimator:
             rng (_type_, optional): Defaults to np.random.
             patience (int, optional): How many epochs to try after finding the best validation. Defaults to 10.
             val_tol (int, optional): Tolerance of validation loss to decide when the model improved. Defaults to None.
+            show_progress (bool, optional): True to display plot showing error over time after training completes. Defaults to False.
+            minibatch (int, optional): minibatch size used in training. Defaults to 128.
+            fine_tune (bool, optional): True to run training a second time with smaller step size. Defaults to False.
+            step (step_strategies, optional): step type class. Defaults to ss.Adam().
         """
         
         if self.samples is None:
@@ -764,6 +825,17 @@ class UMestimator:
         logger.write('training done\n')
         
     def calc_ent(self, k=1, reuse_samples=True, method='umtksg',SHOW_PDF_PLOTS=False):
+        """After training, evaluate the correction terms and knn entropy. Does not utilize paralell processing
+
+        Args:
+            k (int, optional): k neighbors for knn. Defaults to 1.
+            reuse_samples (bool, optional): True to reuse samples stored in estimator. Defaults to True.
+            method (str, optional): knn method ('umtkl','umtksg','both'). Defaults to 'umtksg'.
+            SHOW_PDF_PLOTS (bool, optional): true to display plots of original data and transformed gaussian and uniform points. Defaults to False.
+
+        Returns:
+            _type_: entropy estimate. Return tuple (H KL, H KSG) if method='both'
+        """
         
         #TODO look at converting this function to evaluate u,correction1,correction2 (main process).
         #       then evaluate tknn outside of this function (threading)
@@ -780,6 +852,16 @@ class UMestimator:
         # return h+correction2,h2+correction2
     
     def ksg_ent(self, k=1, reuse_samples=True, method='kl'):
+        """Evaluate knn directly without uniformizing or using truncated knn
+
+        Args:
+            k (int, optional): k value for knn. Defaults to 1.
+            reuse_samples (bool, optional): True to reused stored samples. Defaults to True.
+            method (str, optional): knn method ('kl','ksg','both'). Defaults to 'kl'.
+
+        Returns:
+            _type_: _description_
+        """
         
         if reuse_samples:
             samples = self.samples

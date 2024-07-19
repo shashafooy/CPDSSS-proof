@@ -63,8 +63,21 @@ def time_exec(func,print_time=True):
     return result, tot_time
     
 
-class BackgroundThread(Thread):
+class BackgroundThread(Thread):    
     def __init__(self, group = None, target = None, name = None, args = (), kwargs = {}):
+        """Wrapper for the Thread class allowing for return values. 
+        Typical usage: BackgroundThread(target=func, args=(para1,))
+
+        Args:
+            group (_type_, optional): should be None; reserved for future extension when a ThreadGroup class is implemented. Defaults to None.
+            target (_type_, optional): the callable object to be invoked by the run() method. Defaults to None, meaning nothing is called. Defaults to None.
+            name (_type_, optional): the thread name. By default, a unique name is constructed of the form "Thread-N" where N is a small decimal number.
+            args (tuple, optional): list or tuple of arguments for the target invocation. A single argument uses the form (arg1,). Defaults to ().
+            kwargs (dict, optional): dictionary of keyword arguments for the target invocation. Defaults to {}.
+            
+        Returns:
+            _type_: Thread for the user to start and terminate
+        """
         Thread.__init__(self,group, target, name, args, kwargs)
         self._return = None
         self.result_read = False
@@ -99,6 +112,12 @@ class BackgroundThread(Thread):
 
     
 def print_theano_graph(obj,path):
+    """Print a theano graph such as a gradient and save it in the given path
+
+    Args:
+        obj (): theano output object to comput the graph for
+        path (_type_): path including filename to save the graph. Do not include filetype
+    """
     pydotprint(obj,path+".png")
     d3v.d3viz(obj,path+".html")
     
