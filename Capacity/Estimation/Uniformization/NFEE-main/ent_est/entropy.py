@@ -783,7 +783,7 @@ class UMestimator:
         self.xdim = None
         self.target = sim_model.entropy()
         
-    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=5,val_tol=None, show_progress=False, minibatch = 256, fine_tune=False, step = ss.Adam()):
+    def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=5,val_tol=None, show_progress=False, minibatch = 256, fine_tune=True, step = ss.Adam()):
         """Learn the transformation to push a gaussian towards target distribution
 
         Args:
@@ -842,7 +842,7 @@ class UMestimator:
 
 
         uniform,correction = self.uniform_correction(reuse_samples,SHOW_PDF_PLOTS)
-        thread = self.knn_thread(uniform,k,method)
+        thread = self.start_knn_thread(uniform,k,method)
         H = thread.get_result()
 
         #If method is 'both', then H is a tuple with (H_KL,H_KSG)
@@ -875,21 +875,23 @@ class UMestimator:
         elif method =='both':
             return kl_ksg(samples, k=k)
         
-    def uniform_correction(self, reuse_samples=True, SHOW_PDF_PLOTS=False):
+    def uniform_correction(self, samples = None, reuse_samples = True, SHOW_PDF_PLOTS=False):
         """Generate uniformized data and the associated entropy correction terms
 
         Args:
-            reuse_samples (bool, optional): Use the samples currently stored, otherwise generate new samples. Defaults to True.
+            samples (numpy, optional): data samples to generate uniform points for. New samples are generated if set to None. Defaults to True.
+            reuse_samples (bool, optional): Use data samples stored in estimator. Setting to true will override given samples. Defaults to False.
             SHOW_PDF_PLOTS (bool, optional): Display histogram of given data, gaussian, and uniform transforms. Defaults to False.
 
         Returns:
             _type_: Uniformized points, Jacobian entropy correction term
         """
-        if reuse_samples:
+        
+        if samples is None and reuse_samples and self.samples is not None:
             samples = self.samples
-        else:
+        elif samples is None:
             samples = self.sim_model.sim(self.n_samples)
-
+        
 
         '''Memory can grow too large if evaluated for all samples, limit to 1M samples at a time'''
         u=[]
@@ -950,7 +952,7 @@ class UMestimator:
         # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
         return h+correction2,h2+correction2
     
-    def knn_thread(self,data,k=1,method='umtksg'):        
+    def start_knn_thread(self,data,k=1,method='umtksg'):        
         """Start the knn algorithm in a thread and return the background thread for the user to handle
 
         Args:

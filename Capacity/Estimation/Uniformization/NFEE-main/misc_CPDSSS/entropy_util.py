@@ -93,7 +93,7 @@ def calc_entropy_thread(sim_model,n_train,base_samples):
     estimator = learn_model(sim_model,n_train)
     estimator.samples=base_samples
     uniform,correction = estimator.uniform_correction()
-    thread = estimator.knn_thread(uniform)
+    thread = estimator.start_knn_thread(uniform)
     return thread,correction
 
 def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,200],n_stages=14, fine_tune=True):
@@ -123,6 +123,7 @@ def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,
 
 def knn_entropy(estimator: entropy.UMestimator,base_samples=None,k=1,method='umtksg'):
     """Wrapper function to time knn entropy calculation from the given estimator
+    Does not use any threading for speed up
 
     Args:
         estimator (entropy.UMestimator): estimator containing trained model

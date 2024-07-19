@@ -111,7 +111,7 @@ for i in range(n_trials):
 
     estimator.samples = laplace_base
     uniform,correction = estimator.uniform_correction()
-    thread = estimator.knn_thread(uniform,method=method)
+    thread = estimator.start_knn_thread(uniform,method=method)
 
     # KL[i-1],KSG[i-1] = ent.knn_entropy(estimator,laplace_base,method=method)
 
