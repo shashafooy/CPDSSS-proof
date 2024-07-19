@@ -129,7 +129,8 @@ for i in range(n_trials):
             #Combine entropies for mutual information
             MI_cum[prev_idx] = H_gxc_cum[prev_idx] + H_xxc_cum[prev_idx] - H_joint_cum[prev_idx] - H_cond_cum[prev_idx]
         # H_hxc = ent.calc_entropy(sim_model=first_tx_model,n_samples=n_train_samples,base_samples=hxc,val_tol=0.02)
-
+        
+        filename = misc.update_filename(path,filename,i)            
         util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,i), os.path.join(path,filename)) 
 
         #Train H(x_cond)

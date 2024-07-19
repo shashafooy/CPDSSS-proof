@@ -296,7 +296,8 @@ class SGD(SGD_Template):
         """update the step size to use smaller step size for fine tuning during training
         """
         self.step.reset_shared()
-        self.step.a.set_value(self.step.a.get_value()*0.05)
+        new_a = np.asarray(self.step.a.get_value()*0.05).astype(theano.config.floatX)
+        self.step.a.set_value(new_a)
         # step = ss.Adam(a=self.step.a*0.05, bm=self.step.bm, bv=self.step.bv, eps=self.step.eps)
 
         # idx = tt.ivector('idx')
