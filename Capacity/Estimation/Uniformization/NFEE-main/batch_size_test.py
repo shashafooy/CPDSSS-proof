@@ -20,10 +20,10 @@ from ml.trainers import ModelCheckpointer
 knn_samples = 100000
 n_train_samples = 100000
 n_trials = 10
-val_tol = None
+val_tol = 0.001
 # val_tol = 0.5
-patience=10
-N=15
+patience=5
+N=10
 method='both'
 # layers = [2,3,4]
 # stages = np.arange(12,19,2) #theano gradient breaks for stages>=20
@@ -32,6 +32,7 @@ batch_size = np.power(2,[5,6,7,8,9,10])
 
 error = np.empty((n_trials,len(batch_size)))*np.nan
 duration = np.empty((n_trials,len(batch_size)))*np.nan
+H = np.empty((n_trials,len(batch_size)))*np.nan
 
 
 
@@ -45,6 +46,8 @@ filename = misc.update_filename(path=path,old_name=filename,iter=iter,rename=Fal
 
 sim_laplace = mod.Laplace(mu=0,b=2,N=N)
 true_H_laplace = sim_laplace.entropy()        
+
+thread = None
 
 for i in range(n_trials):
     
@@ -74,13 +77,22 @@ for i in range(n_trials):
         tot_time = str(timedelta(seconds = int(end_time - start_time)))
         print("learning time: ",tot_time)
 
+        if thread is not None:
+            H[old_idx] = thread.get_result() + correction
+
+        old_idx = (i,mi)
+
+        uniform,correction = estimator.uniform_correction(laplace_base)
+        thread = estimator.start_knn_thread(uniform)
+
         fig = plt.gcf()
         ax=fig.axes[0]
         title = ax.get_title()
 
         import re
         pattern = r"error:\s*(0\.\d+)"
-        error[i,mi] = re.search(pattern,title).group(1)
+        # error[i,mi] = re.search(pattern,title).group(1)
+        error[i,mi] = estimator.model.eval_trnloss(laplace_base) - true_H_laplace
         duration[i,mi] = int(end_time - start_time)
 
         ax.set_title(f"{title}\n time: {tot_time}")
