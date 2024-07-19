@@ -109,11 +109,11 @@ for i in range(n_trials):
 
         """Calculate entropies needed for mutual information. Evaluate knn entropy (CPU) while training new model (GPU)
             General flow: 
-                Train model i (main thread)
-                send uniform points to knn (i) (background thread)
-                wait for knn (i-1) thread to finish (main thread)
+                Train model (main thread)
+                evaluate uniform points and run knn (background thread)
+                wait for previoius knn thread to finish (main thread)
                 combine knn entropy with jacobian correction term (main thread)
-                Start model i+1 (main thread)
+                Start new model while current knn is running (main thread)
          """
 
         prev_tx_model = CPDSSS(T-1,N,L,use_gaussian_approx=GQ_gaussian)
