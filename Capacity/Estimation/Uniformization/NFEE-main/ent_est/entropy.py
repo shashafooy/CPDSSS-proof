@@ -836,9 +836,6 @@ class UMestimator:
         Returns:
             _type_: entropy estimate. Return tuple (H KL, H KSG) if method='both'
         """
-        
-        #TODO look at converting this function to evaluate u,correction1,correction2 (main process).
-        #       then evaluate tknn outside of this function (threading)
 
 
         uniform,correction = self.uniform_correction(reuse_samples,SHOW_PDF_PLOTS)
@@ -848,10 +845,8 @@ class UMestimator:
         #If method is 'both', then H is a tuple with (H_KL,H_KSG)
         return H + correction
             
-        # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
-        # return h+correction2,h2+correction2
     
-    def ksg_ent(self, k=1, reuse_samples=True, method='kl'):
+    def knn_ent(self, k=1, reuse_samples=True, method='kl'):
         """Evaluate knn directly without uniformizing or using truncated knn
 
         Args:
@@ -899,13 +894,13 @@ class UMestimator:
 
         # Concatenate the results into a single array
         u = np.concatenate(u)
-        # u = self.model.calc_random_numbers(samples)
 
         #remove extreme data that isn't within 99.9999% of the norm dist
         idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
         u = u[idx]
 
         if(SHOW_PDF_PLOTS==True):
+            #Plot histograms of original data, gaussian, and uniform transforms
             import matplotlib.pyplot as plt
             fig,ax=plt.subplots(1,3)
             x=np.linspace(-0.1,1.1,100)
@@ -925,17 +920,18 @@ class UMestimator:
             return None,0,0,0
         
         
-        '''Jacobian correction from the CDF'''
+        # Jacobian correction from the CDF
         uniform = stats.norm.cdf(u)
         correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
     
-        '''Jacobian correction from g(x)'''
+        #Jacobian correction from g(x), split computation to minimize memory usage
         logdet=[]                
         for i in range(0, samples.shape[0], max_samp):
             logdet.append(self.model.logdet_jacobi_u(samples[i:i+max_samp,:]))
         # Concatenate the results into a single array
         logdet = np.concatenate(logdet)
         correction2 = -np.mean(logdet[idx])
+        
         #calculating logdet in one shot can lead to large memory requirement
         # correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
 
