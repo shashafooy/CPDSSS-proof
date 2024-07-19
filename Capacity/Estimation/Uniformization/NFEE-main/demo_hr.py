@@ -82,8 +82,8 @@ def plot_RMSE_vs_d(mdl_name, n_trials):
                 cal2[i], cal5[i], _, _ = estimator.calc_ent(reuse_samples=False, method='umtksg')
                 
                 estimator.n_samples = n_samples*sim_model.x_dim
-                cal3[i] = estimator.ksg_ent(reuse_samples=False, method='kl')
-                cal4[i] = estimator.ksg_ent(reuse_samples=False, method='ksg')
+                cal3[i] = estimator.knn_ent(reuse_samples=False, method='kl')
+                cal4[i] = estimator.knn_ent(reuse_samples=False, method='ksg')
             
             mse1[n,k] = np.mean((cal1-true_val)**2)
             mse2[n,k] = np.mean((cal2-true_val)**2)

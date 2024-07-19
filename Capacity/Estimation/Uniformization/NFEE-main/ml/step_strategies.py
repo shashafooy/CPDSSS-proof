@@ -92,7 +92,7 @@ class Adam(StepStrategy):
         assert 0 < bv < 1, 'bv must be strictly between 0 and 1.'
         assert eps > 0, 'eps must be positive.'
 
-        self.a = np.asarray(a, dtype = dtype)
+        self.a = theano.shared(np.asarray(a).astype(theano.config.floatX)) #allows for a to be changed later on
         self.bm = np.asarray(bm, dtype = dtype)
         self.bv = np.asarray(bv, dtype = dtype)
         self.eps = np.asarray(eps, dtype = dtype)
@@ -100,17 +100,17 @@ class Adam(StepStrategy):
     def updates(self, parms, grads):
         """Return a list of updates to be made, both to adams's running averages and the parameters."""
 
-        bm_t = theano.shared(np.asarray(self.bm).astype(theano.config.floatX))
-        bv_t = theano.shared(np.asarray(self.bv).astype(theano.config.floatX))
+        self.bm_t = theano.shared(np.asarray(self.bm).astype(theano.config.floatX))
+        self.bv_t = theano.shared(np.asarray(self.bv).astype(theano.config.floatX))
 
-        new_bm_t = bm_t * self.bm
-        new_bv_t = bv_t * self.bv
+        new_bm_t = self.bm_t * self.bm
+        new_bv_t = self.bv_t * self.bv
 
-        acc_m = [theano.shared(np.zeros_like(p.get_value(borrow=True)), borrow=True) for p in parms]
-        acc_v = [theano.shared(np.zeros_like(p.get_value(borrow=True)), borrow=True) for p in parms]
+        self.acc_m = [theano.shared(np.zeros_like(p.get_value(borrow=True)), borrow=True) for p in parms]
+        self.acc_v = [theano.shared(np.zeros_like(p.get_value(borrow=True)), borrow=True) for p in parms]
 
-        new_acc_m = [self.bm * am + (1-self.bm).astype(dtype) * g for g, am in zip(grads, acc_m)]
-        new_acc_v = [self.bv * av + (1-self.bv).astype(dtype) * g**2 for g, av in zip(grads, acc_v)]
+        new_acc_m = [self.bm * am + (1-self.bm).astype(dtype) * g for g, am in zip(grads, self.acc_m)]
+        new_acc_v = [self.bv * av + (1-self.bv).astype(dtype) * g**2 for g, av in zip(grads, self.acc_v)]
 
         step = self.a * tt.sqrt(1-new_bv_t) / (1-new_bm_t)
         eps = self.eps * (1-new_bv_t)
@@ -118,4 +118,14 @@ class Adam(StepStrategy):
 
         new_parms = [p - d for p, d in zip(parms, ds)]
 
-        return list(zip([bm_t, bv_t], [new_bm_t, new_bv_t])) + list(zip(acc_m, new_acc_m)) + list(zip(acc_v, new_acc_v)) + list(zip(parms, new_parms))
+        return list(zip([self.bm_t, self.bv_t], [new_bm_t, new_bv_t])) + list(zip(self.acc_m, new_acc_m)) + list(zip(self.acc_v, new_acc_v)) + list(zip(parms, new_parms))
+    
+    def reset_shared(self):
+        self.bm_t.set_value(np.asarray(self.bm).astype(theano.config.floatX))
+        self.bv_t.set_value(np.asarray(self.bv).astype(theano.config.floatX))
+
+        for am,av in zip(self.acc_m,self.acc_v):
+            am.set_value(np.zeros_like(am.get_value(borrow=True)))
+            av.set_value(np.zeros_like(av.get_value(borrow=True)))
+
+

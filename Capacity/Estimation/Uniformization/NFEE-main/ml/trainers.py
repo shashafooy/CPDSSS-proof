@@ -295,15 +295,17 @@ class SGD(SGD_Template):
     def reduce_step_size(self):
         """update the step size to use smaller step size for fine tuning during training
         """
-        step = ss.Adam(a=self.step.a*0.05, bm=self.step.bm, bv=self.step.bv, eps=self.step.eps)
+        self.step.reset_shared()
+        self.step.a.set_value(self.step.a.get_value()*0.05)
+        # step = ss.Adam(a=self.step.a*0.05, bm=self.step.bm, bv=self.step.bv, eps=self.step.eps)
 
-        idx = tt.ivector('idx')
-        self.make_update = theano.function(
-            inputs=[idx],
-            outputs=self.model.trn_loss,
-            givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
-            updates=step.updates(self.model.parms, self.grads)
-        )
+        # idx = tt.ivector('idx')
+        # self.make_update = theano.function(
+        #     inputs=[idx],
+        #     outputs=self.model.trn_loss,
+        #     givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
+        #     updates=step.updates(self.model.parms, self.grads)
+        # )
 
 
 class WeightedSGD(SGD_Template):
