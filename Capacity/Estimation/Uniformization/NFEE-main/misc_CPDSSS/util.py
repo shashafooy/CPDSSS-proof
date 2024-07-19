@@ -92,7 +92,7 @@ class BackgroundThread(Thread):
             self._return = self._target(*self._args,**self._kwargs)
         # self.result = self.func(*self.args)
 
-    def get_result(self,print_time=False):
+    def get_result(self,print_time=True):
         waiting=False
         if self.is_alive():
             waiting=True
