@@ -42,7 +42,7 @@ iter=0
 path = 'temp_data/batch_size/15N_100k_train'
 today=date.today().strftime("%b_%d")
 filename = "batch_data({})".format(today)
-filename = misc.update_filename(path=path,old_name=filename,iter=iter,rename=False)
+filename = misc.update_filename(path=path,old_name=filename,rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
 sim_laplace = mod.Laplace(mu=0,b=2,N=N)
@@ -111,10 +111,9 @@ for i in range(n_trials):
         plt.savefig(f"figs/MAF_batch/batch_{mini_batch}.png")
         plt.close()
 
+        filename=misc.update_filename(path,filename,i,rename=True)
         util.io.save((batch_size,N,error,duration),os.path.join(path,filename))
 
-    filename=misc.update_filename(path,filename,i+1,rename=True)
-    util.io.save((batch_size,N,error,duration),os.path.join(path,filename))
         
 
 

@@ -92,10 +92,16 @@ class Adam(StepStrategy):
         assert 0 < bv < 1, 'bv must be strictly between 0 and 1.'
         assert eps > 0, 'eps must be positive.'
 
-        self.a = theano.shared(np.asarray(a).astype(theano.config.floatX)) #allows for a to be changed later on
+        self.a = np.asarray(a).astype(theano.config.floatX)
+        self.a_t = theano.shared(self.a) #allows for a to be changed later on        
         self.bm = np.asarray(bm, dtype = dtype)
         self.bv = np.asarray(bv, dtype = dtype)
         self.eps = np.asarray(eps, dtype = dtype)
+
+        self.bm_t = None
+        self.bv_t = None
+        self.acc_m = None
+        self.acc_v = None
 
     def updates(self, parms, grads):
         """Return a list of updates to be made, both to adams's running averages and the parameters."""
@@ -112,7 +118,7 @@ class Adam(StepStrategy):
         new_acc_m = [self.bm * am + (1-self.bm).astype(dtype) * g for g, am in zip(grads, self.acc_m)]
         new_acc_v = [self.bv * av + (1-self.bv).astype(dtype) * g**2 for g, av in zip(grads, self.acc_v)]
 
-        step = self.a * tt.sqrt(1-new_bv_t) / (1-new_bm_t)
+        step = self.a_t * tt.sqrt(1-new_bv_t) / (1-new_bm_t)
         eps = self.eps * (1-new_bv_t)
         ds = [step * am / tt.sqrt(av + eps) for am, av in zip(new_acc_m, new_acc_v)]
 
@@ -121,11 +127,14 @@ class Adam(StepStrategy):
         return list(zip([self.bm_t, self.bv_t], [new_bm_t, new_bv_t])) + list(zip(self.acc_m, new_acc_m)) + list(zip(self.acc_v, new_acc_v)) + list(zip(parms, new_parms))
     
     def reset_shared(self):
-        self.bm_t.set_value(np.asarray(self.bm).astype(theano.config.floatX))
-        self.bv_t.set_value(np.asarray(self.bv).astype(theano.config.floatX))
+        if self.bm_t is not None:
+            #reset only if updates() has run to initialize shared variables
+            self.bm_t.set_value(np.asarray(self.bm).astype(theano.config.floatX))
+            self.bv_t.set_value(np.asarray(self.bv).astype(theano.config.floatX))
 
-        for am,av in zip(self.acc_m,self.acc_v):
-            am.set_value(np.zeros_like(am.get_value(borrow=True)))
-            av.set_value(np.zeros_like(av.get_value(borrow=True)))
+            for am,av in zip(self.acc_m,self.acc_v):
+                am.set_value(np.zeros_like(am.get_value(borrow=True)))
+                av.set_value(np.zeros_like(av.get_value(borrow=True)))
+        self.a_t.set_value(self.a)
 
 

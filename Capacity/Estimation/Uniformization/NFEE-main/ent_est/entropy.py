@@ -798,6 +798,8 @@ class UMestimator:
             step (step_strategies, optional): step type class. Defaults to ss.Adam().
         """
         
+        step.reset_shared() #shared variables can retain values between method calls
+
         if self.samples is None:
             xs = self.sim_model.sim(n_samples)
             self.samples = xs
