@@ -19,12 +19,12 @@ Load and combine all datasets
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
-filepath = 'temp_data/batch_size/15N_100k_train'
-N=15
+filepath = 'temp_data/batch_size/10N_100k_train_entropy'
+N=10
 
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
-    _batch_size,N,_error,_duration = util.io.load(os.path.join(filepath, filename))
+    _batch_size,N,_error,_duration,_H_sim,_H_reuse = util.io.load(os.path.join(filepath, filename))
     
 
     # Initialize arrays
@@ -32,43 +32,59 @@ for filename in os.listdir(filepath):
         batch_size = _batch_size
         error = np.empty((0,len(_batch_size)))
         duration = np.empty((0,len(_batch_size)))
+        H_sim = np.empty((0,len(_batch_size)))
+        H_reuse = np.empty((0,len(_batch_size)))
         
        
 
     error,_ = viewData.align_and_concatenate(error,_error,(batch_size),(_batch_size))
     duration,_ = viewData.align_and_concatenate(duration,_duration,(batch_size),(_batch_size))
+    H_sim,_ = viewData.align_and_concatenate(H_sim,_H_sim,(batch_size),(_batch_size))
+    H_reuse,(batch_size) = viewData.align_and_concatenate(H_reuse,_H_reuse,(batch_size),(_batch_size))
     
 viewData.clean_data(error)
 viewData.clean_data(duration)
+viewData.clean_data(H_sim)
+viewData.clean_data(H_reuse)
 
 # Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
 if REMOVE_OUTLIERS:
     error = viewData.remove_outlier(error)
     duration = viewData.remove_outlier(duration)
+    H_sim = viewData.remove_outlier(H_sim)
+    H_reuse = viewData.remove_outlier(H_reuse)
 
+
+H_true = Laplace(mu=0,b=2,N=N).entropy()
 
 mean_err = np.nanmean(error,axis=0)
+mean_H_sim_err = np.nanmean(np.abs(H_sim-H_true),axis=0)
+mean_H_reuse_err = np.nanmean(np.abs(H_reuse-H_true),axis=0)
 mean_duration = np.round(np.nanmean(duration,axis=0))
 
 var_err = np.nanvar(error,axis=0)
 var_duration = np.nanvar(duration,axis=0)
 
-H_true = Laplace(mu=0,b=2,N=N).entropy()
+
 
 # PLOTS
 
 
-for i in range(num_trainings):
-    min_sec = str(timedelta(seconds = mean_duration[i])))
+for i in range(len(batch_size)):
+    min_sec = str(timedelta(seconds = mean_duration[i]))
     print(f'Batch: {batch_size[i]}, Mean training duration: {min_sec}')
 
 
 plt.figure(1)
 # plt.axhline(y=H_true,linestyle='--')
-plt.plot(batch_size,mean_err)
+plt.plot(batch_size, mean_err, marker='o', linestyle='None', label='mean_err')
+plt.plot(batch_size, mean_H_sim_err, marker='o', linestyle='None', label='mean_H_sim_err')
+plt.plot(batch_size, mean_H_reuse_err, marker='o', linestyle='None', label='mean_H_reuse_err')
+
 plt.title("validation error per batch size")
 plt.xlabel("batch size")
 plt.ylabel("H(x) error")
+plt.legend(["MAF error","knn new data err","knn training data err"])
 
 
 plt.show()

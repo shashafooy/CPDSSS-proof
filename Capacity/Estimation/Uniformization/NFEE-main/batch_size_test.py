@@ -38,7 +38,7 @@ H_sim = np.empty((n_trials,len(batch_size)))*np.nan
 
 
 
-path = 'temp_data/batch_size/15N_100k_train'
+path = f'temp_data/batch_size/{N}N_{util.int_to_short_string(n_train_samples)}_train'
 today=date.today().strftime("%b_%d")
 filename = "batch_data({})".format(today)
 filename = misc.update_filename(path=path,old_name=filename,rename=False)

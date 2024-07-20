@@ -44,6 +44,14 @@ def update_filename(path,old_name,iter=-1,rename=True):
         os.rename(os.path.join(path,old_name + '.pkl'),os.path.join(path,new_name + '.pkl'))
     return new_name
 
+def int_to_short_string(num):
+    if abs(num) > 1e6:
+        return f"{num/1_000_000:.2f}M"
+    elif abs(num) > 1e3:
+        return f"{num/1_000:.2f}k"
+    else:
+        return str(num)
+
 def print_border(msg):
     print("-"*len(msg) + "\n" + msg + "\n" + "-"*len(msg))
 
