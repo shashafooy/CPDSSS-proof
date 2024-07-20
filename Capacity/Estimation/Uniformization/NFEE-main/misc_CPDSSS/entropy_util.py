@@ -96,7 +96,7 @@ def calc_entropy_thread(sim_model,n_train,base_samples):
     thread = estimator.start_knn_thread(uniform)
     return thread,correction
 
-def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,200],n_stages=14, fine_tune=True):
+def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,200],n_stages=14, mini_batch=256, fine_tune=True):
     """Create a MAF model and train it with the given parameters
 
     Args:
@@ -106,16 +106,24 @@ def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,
         patience (int, optional): number of epochs without improvement before exiting training. Defaults to 5.
         n_hiddens (list, optional): number of hidden layers and nodes in a list. Defaults to [200,200].
         n_stages (int, optional): number of MAF stages. Defaults to 14.
+        mini_batch (int, optional): Batch size for training. Defaults to 1024
         fine_tune (bool, optional): Set to True to run training twice, first with large step size, then a smaller step size. Defaults to True.
 
     Returns:
         entropy.UMestimator: estimator object used for training and entropy calculation
     """
+    
     net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
     estimator = entropy.UMestimator(sim_model,net)
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
-    estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim),val_tol=val_tol,patience=patience, fine_tune=fine_tune)
+    estimator.learn_transformation(
+        n_samples = int(n_samples*sim_model.x_dim),
+        val_tol=val_tol,
+        patience=patience, 
+        fine_tune=fine_tune,
+        minibatch=mini_batch
+        )
     end_time = time.time()        
     print("learning time: ",str(timedelta(seconds = int(end_time - start_time))))
 
@@ -145,14 +153,5 @@ def knn_entropy(estimator: entropy.UMestimator,base_samples=None,k=1,method='umt
     else:
         return H
 
-
-# def thread_exp():
-#     '''Experiment to try running a theano function in a thread'''
-#     import theano   
-#     import simulators.CPDSSS_models as mod
-
-#     net=create_model(4, rng=np.random,n_hiddens=[100,100],n_mades=10)
-#     samples = mod.Laplace(0,2,4).sim(1000)
-#     return net.calc_random_numbers(samples)
 
     

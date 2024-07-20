@@ -46,9 +46,9 @@ def update_filename(path,old_name,iter=-1,rename=True):
 
 def int_to_short_string(num):
     if abs(num) > 1e6:
-        return f"{num/1_000_000:.2f}M"
+        return f"{num//1_000_000}M"
     elif abs(num) > 1e3:
-        return f"{num/1_000:.2f}k"
+        return f"{num//1_000}k"
     else:
         return str(num)
 
