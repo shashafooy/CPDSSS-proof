@@ -24,7 +24,7 @@ n_trials = 20
 # val_tol = 0.5
 patience=5
 N=20
-batch_size = np.power(2,[7,8,9,10,11,12])
+batch_size = np.power(2,[7,8,9])
 
 
 error = np.empty((n_trials,len(batch_size)))*np.nan
@@ -107,7 +107,7 @@ for i in range(n_trials):
         filename=misc.update_filename(path,filename,i,rename=True)
         util.io.save((batch_size,N,error,duration,H_sim,H_reuse),os.path.join(path,filename))
 
-        
+    
 
 
 

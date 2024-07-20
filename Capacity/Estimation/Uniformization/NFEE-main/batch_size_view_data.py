@@ -19,7 +19,7 @@ Load and combine all datasets
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
-filepath = 'temp_data/batch_size/10N_100k_train_entropy'
+filepath = 'temp_data/batch_size/20N_100.00k_train'
 N=10
 
 for filename in os.listdir(filepath):

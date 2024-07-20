@@ -29,10 +29,10 @@ def update_filename(path,old_name,iter=-1,rename=True):
     # WHILE LOOP SHOULD NOT RUN
     unique_name=new_name
     #Check if name already exists, append number to end until we obtain new name
-    i=0
-    while os.path.isfile(os.path.join(path,unique_name + '.pkl')):
-        unique_name = new_name + '_' + str(i)        
-        i=i+1
+    # i=0
+    # while os.path.isfile(os.path.join(path,unique_name + '.pkl')):
+    #     unique_name = new_name + '_' + str(i)        
+    #     i=i+1
     #create file if it doesn't exists.
     #Sometimes had race condition of two programs used the same name because 
     #   new name file wasn't used for a few more clock cycles
