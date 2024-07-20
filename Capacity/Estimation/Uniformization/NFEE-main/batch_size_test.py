@@ -20,14 +20,11 @@ from ml.trainers import ModelCheckpointer
 knn_samples = 100000
 n_train_samples = 100000
 n_trials = 20
-val_tol = 0.001
+# val_tol = 0.001
 # val_tol = 0.5
 patience=5
-N=10
-method='both'
-# layers = [2,3,4]
-# stages = np.arange(12,19,2) #theano gradient breaks for stages>=20
-batch_size = np.power(2,[5,6,7,8,9,10,11])
+N=20
+batch_size = np.power(2,[7,8,9,10,11,12])
 
 
 error = np.empty((n_trials,len(batch_size)))*np.nan
@@ -38,7 +35,7 @@ H_sim = np.empty((n_trials,len(batch_size)))*np.nan
 
 
 
-path = f'temp_data/batch_size/{N}N_{util.int_to_short_string(n_train_samples)}_train'
+path = f'temp_data/batch_size/{N}N_{misc.int_to_short_string(n_train_samples)}_train'
 today=date.today().strftime("%b_%d")
 filename = "batch_data({})".format(today)
 filename = misc.update_filename(path=path,old_name=filename,rename=False)
@@ -100,9 +97,6 @@ for i in range(n_trials):
         ax=fig.axes[0]
         title = ax.get_title()
 
-        import re
-        pattern = r"error:\s*(0\.\d+)"
-        # error[i,mi] = re.search(pattern,title).group(1)
         error[i,mi] = np.abs(estimator.model.eval_trnloss(laplace_base) - true_H_laplace)
         duration[i,mi] = int(end_time - start_time)
 

@@ -50,7 +50,7 @@ viewData.clean_data(H_reuse)
 # Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
 if REMOVE_OUTLIERS:
     error = viewData.remove_outlier(error)
-    duration = viewData.remove_outlier(duration)
+    # duration = viewData.remove_outlier(duration)
     H_sim = viewData.remove_outlier(H_sim)
     H_reuse = viewData.remove_outlier(H_reuse)
 

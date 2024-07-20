@@ -101,6 +101,15 @@ class BackgroundThread(Thread):
         # self.result = self.func(*self.args)
 
     def get_result(self,print_time=True):
+        """Join thread and wait for result. Once thread finishes, return function values
+        Prints thread wait time by default
+
+        Args:
+            print_time (bool, optional): True to print time waiting for thread. Defaults to True.
+
+        Returns:
+            _type_: threaded function results
+        """
         waiting=False
         if self.is_alive():
             waiting=True
