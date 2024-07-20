@@ -77,11 +77,11 @@ for i in range(n_trials):
 
         
 
-        if thread is not None:
-            H_reuse[old_idx] = thread.get_result() + correction
+        # if thread is not None:
+        #     H_reuse[old_idx] = thread.get_result() + correction
 
-        uniform,correction = estimator.uniform_correction(laplace_base)
-        thread = estimator.start_knn_thread(uniform)
+        # uniform,correction = estimator.uniform_correction(laplace_base)
+        # thread = estimator.start_knn_thread(uniform)
 
         if thread_2 is not None:
             H_sim[old_idx] = thread_2.get_result() + correction_2
