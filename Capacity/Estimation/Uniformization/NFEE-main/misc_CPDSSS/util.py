@@ -12,7 +12,7 @@ import theano.d3viz as d3v
 
 
 def update_filename(path,old_name,iter=-1,rename=True):
-    reg_pattern = r"\(\d{1,3}_iter\)"
+    reg_pattern = r"\(-?\d{1,3}_iter\)"
     iter_name = "({}_iter)".format(iter)
     match = re.search(reg_pattern,old_name)
     # Replace iteration number, append if it doesn't exist
