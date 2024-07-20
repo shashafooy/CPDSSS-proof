@@ -19,7 +19,7 @@ from ml.trainers import ModelCheckpointer
 
 knn_samples = 100000
 n_train_samples = 100000
-n_trials = 10
+n_trials = 20
 val_tol = 0.001
 # val_tol = 0.5
 patience=5
@@ -27,7 +27,7 @@ N=10
 method='both'
 # layers = [2,3,4]
 # stages = np.arange(12,19,2) #theano gradient breaks for stages>=20
-batch_size = np.power(2,[5,6,7,8,9,10])
+batch_size = np.power(2,[5,6,7,8,9,10,11])
 
 
 error = np.empty((n_trials,len(batch_size)))*np.nan
@@ -37,7 +37,6 @@ H_sim = np.empty((n_trials,len(batch_size)))*np.nan
 
 
 
-iter=0
 
 path = 'temp_data/batch_size/15N_100k_train'
 today=date.today().strftime("%b_%d")
@@ -104,7 +103,7 @@ for i in range(n_trials):
         import re
         pattern = r"error:\s*(0\.\d+)"
         # error[i,mi] = re.search(pattern,title).group(1)
-        error[i,mi] = estimator.model.eval_trnloss(laplace_base) - true_H_laplace
+        error[i,mi] = np.abs(estimator.model.eval_trnloss(laplace_base) - true_H_laplace)
         duration[i,mi] = int(end_time - start_time)
 
         ax.set_title(f"{title}\n time: {tot_time}")
@@ -112,7 +111,7 @@ for i in range(n_trials):
         plt.close()
 
         filename=misc.update_filename(path,filename,i,rename=True)
-        util.io.save((batch_size,N,error,duration),os.path.join(path,filename))
+        util.io.save((batch_size,N,error,duration,H_sim,H_reuse),os.path.join(path,filename))
 
         
 

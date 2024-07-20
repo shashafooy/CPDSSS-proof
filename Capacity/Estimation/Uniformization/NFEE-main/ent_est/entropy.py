@@ -14,7 +14,7 @@ from misc_CPDSSS.util import BackgroundThread
 
 
 
-def tkl_tksg(y, n=None, k=1, max_k=None, algorithm = 'auto', shuffle=True, rng=np.random):
+def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
     """Evaluate truncated knn KL and KSG algorithms
     Ziqiao Ao and Jinglai Li. “Entropy estimation via uniformization”
 
@@ -58,6 +58,7 @@ def tkl_tksg(y, n=None, k=1, max_k=None, algorithm = 'auto', shuffle=True, rng=n
     
     #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
     algorithm = 'brute' if dim>30 else 'kd_tree'
+    algorithm = 'kd_tree' #should almost always be faster for the uniform truncated case (range [0 1])
 
 
     # knn search
@@ -277,6 +278,7 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
 
     #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
     algorithm = 'brute' if dim>30 else 'kd_tree'
+    algorithm = 'kd_tree' #should almost always be faster for the uniform truncated case (range [0 1])
 
     # knn search
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
@@ -428,7 +430,8 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
         rng.shuffle(y)
     
     #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
-    algorithm = 'brute' if dim>30 else 'kd_tree'
+    # algorithm = 'brute' if dim>30 else 'kd_tree'
+    algorithm = 'kd_tree' #should almost always be faster for the uniform truncated case (range [0 1])
 
     # knn search
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
