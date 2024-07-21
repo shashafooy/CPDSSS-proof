@@ -22,6 +22,8 @@ n_train_samples = 100000
 n_trials = 20
 # val_tol = 0.001
 # val_tol = 0.5
+
+show_progress=False
 patience=5
 N=20
 batch_size = np.power(2,[7,8,9])
@@ -67,7 +69,7 @@ for i in range(n_trials):
         estimator.learn_transformation(
             n_samples=n_train,
             patience=patience,
-            show_progress=True,
+            show_progress=show_progress,
             minibatch=int(mini_batch),
             rng = np.random.default_rng(seed=seed)
         )
@@ -92,17 +94,16 @@ for i in range(n_trials):
 
         old_idx = (i,mi)
 
-
-        fig = plt.gcf()
-        ax=fig.axes[0]
-        title = ax.get_title()
-
         error[i,mi] = np.abs(estimator.model.eval_trnloss(laplace_base) - true_H_laplace)
         duration[i,mi] = int(end_time - start_time)
 
-        ax.set_title(f"{title}\n time: {tot_time}")
-        plt.savefig(f"figs/MAF_batch/batch_{mini_batch}.png")
-        plt.close()
+        if show_progress:
+            fig = plt.gcf()
+            ax=fig.axes[0]
+            title = ax.get_title()
+            ax.set_title(f"{title}\n time: {tot_time}")
+            plt.savefig(f"figs/MAF_batch/batch_{mini_batch}.png")
+            plt.close()
 
         filename=misc.update_filename(path,filename,i,rename=True)
         util.io.save((batch_size,N,error,duration,H_sim,H_reuse),os.path.join(path,filename))
