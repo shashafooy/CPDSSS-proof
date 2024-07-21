@@ -26,7 +26,7 @@ n_trials = 20
 show_progress=False
 patience=5
 N=20
-batch_size = np.power(2,[7,8,9])
+batch_size = np.power(2,[8,9])
 
 
 error = np.empty((n_trials,len(batch_size)))*np.nan
@@ -79,17 +79,17 @@ for i in range(n_trials):
 
         
 
-        # if thread is not None:
-        #     H_reuse[old_idx] = thread.get_result() + correction
+        if thread is not None:
+            H_reuse[old_idx] = thread.get_result() + correction
 
-        # uniform,correction = estimator.uniform_correction(laplace_base)
-        # thread = estimator.start_knn_thread(uniform)
+        uniform,correction = estimator.uniform_correction(laplace_base)
+        thread = estimator.start_knn_thread(uniform)
 
-        if thread_2 is not None:
-            H_sim[old_idx] = thread_2.get_result() + correction_2
+        # if thread_2 is not None:
+        #     H_sim[old_idx] = thread_2.get_result() + correction_2
 
-        uniform,correction_2 = estimator.uniform_correction(sim_laplace.sim(n_train))
-        thread_2 = estimator.start_knn_thread(uniform)
+        # uniform,correction_2 = estimator.uniform_correction(sim_laplace.sim(n_train))
+        # thread_2 = estimator.start_knn_thread(uniform)
 
 
         old_idx = (i,mi)

@@ -19,8 +19,7 @@ Load and combine all datasets
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
-filepath = 'temp_data/batch_size/20N_100.00k_train'
-N=10
+filepath = 'temp_data/batch_size/20N_100k_train'
 
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
@@ -56,14 +55,20 @@ if REMOVE_OUTLIERS:
 
 
 H_true = Laplace(mu=0,b=2,N=N).entropy()
+H_sim_err = np.abs(H_sim-H_true)
+H_reuse_err = np.abs(H_reuse-H_true)
+
+
 
 mean_err = np.nanmean(error,axis=0)
-mean_H_sim_err = np.nanmean(np.abs(H_sim-H_true),axis=0)
-mean_H_reuse_err = np.nanmean(np.abs(H_reuse-H_true),axis=0)
+mean_H_sim_err = np.nanmean(H_sim_err,axis=0)
+mean_H_reuse_err = np.nanmean(H_reuse_err,axis=0)
 mean_duration = np.round(np.nanmean(duration,axis=0))
 
 var_err = np.nanvar(error,axis=0)
 var_duration = np.nanvar(duration,axis=0)
+var_H_sim_err = np.nanvar(H_sim_err,axis=0)
+var_H_reuse_err = np.nanvar(H_reuse_err,axis=0)
 
 
 
