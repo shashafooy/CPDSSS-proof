@@ -301,6 +301,7 @@ class GaussianMade:
         Ms, Mmp = create_masks(degrees)
         Ws, bs, Wm, bm, Wp, bp = create_weights(n_inputs, n_hiddens, None, rng)
         # Ws, bs, Wm, bm, Wp, bp = create_weights_transpose(n_inputs, n_hiddens, None, rng)
+        self.masks = Ms + [Mmp]
         self.parms = Ws + bs + [Wm, bm, Wp, bp]
         self.input_order = degrees[0]
 

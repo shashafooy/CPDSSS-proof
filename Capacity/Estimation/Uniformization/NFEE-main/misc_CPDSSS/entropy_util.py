@@ -23,7 +23,7 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=14):
+def create_model(n_inputs, rng, n_hiddens = [200,200],n_mades=14):
     """Generate a multi stage Masked Autoregressive Flow (MAF) model
     George Papamakarios, Theo Pavlakou, and Iain Murray. “Masked Autoregressive Flow for Density Estimation”
 
@@ -51,41 +51,52 @@ def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=14):
             )
 
 def save_model(model,name,path = 'temp_data/saved_models'):    
-    # checkpointer = ModelCheckpointer(model)
-    # checkpointer.checkpoint()
-    # util.io.save(checkpointer.checkpointed_parms,os.path.join(path,name))
+    parms = [np.empty_like(p.get_value()) for p in model.parms]
+    masks = [np.empty_like(m.get_value()) for m in model.masks]
+    for i, p in enumerate(model.parms):
+        parms[i] = p.get_value().copy()
+    for i, m  in enumerate(model.masks):
+        masks[i] = m.get_value().copy()
+    util.io.save([parms,masks],os.path.join(path,name))
 
-    util.io.save((model),os.path.join(path,name))
+    # util.io.save((model),os.path.join(path,name))
 
-def load_model(name, path = 'temp_data/saved_models'):
+def load_model(n_inputs, name, path = 'temp_data/saved_models'):
 
-    model = util.io.load(os.path.join(path,name))
+    # model = util.io.load(os.path.join(path,name))
+    # return model
+    model = create_model(n_inputs, rng=np.random)
+    try:
+        params,masks = util.io.load(os.path.join(path,name))
+    except FileNotFoundError:
+        return None
+
+    assert len(params) == len(model.parms),'number of parameters is not the same, likely due to different number of stages'
+    assert params[0].shape[0] == model.parms[0].get_value().shape[0], f'invalid model input dimension. Expected {model.parms[0].get_value().shape[0]}, got {params[0].shape[0]}'
+    assert params[0].shape[1] == model.parms[0].get_value().shape[1], f'invalid model, number of nodes per hidden layer. Expected {model.parms[0].get_value().shape[1]}, got {params[0].shape[1]}'
+
+    for i, p in enumerate(params):
+        model.parms[i].set_value(p)   
+
+    for i, m in enumerate(masks):
+        model.masks[i].set_value(m)
+
     return model
 
-    # checkpointer = ModelCheckpointer(model)
-    # params = util.io.load(os.path.join(path,name))
-    # assert len(checkpointer.checkpointed_parms) == len(params),'number of parameters is not the same, likely due to different number of stages'
-    # assert checkpointer.checkpointed_parms[0].shape[0] == params.shape[0], f'invalid model input dimension. Expected {checkpointer.checkpointed_parms[0].shape[0]}, got {params.shape[0]}'
-    # assert checkpointer.checkpointed_parms[0].shape[1] == params.shape[1], f'invalid model, number of nodes per hidden layer. Expected {checkpointer.checkpointed_parms[0].shape[1]}, got {params.shape[1]}'
-
-
-    # checkpointer.checkpointed_parms = params
-    # checkpointer.restore()
-    # return checkpointer.model
-
-def update_best_model(model,samples,best_trn_loss,name):
+def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_models'):
     if best_trn_loss == np.Inf:
-        old_model = load_model(name)
-        best_trn_loss = old_model.eval_trnloss(samples)
+        old_model = load_model(samples.shape[1],name,path)
+        if old_model is not None:
+            best_trn_loss = old_model.eval_trnloss(samples)
     new_loss = model.eval_trnloss(samples)
     if best_trn_loss < new_loss:
         return best_trn_loss
     else:
-        save_model(model,name)
+        save_model(model,name,path)
         return new_loss
 
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,patience=5,method='umtkl',n_hiddens=[100,100],n_stages=14):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,patience=5,method='umtkl',n_hiddens=[200,200],n_stages=14):
     """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
     This method does not implement any speed up from threading
 
