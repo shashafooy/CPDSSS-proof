@@ -771,17 +771,18 @@ def learn_conditional_density(model, xs, ys, ws=None, regularizer=None, val_frac
 
 class UMestimator:
     
-    def __init__(self, sim_model, model):
+    def __init__(self, sim_model, model, samples=None):
         """Estimator class to hold the given neural net model and associated functions to train and evaluate entropy
 
         Args:
             sim_model (_type_): class that generates points from target distribution
             model (_type_): model to be learned
+            samples (_type,optional): Initial samples used for training and entropy
         """
         
         self.sim_model = sim_model
         self.model = model
-        self.samples = None
+        self.samples = samples
         self.n_samples = None
         self.xdim = None
         self.target = sim_model.entropy()
@@ -807,7 +808,7 @@ class UMestimator:
             xs = self.sim_model.sim(n_samples)
             self.samples = xs
         
-        self.n_samples = n_samples
+        self.n_samples = self.samples.shape[0]
         self.x_dim = self.samples.shape[1]
         
         #Scale so validation occurs at most every 10**5 / minibatch during training

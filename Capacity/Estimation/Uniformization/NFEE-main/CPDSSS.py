@@ -74,7 +74,8 @@ for i in range(n_trials):
             
     for k, T in enumerate(T_range):
         sim_model = CPDSSS(T,N,L,use_gaussian_approx=GQ_gaussian)
-
+        #generate base samples based on max dimension
+        sim_model.use_chan_in_sim()
         knn_samples = int(min(min_knn_samples, 0.75*n_train_samples * sim_model.x_dim))
         X,X_T,X_cond,h = sim_model.get_base_X_h(knn_samples)
         hxc=np.concatenate((X_cond,h),axis=1)

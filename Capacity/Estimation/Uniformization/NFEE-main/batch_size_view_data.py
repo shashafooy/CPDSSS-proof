@@ -3,6 +3,7 @@ import util.io
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 from simulators.CPDSSS_models import Laplace
 from misc_CPDSSS import viewData
@@ -23,6 +24,7 @@ filepath = 'temp_data/batch_size/20N_100k_train'
 
 for filename in os.listdir(filepath):
     filename=os.path.splitext(filename)[0] #remove extention
+    if re.search(r"\(-1_iter\)",filename): continue #skip empty file
     _batch_size,N,_error,_duration,_H_sim,_H_reuse = util.io.load(os.path.join(filepath, filename))
     
 
@@ -49,7 +51,7 @@ viewData.clean_data(H_reuse)
 # Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
 if REMOVE_OUTLIERS:
     error = viewData.remove_outlier(error)
-    # duration = viewData.remove_outlier(duration)
+    duration = viewData.remove_outlier(duration)
     H_sim = viewData.remove_outlier(H_sim)
     H_reuse = viewData.remove_outlier(H_reuse)
 

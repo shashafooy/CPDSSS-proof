@@ -90,13 +90,13 @@ def calc_entropy_thread(sim_model,n_train,base_samples):
     Returns:
         (thread,numpy): return started thread handle used for calculating entropy and the associated entropy correction term
     """
-    estimator = learn_model(sim_model,n_train)
+    estimator = learn_model(sim_model,n_train,base_samples)
     estimator.samples=base_samples
     uniform,correction = estimator.uniform_correction()
     thread = estimator.start_knn_thread(uniform)
     return thread,correction
 
-def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,200],n_stages=14, mini_batch=256, fine_tune=True):
+def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.001,patience=5,n_hiddens=[200,200],n_stages=14, mini_batch=512, fine_tune=True):
     """Create a MAF model and train it with the given parameters
 
     Args:
@@ -114,7 +114,7 @@ def learn_model(sim_model,n_samples=100,val_tol=0.001,patience=5,n_hiddens=[200,
     """
     
     net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
-    estimator = entropy.UMestimator(sim_model,net)
+    estimator = entropy.UMestimator(sim_model,net,train_samples)
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
     estimator.learn_transformation(
