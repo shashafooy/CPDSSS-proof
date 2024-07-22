@@ -8,6 +8,7 @@ from threading import Thread
 import time
 import re
 import multiprocessing as mp
+import theano
 
 import numpy as np
 from scipy import stats
@@ -17,6 +18,7 @@ import util.io
 from ml.trainers import ModelCheckpointer
 
 
+dtype = theano.config.floatX
 
 def UM_KL_Gaussian(x):
     std_x=np.std(x,axis=0)
@@ -76,14 +78,26 @@ def load_model(n_inputs, name, path = 'temp_data/saved_models'):
     assert params[0].shape[1] == model.parms[0].get_value().shape[1], f'invalid model, number of nodes per hidden layer. Expected {model.parms[0].get_value().shape[1]}, got {params[0].shape[1]}'
 
     for i, p in enumerate(params):
-        model.parms[i].set_value(p)   
+        model.parms[i].set_value(p.astype(dtype))   
 
     for i, m in enumerate(masks):
-        model.masks[i].set_value(m)
+        model.masks[i].set_value(m.astype(dtype))
 
     return model
 
 def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_models'):
+    """Compare the given model with the saved model {name} located at {path}. If new model has lower training loss, save to given file
+
+    Args:
+        model (MaskedAutoregressiveFlow): new model to compare against
+        samples (_type_): samples to find the training loss for
+        best_trn_loss (_type_): current best training loss
+        name (_type_): name of saved model
+        path (str, optional): path to the model file. Defaults to 'temp_data/saved_models'.
+
+    Returns:
+        _type_: best error
+    """
     if best_trn_loss == np.Inf:
         old_model = load_model(samples.shape[1],name,path)
         if old_model is not None:

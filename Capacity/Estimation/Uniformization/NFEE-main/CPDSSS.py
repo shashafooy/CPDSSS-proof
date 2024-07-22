@@ -70,7 +70,7 @@ filename = "CPDSSS_data({})".format(today)
 
 #fix filename if file already exists
 filename = misc.update_filename(path,filename,-1,rename=False)     
-
+# model = ent.load_model(8,'CPDSSS_hxc_2T','temp_data/saved_models/2T')
 
 """
 Generate data
