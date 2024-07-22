@@ -96,7 +96,7 @@ def calc_entropy_thread(sim_model,n_train,base_samples):
     thread = estimator.start_knn_thread(uniform)
     return thread,correction
 
-def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.001,patience=5,n_hiddens=[200,200],n_stages=14, mini_batch=512, fine_tune=True):
+def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,patience=5,n_hiddens=[200,200],n_stages=14, mini_batch=256, fine_tune=True):
     """Create a MAF model and train it with the given parameters
 
     Args:
