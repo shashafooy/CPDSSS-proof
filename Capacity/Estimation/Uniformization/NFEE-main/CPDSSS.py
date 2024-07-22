@@ -23,6 +23,8 @@ T_range = range(2,N+max_T)
 T_range = range(8,9)
 T_range = range(2,8)
 
+save_best_model = True
+
 """
 Number of iterations
 """
@@ -46,6 +48,8 @@ H_x=np.empty((n_trials,len(T_range)))*np.nan
 H_h=np.empty((n_trials,len(T_range)))*np.nan
 H_xh=np.empty((n_trials,len(T_range)))*np.nan
 
+best_trn_loss = np.empty((T_range[-1],4))*np.Inf
+
 H_hxc_thread = None
 H_cond_thread = None
 H_xxc_thread = None
@@ -61,6 +65,7 @@ base_path = "temp_data/CPDSSS_data/MI(h,X)/N4_L2/"
 
 path = base_path + "coarse-fine_75k_x_dims"
 filename = "CPDSSS_data({})".format(today)
+
 
 
 #fix filename if file already exists
@@ -122,7 +127,9 @@ for i in range(n_trials):
         #Train H(h,x_cond)
         misc.print_border("1/4 calculating H(h,x_old), T: {0}, iter: {1}".format(T,i+1))        
         prev_tx_model.use_chan_in_sim()
-        H_hxc_thread,H_hxc_correction = ent.calc_entropy_thread(prev_tx_model,n_train_samples,hxc)
+        H_hxc_thread,H_hxc_correction,hxc_model = ent.calc_entropy_thread(prev_tx_model,n_train_samples,hxc)
+        if save_best_model:
+            best_trn_loss[T,0] = ent.update_best_model(hxc_model,hxc,best_trn_loss[T,0],f'CPDSSS_hxc_{T}T')
         if H_joint_thread is not None: #don't run if first iteration
             #get knn H(joint) from previous iteration
             knn = H_joint_thread.get_result()
@@ -137,7 +144,9 @@ for i in range(n_trials):
         #Train H(x_cond)
         misc.print_border("2/4 calculating H(x_old), T: {0}, iter: {1}".format(T,i+1))
         prev_tx_model.use_chan_in_sim(False)
-        H_cond_thread,H_cond_correction = ent.calc_entropy_thread(prev_tx_model,n_train_samples,X_cond)        
+        H_cond_thread,H_cond_correction,cond_model = ent.calc_entropy_thread(prev_tx_model,n_train_samples,X_cond)        
+        if save_best_model:
+            best_trn_loss[T,1] = ent.update_best_model(cond_model,X_cond,best_trn_loss[T,1],f'CPDSSS_Xcond_{T}T')
         #wait for knn H(h,x_cond)
         knn = H_hxc_thread.get_result()        
         H_gxc_cum[i,k] = knn + H_hxc_correction #knn + correction
@@ -147,7 +156,9 @@ for i in range(n_trials):
         #Train H(x_T,x_cond)
         misc.print_border("3/4 calculating H(x_T, x_old), T: {0}, iter: {1}".format(T,i+1))
         sim_model.use_chan_in_sim(False)
-        H_xxc_thread, H_xxc_correction = ent.calc_entropy_thread(sim_model,n_train_samples,X)
+        H_xxc_thread, H_xxc_correction,xxc_model = ent.calc_entropy_thread(sim_model,n_train_samples,X)
+        if save_best_model:
+            best_trn_loss[T,2] = ent.update_best_model(xxc_model,X,best_trn_loss[T,2],f'CPDSSS_xxc_{T}T')
         #wait for knn H(x_cond)
         knn = H_cond_thread.get_result()
         H_cond_cum[i,k] = knn + H_cond_correction
@@ -157,7 +168,9 @@ for i in range(n_trials):
         #Train H(h,x_T,x_cond)
         misc.print_border("4/4 calculating H_(h,x_T,x_old), T: {0}, iter: {1}".format(T,i+1))
         sim_model.use_chan_in_sim()
-        H_joint_thread, H_joint_correction = ent.calc_entropy_thread(sim_model,n_train_samples,joint)        
+        H_joint_thread, H_joint_correction,joint_model = ent.calc_entropy_thread(sim_model,n_train_samples,joint)        
+        if save_best_model:
+            best_trn_loss[T,3] = ent.update_best_model(hxc_model,joint,best_trn_loss[T,3],f'CPDSSS_joint_{T}T')
         #wait for knn H(x_T,x_cond)
         knn = H_xxc_thread.get_result()
         H_xxc_cum[i,k] = knn + H_xxc_correction

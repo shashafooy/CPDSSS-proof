@@ -12,6 +12,10 @@ import multiprocessing as mp
 import numpy as np
 from scipy import stats
 from ent_est import entropy
+import ml.models.mafs as mafs
+import util.io
+from ml.trainers import ModelCheckpointer
+
 
 
 def UM_KL_Gaussian(x):
@@ -35,7 +39,6 @@ def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=14):
     n_hiddens=n_hiddens
     act_fun='tanh'
 
-    import ml.models.mafs as mafs
 
     return mafs.MaskedAutoregressiveFlow(
                 n_inputs=n_inputs,
@@ -46,6 +49,41 @@ def create_model(n_inputs, rng, n_hiddens = [100,100],n_mades=14):
                 mode='random',
                 rng=rng
             )
+
+def save_model(model,name,path = 'temp_data/saved_models'):    
+    # checkpointer = ModelCheckpointer(model)
+    # checkpointer.checkpoint()
+    # util.io.save(checkpointer.checkpointed_parms,os.path.join(path,name))
+
+    util.io.save((model),os.path.join(path,name))
+
+def load_model(name, path = 'temp_data/saved_models'):
+
+    model = util.io.load(os.path.join(path,name))
+    return model
+
+    # checkpointer = ModelCheckpointer(model)
+    # params = util.io.load(os.path.join(path,name))
+    # assert len(checkpointer.checkpointed_parms) == len(params),'number of parameters is not the same, likely due to different number of stages'
+    # assert checkpointer.checkpointed_parms[0].shape[0] == params.shape[0], f'invalid model input dimension. Expected {checkpointer.checkpointed_parms[0].shape[0]}, got {params.shape[0]}'
+    # assert checkpointer.checkpointed_parms[0].shape[1] == params.shape[1], f'invalid model, number of nodes per hidden layer. Expected {checkpointer.checkpointed_parms[0].shape[1]}, got {params.shape[1]}'
+
+
+    # checkpointer.checkpointed_parms = params
+    # checkpointer.restore()
+    # return checkpointer.model
+
+def update_best_model(model,samples,best_trn_loss,name):
+    if best_trn_loss == np.Inf:
+        old_model = load_model(name)
+        best_trn_loss = old_model.eval_trnloss(samples)
+    new_loss = model.eval_trnloss(samples)
+    if best_trn_loss < new_loss:
+        return best_trn_loss
+    else:
+        save_model(model,name)
+        return new_loss
+
 
 def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,patience=5,method='umtkl',n_hiddens=[100,100],n_stages=14):
     """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
@@ -94,7 +132,7 @@ def calc_entropy_thread(sim_model,n_train,base_samples):
     estimator.samples=base_samples
     uniform,correction = estimator.uniform_correction()
     thread = estimator.start_knn_thread(uniform)
-    return thread,correction
+    return thread,correction,estimator.model
 
 def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,patience=5,n_hiddens=[200,200],n_stages=14, mini_batch=256, fine_tune=True):
     """Create a MAF model and train it with the given parameters
