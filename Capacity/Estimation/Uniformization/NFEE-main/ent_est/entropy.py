@@ -844,7 +844,7 @@ class UMestimator:
         """
 
 
-        uniform,correction = self.uniform_correction(reuse_samples,SHOW_PDF_PLOTS)
+        uniform,correction = self.uniform_correction(SHOW_PDF_PLOTS=SHOW_PDF_PLOTS)
         thread = self.start_knn_thread(uniform,k,method)
         H = thread.get_result()
 
@@ -876,7 +876,7 @@ class UMestimator:
         elif method =='both':
             return kl_ksg(samples, k=k)
         
-    def uniform_correction(self, samples = None, reuse_samples = True, SHOW_PDF_PLOTS=False):
+    def uniform_correction(self, samples = None, SHOW_PDF_PLOTS=False):
         """Generate uniformized data and the associated entropy correction terms
 
         Args:
@@ -888,9 +888,7 @@ class UMestimator:
             _type_: Uniformized points, Jacobian entropy correction term
         """
         
-        if samples is None and reuse_samples and self.samples is not None:
-            samples = self.samples
-        elif samples is None:
+        if samples is None:
             samples = self.sim_model.sim(self.n_samples)
         
 
