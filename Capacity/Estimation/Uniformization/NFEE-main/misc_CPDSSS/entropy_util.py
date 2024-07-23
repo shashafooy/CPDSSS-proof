@@ -98,11 +98,13 @@ def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_mod
     Returns:
         _type_: best error
     """
-    if best_trn_loss == np.Inf:
-        old_model = load_model(samples.shape[1],name,path)
-        if old_model is not None:
-            best_trn_loss = old_model.eval_trnloss(samples)
     new_loss = model.eval_trnloss(samples)
+    # if best_trn_loss == np.Inf:
+    old_model = load_model(samples.shape[1],name,path)
+    if old_model is not None:
+        best_trn_loss = old_model.eval_trnloss(samples)
+    
+    print(f"Saved best test loss: {best_trn_loss:.3f}, new model test loss: {new_loss:.3f}")
     if best_trn_loss < new_loss:
         return best_trn_loss
     else:

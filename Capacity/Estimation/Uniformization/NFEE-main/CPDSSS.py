@@ -22,6 +22,7 @@ max_T=5
 T_range = range(2,N+max_T)
 T_range = range(8,9)
 T_range = range(2,8)
+T_range = range(4,8)
 
 save_best_model = True
 
@@ -48,7 +49,7 @@ H_x=np.empty((n_trials,len(T_range)))*np.nan
 H_h=np.empty((n_trials,len(T_range)))*np.nan
 H_xh=np.empty((n_trials,len(T_range)))*np.nan
 
-best_trn_loss = np.empty((T_range[-1],4))*np.Inf
+best_trn_loss = np.empty((T_range[-1],4))*1e5
 
 H_hxc_thread = None
 H_cond_thread = None
@@ -172,7 +173,7 @@ for i in range(n_trials):
         sim_model.use_chan_in_sim()
         H_joint_thread, H_joint_correction,joint_model = ent.calc_entropy_thread(sim_model,n_train_samples,joint)        
         if save_best_model:
-            best_trn_loss[T-1,3] = ent.update_best_model(hxc_model,joint,best_trn_loss[T-1,3],f'CPDSSS_joint_{T}T',model_path)
+            best_trn_loss[T-1,3] = ent.update_best_model(joint_model,joint,best_trn_loss[T-1,3],f'CPDSSS_joint_{T}T',model_path)
         #wait for knn H(x_T,x_cond)
         knn = H_xxc_thread.get_result()
         H_xxc_cum[i,k] = knn + H_xxc_correction
