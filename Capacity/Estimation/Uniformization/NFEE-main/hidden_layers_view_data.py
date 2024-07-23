@@ -167,10 +167,12 @@ for i in range(len(layers)):
     ax[i].set_xlabel("Nodes per Layer")
     ax[i].set_ylabel("H(x) RMSE")
     ax[i].set_yscale("log")
-
+    
+    
     if i==0:
         y_lim = ax[i].get_ylim()
     ax[i].set_ylim(y_lim)
 
+fig.tight_layout()
 
 plt.show()
