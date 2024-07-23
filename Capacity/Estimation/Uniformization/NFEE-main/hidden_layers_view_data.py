@@ -97,6 +97,7 @@ err_KSG = np.abs(H_KSG - H_true)
 
 fig,ax=plt.subplots(1,len(layers))
 fig.suptitle("Entropy for different hidden layers, N={}".format(N))
+y_lim = np.zeros((len(layers),2))
 for i in range(len(layers)):
     
 
@@ -113,6 +114,12 @@ for i in range(len(layers)):
     ax[i].legend(["True H(x)","KL H(x)","KSG H(x)","Uniform KL H(x)","Uniform KSG H(x)"])
     ax[i].set_xlabel("Nodes per Layer")
     ax[i].set_ylabel("H(x)")
+
+    y_lim[i] = ax[i].get_ylim()    
+
+for axx in ax:
+    axx.set_ylim([np.min(y_lim),np.max(y_lim)]) 
+
 
 
 #Absolute error
@@ -131,6 +138,7 @@ for i in range(len(layers)):
 fig,ax=plt.subplots(1,len(layers))
 fig.suptitle("MSE for different hidden layers, N={}".format(N))
 
+
 for i in range(len(layers)):
     ax[i].axhline(y=MSE_KL,color='g',linestyle='--')
     ax[i].axhline(y=MSE_KSG,color='b',linestyle='--')
@@ -145,12 +153,18 @@ for i in range(len(layers)):
     ax[i].set_xlabel("Nodes per Layer")
     ax[i].set_ylabel("H(x) MSE")
     ax[i].set_yscale("log")
-    if i==0:
-        y_lim = ax[i].get_ylim()
-    ax[i].set_ylim(y_lim)
+    
+    y_lim[i] = ax[i].get_ylim()
+    
+
+for axx in ax:
+    axx.set_ylim([np.min(y_lim),np.max(y_lim)]) 
+
+
 
 fig,ax=plt.subplots(1,len(layers))
 fig.suptitle("RMSE for different hidden layers, N={}".format(N))
+
 
 for i in range(len(layers)):
     ax[i].axhline(y=RMSE_KL,color='g',linestyle='--')
@@ -167,10 +181,13 @@ for i in range(len(layers)):
     ax[i].set_xlabel("Nodes per Layer")
     ax[i].set_ylabel("H(x) RMSE")
     ax[i].set_yscale("log")
+    
+    y_lim[i] = ax[i].get_ylim()
+    
 
-    if i==0:
-        y_lim = ax[i].get_ylim()
-    ax[i].set_ylim(y_lim)
+for axx in ax:
+    axx.set_ylim([np.min(y_lim),np.max(y_lim)]) 
 
+fig.tight_layout()
 
 plt.show()

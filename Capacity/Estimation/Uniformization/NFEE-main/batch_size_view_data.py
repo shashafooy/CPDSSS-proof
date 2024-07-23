@@ -56,6 +56,14 @@ if REMOVE_OUTLIERS:
     H_reuse = viewData.remove_outlier(H_reuse)
 
 
+#remove 4096
+batch_size = batch_size[:-1]
+error = error[:,:-1]
+duration = duration[:,:-1]
+H_sim = H_sim[:,:-1]
+H_reuse = H_reuse[:,:-1]
+
+
 H_true = Laplace(mu=0,b=2,N=N).entropy()
 H_sim_err = np.abs(H_sim-H_true)
 H_reuse_err = np.abs(H_reuse-H_true)
@@ -72,6 +80,10 @@ var_duration = np.nanvar(duration,axis=0)
 var_H_sim_err = np.nanvar(H_sim_err,axis=0)
 var_H_reuse_err = np.nanvar(H_reuse_err,axis=0)
 
+MSE_train = np.nanmean(error**2,axis=0)
+MSE_H_sim = np.nanmean(H_sim_err**2,axis=0)
+MSE_H_reuse = np.nanmean(H_reuse_err**2,axis=0)
+
 
 
 # PLOTS
@@ -84,14 +96,31 @@ for i in range(len(batch_size)):
 
 plt.figure(1)
 # plt.axhline(y=H_true,linestyle='--')
-plt.plot(batch_size, mean_err, marker='o', linestyle='None', label='mean_err')
-plt.plot(batch_size, mean_H_sim_err, marker='o', linestyle='None', label='mean_H_sim_err')
-plt.plot(batch_size, mean_H_reuse_err, marker='o', linestyle='None', label='mean_H_reuse_err')
-
+plt.plot(batch_size, mean_err, marker='o', label='training')
+plt.plot(batch_size, mean_H_sim_err, marker='o', label='uniform entropy')
+# plt.plot(batch_size, mean_H_reuse_err, marker='o', linestyle='None', label='mean_H_reuse_err')
+plt.xscale('log')
+plt.xticks(batch_size,labels=[str(a) for a in batch_size])
 plt.title("validation error per batch size")
 plt.xlabel("batch size")
 plt.ylabel("H(x) error")
-plt.legend(["MAF error","knn new data err","knn training data err"])
+plt.legend()
+# plt.legend(["MAF error","knn new data err","knn training data err"])
+plt.tight_layout()
+
+plt.figure(2)
+# plt.axhline(y=H_true,linestyle='--')
+plt.plot(batch_size, MSE_train, marker='o', label='training')
+plt.plot(batch_size, MSE_H_sim, marker='o', label='uniform entropy')
+# plt.plot(batch_size, MSE_H_reuse, marker='o', linestyle='None', label='reuse data')
+plt.yscale('log')
+plt.xscale('log')
+plt.xticks(batch_size,labels=[str(a) for a in batch_size])
+plt.title("MSE per batch size")
+plt.xlabel("batch size")
+plt.ylabel("H(x) MSE")
+plt.legend()
+plt.tight_layout()
 
 
 plt.show()

@@ -16,6 +16,7 @@ from ent_est import entropy
 import ml.models.mafs as mafs
 import util.io
 from ml.trainers import ModelCheckpointer
+import ml.step_strategies as ss
 
 
 dtype = theano.config.floatX
@@ -112,7 +113,7 @@ def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_mod
         return new_loss
 
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,patience=5,method='umtkl',n_hiddens=[200,200],n_stages=14):
+def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,patience=5,method='umtkl',n_hiddens=[200,200,200],n_stages=14):
     """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
     This method does not implement any speed up from threading
 
@@ -144,24 +145,27 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,pat
     else:
         return H
     
-def calc_entropy_thread(sim_model,n_train,base_samples):
+def calc_entropy_thread(sim_model,n_train,base_samples,reuse=True,method='umtksg'):
     """Train the MAF model, evaluate the uniformizing correction term, and launch the knn algorithm as a thread
 
     Args:
         sim_model (_type_): model used to generate points from target distribution. Must have method sim()
         n_train (_type_): number of samples used in training. This will be scaled by the dimensionality of the data.
-        base_samples (_type_): samples generated from the target distribution to be used in knn
+        base_samples (_type_,optional): samples generated from the target distribution to be used in knn. Default None
+        method (str, optional): type of knn metric to use ('umtkl','umtksg','both'). Defaults to 'umtksg'.
+
 
     Returns:
         (thread,numpy): return started thread handle used for calculating entropy and the associated entropy correction term
     """
-    estimator = learn_model(sim_model,n_train,base_samples)
-    estimator.samples=base_samples
-    uniform,correction = estimator.uniform_correction()
-    thread = estimator.start_knn_thread(uniform)
-    return thread,correction,estimator.model
 
-def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,patience=5,n_hiddens=[200,200],n_stages=14, mini_batch=256, fine_tune=True):
+    estimator = learn_model(sim_model, n_train, train_samples= base_samples if reuse else None)
+    # estimator.samples=base_samples
+    uniform,correction = estimator.uniform_correction(base_samples)
+    thread = estimator.start_knn_thread(uniform,method=method)
+    return thread,correction,estimator
+
+def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,patience=5,n_hiddens=[200,200,200],n_stages=14, mini_batch=256, fine_tune=True, step=ss.Adam()):
     """Create a MAF model and train it with the given parameters
 
     Args:
@@ -187,7 +191,8 @@ def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,pat
         val_tol=val_tol,
         patience=patience, 
         fine_tune=fine_tune,
-        minibatch=mini_batch
+        minibatch=mini_batch,
+        step=step
         )
     end_time = time.time()        
     print("learning time: ",str(timedelta(seconds = int(end_time - start_time))))

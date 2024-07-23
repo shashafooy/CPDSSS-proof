@@ -26,7 +26,7 @@ n_trials = 20
 show_progress=False
 patience=5
 N=20
-batch_size = np.power(2,[8,9])
+batch_size = np.power(2,[10,11])
 
 
 error = np.empty((n_trials,len(batch_size)))*np.nan

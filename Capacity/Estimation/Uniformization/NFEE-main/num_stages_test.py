@@ -7,6 +7,7 @@ import simulators.CPDSSS_models as mod
 import util.io
 
 from ent_est.entropy import kl_ksg
+import ml.step_strategies as ss
 
 
 
@@ -24,6 +25,11 @@ N=15
 method='both'
 # layers = [2,3,4]
 stages = np.arange(12,19,2) #theano gradient breaks for stages>=20
+stages = [6,7,8,10,11]
+minibatch=128
+fine_tune=False
+hidden = [100,100]
+step = ss.Adam(a=0.0001)
 
 
 H_unif_KL = np.empty((n_trials,len(stages)))*np.nan
@@ -31,16 +37,17 @@ H_unif_KSG = np.empty((n_trials,len(stages)))*np.nan
 H_KL = np.empty((n_trials))*np.nan
 H_KSG = np.empty((n_trials))*np.nan
     
-iter=0
 MSE_uniform=np.inf
 MSE_KL=np.inf
 
 path = 'temp_data/stages_test/15N_1M_knn'
 today=date.today().strftime("%b_%d")
 filename = "num_stages_data({})".format(today)
-filename = misc.update_filename(path=path,old_name=filename,iter=iter,rename=False)
+filename = misc.update_filename(path=path,old_name=filename,iter=-1,rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
+H_thread1 = None
+H_thread2 = None
 
 for i in range(n_trials):
     sim_laplace = mod.Laplace(mu=0,b=2,N=N)
@@ -48,25 +55,31 @@ for i in range(n_trials):
     laplace_base = sim_laplace.sim(n_samples=knn_samples)
 
     # KNN might take awhile, run in background
-    thread = misc.BackgroundThread(target = kl_ksg,args=(laplace_base,))
-    thread.start()
+    # thread = misc.BackgroundThread(target = kl_ksg,args=(laplace_base,))
+    # thread.start()
    
 
     for ns,n_stages in enumerate(stages):              
         
+        if H_thread1 is not None:
+            H_unif_KL[old_idx1],H_unif_KSG[old_idx1] = H_thread1.get_result() + H_correction1
+            H_unif_KL[old_idx2],H_unif_KSG[old_idx2] = H_thread2.get_result() + H_correction2
+
         misc.print_border("Calculate H(x) laplace, stages={} iter: {}".format(n_stages,i+1))    
-        estimator = ent.learn_model(sim_laplace,n_train_samples,val_tol,patience,n_stages=n_stages)
+        estimator = ent.learn_model(sim_laplace, n_train_samples, n_hiddens=hidden, n_stages=n_stages, mini_batch=minibatch, fine_tune=False, step=step)
 
-        H_unif_KL[2*i,ns],H_unif_KSG[2*i,ns] = ent.knn_entropy(estimator,laplace_base,method=method)                    
-        H_unif_KL[2*i+1,ns],H_unif_KSG[2*i+1,ns] = ent.knn_entropy(estimator,sim_laplace.sim(knn_samples),method=method)                    
+        uniform,H_correction1 = estimator.uniform_correction(laplace_base)
+        H_thread1 = estimator.start_knn_thread(uniform,method=method)        
 
-        #if thread finishes early, get results, but only once
-        if ~thread.used_result() and not thread.is_alive():
-            H_KL[i],H_KSG[i] = thread.get_result()
+        uniform,H_correction2 = estimator.uniform_correction(sim_laplace.sim(knn_samples))
+        H_thread2 = estimator.start_knn_thread(uniform,method=method)
+
+        old_idx1=(2*i,ns)     
+        old_idx2=(2*i+1,ns)
+
         util.io.save((stages,H_unif_KL,H_unif_KSG,H_KL,H_KSG),os.path.join(path,filename))
 
     #Wait if thread is still not finished
-    H_KL[i],H_KSG[i] = thread.get_result() 
 
     filename=misc.update_filename(path,filename,i+1,rename=True)
     util.io.save((stages,H_unif_KL,H_unif_KSG,H_KL,H_KSG),os.path.join(path,filename))
