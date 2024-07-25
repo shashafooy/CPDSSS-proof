@@ -6,7 +6,7 @@ import numpy as np
 from simulators.CPDSSS_models import Laplace
 from misc_CPDSSS import viewData
 
-plt.rcParams['text.usetex']=True
+# plt.rcParams['text.usetex']=True
 
 
 
@@ -97,6 +97,7 @@ err_KSG = np.abs(H_KSG - H_true)
 
 fig,ax=plt.subplots(1,len(layers))
 fig.suptitle("Entropy for different hidden layers, N={}".format(N))
+y_lim = np.zeros(len(layers))
 for i in range(len(layers)):
     
 
@@ -113,6 +114,10 @@ for i in range(len(layers)):
     ax[i].legend(["True H(x)","KL H(x)","KSG H(x)","Uniform KL H(x)","Uniform KSG H(x)"])
     ax[i].set_xlabel("Nodes per Layer")
     ax[i].set_ylabel("H(x)")
+    y_lim=ax[i].get_ylim()
+
+for a in ax:
+    a.set_ylim([np.min(y_lim), np.max(y_lim)])
 
 
 #Absolute error
@@ -145,9 +150,20 @@ for i in range(len(layers)):
     ax[i].set_xlabel("Nodes per Layer")
     ax[i].set_ylabel("H(x) MSE")
     ax[i].set_yscale("log")
-    if i==0:
-        y_lim = ax[i].get_ylim()
-    ax[i].set_ylim(y_lim)
+    y_lim=ax[i].get_ylim()
+
+for a in ax:
+    a.set_ylim([np.min(y_lim), np.max(y_lim)])
+    
+
+
+plt.figure(5)
+plt.plot(
+    # nodes,MSE_unif_KL,'--',
+    nodes,MSE_unif_KSG,'-',
+)
+plt.legend(['KL 1 layer','KL 2 layer','KL 3 layer','KSG 1 layer','KSG 2 layer','KSG 3 layer'])
+
 
 fig,ax=plt.subplots(1,len(layers))
 fig.suptitle("RMSE for different hidden layers, N={}".format(N))
@@ -168,10 +184,10 @@ for i in range(len(layers)):
     ax[i].set_ylabel("H(x) RMSE")
     ax[i].set_yscale("log")
     
-    
-    if i==0:
-        y_lim = ax[i].get_ylim()
-    ax[i].set_ylim(y_lim)
+    y_lim=ax[i].get_ylim()
+
+for a in ax:
+    a.set_ylim([np.min(y_lim), np.max(y_lim)])
 
 fig.tight_layout()
 

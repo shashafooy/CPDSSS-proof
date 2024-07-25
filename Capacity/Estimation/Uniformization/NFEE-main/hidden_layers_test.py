@@ -17,7 +17,10 @@ from ent_est.entropy import kl_ksg
 knn_samples = 100000
 n_train_samples = 30000
 n_trials = 100
-val_tol = 0.1
+val_tol = 0.001
+mini_batch=128
+fine_tune=False
+num_stages=10
 # N_range=range(1,11)
 N=3
 method='both'
@@ -53,13 +56,30 @@ for i in range(n_trials):
     thread.start()
 
     # knn_thread = threading.Thread(target=kl_ksg,name="KL KSG",args=laplace_base)
-
+    thread1=None
+    thread2=None
     # H_KL_laplace[i],H_KSG_laplace[i] = kl_ksg(laplace_base)
     for ni,n_layers in enumerate(layers):    
         for nj,n_nodes in enumerate(nodes):              
             hidden_layers = [n_nodes]*n_layers           
+            if thread1 is not None:
+                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_results() + correction1
+                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_results() + correction2
+
             misc.print_border("Calculate H(x) laplace, Nodes={}, Layers={}, iter: {}".format(n_nodes,n_layers,i+1))            
-            H_unif_KL[i,ni,nj],H_unif_KSG[i,ni] = ent.calc_entropy(
+
+            estimator = ent.learn_model(sim_laplace,n_samples=n_train_samples,val_tol=val_tol,n_hiddens = hidden_layers,n_stages=num_stages,mini_batch=mini_batch,fine_tune=fine_tune)
+            uniform,correction1 = estimator.uniform_correction(laplace_base)
+            thread1 = estimator.start_knn_thread(uniform,method=method)
+
+            uniform,correction2 = estimator.uniform_correction(sim_laplace.sim(n_samples=knn_samples))
+            thread2 = estimator.start_knn_thread(uniform,method=method)
+
+            old_idx1 = (2*i,ni,nj)
+            old_idx2 = (2*i+1,ni,nj)
+
+
+            H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = ent.calc_entropy(
                 sim_model = sim_laplace, 
                 n_samples = n_train_samples,
                 base_samples=laplace_base,

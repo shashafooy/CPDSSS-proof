@@ -6,6 +6,7 @@ scipy==1.11.4
 seaborn==0.13.1
 Theano==1.0.5
 python==3.9.7
+joblib==1.4.2
 conda install -c conda-forge pygpu theano
 
 

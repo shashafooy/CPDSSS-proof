@@ -6,7 +6,7 @@ import numpy as np
 from simulators.CPDSSS_models import Laplace
 from misc_CPDSSS import viewData
 
-plt.rcParams['text.usetex']=True
+# plt.rcParams['text.usetex']=True
 
 
 
