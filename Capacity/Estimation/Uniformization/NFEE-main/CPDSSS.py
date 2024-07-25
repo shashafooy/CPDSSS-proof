@@ -49,7 +49,7 @@ H_x=np.empty((n_trials,len(T_range)))*np.nan
 H_h=np.empty((n_trials,len(T_range)))*np.nan
 H_xh=np.empty((n_trials,len(T_range)))*np.nan
 
-best_trn_loss = np.empty((T_range[-1],4))*1e5
+best_trn_loss = np.ones((T_range[-1],4))*1e5
 
 H_hxc_thread = None
 H_cond_thread = None
