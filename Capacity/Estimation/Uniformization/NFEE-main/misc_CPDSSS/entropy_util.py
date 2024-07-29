@@ -26,7 +26,7 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng, n_hiddens = [200,200],n_mades=14):
+def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14):
     """Generate a multi stage Masked Autoregressive Flow (MAF) model
     George Papamakarios, Theo Pavlakou, and Iain Murray. “Masked Autoregressive Flow for Density Estimation”
 
@@ -64,14 +64,15 @@ def save_model(model,name,path = 'temp_data/saved_models'):
 
     # util.io.save((model),os.path.join(path,name))
 
-def load_model(n_inputs, name, path = 'temp_data/saved_models'):
+def load_model(model, name, path = 'temp_data/saved_models'):
 
     # model = util.io.load(os.path.join(path,name))
     # return model
-    model = create_model(n_inputs, rng=np.random)
+   # model = create_model(target_model.n_inputs, n_hiddens = target_model.n_hiddens, n_mades = target_model.n_mades)
     try:
         params,masks = util.io.load(os.path.join(path,name))
     except FileNotFoundError:
+        print(f"model {name} not found at {path}")
         return None
 
     assert len(params) == len(model.parms),'number of parameters is not the same, likely due to different number of stages'
@@ -100,10 +101,15 @@ def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_mod
         _type_: best error
     """
     new_loss = model.eval_trnloss(samples)
+    checkpointer = ModelCheckpointer(model)
+    checkpointer.checkpoint()
+
     # if best_trn_loss == np.Inf:
-    old_model = load_model(samples.shape[1],name,path)
+    old_model = load_model(model,name,path)
+
     if old_model is not None:
         best_trn_loss = old_model.eval_trnloss(samples)
+    checkpointer.restore()
     
     print(f"Saved best test loss: {best_trn_loss:.3f}, new model test loss: {new_loss:.3f}")
     if best_trn_loss < new_loss:

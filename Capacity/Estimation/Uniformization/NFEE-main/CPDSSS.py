@@ -21,8 +21,7 @@ P=N-int(N/L)
 max_T=5
 T_range = range(2,N+max_T)
 T_range = range(8,9)
-T_range = range(2,8)
-T_range = range(2,8)
+T_range = range(4,8)
 
 save_best_model = True
 

@@ -388,6 +388,7 @@ class ModelCheckpointer:
         """
         self.model = model
         self.checkpointed_parms = [np.empty_like(p.get_value()) for p in model.parms]
+        self.checkpointed_masks = [np.empty_like(m.get_value()) for m in model.masks]
 
     def checkpoint(self):
         """
@@ -395,6 +396,9 @@ class ModelCheckpointer:
         """
         for i, p in enumerate(self.model.parms):
             self.checkpointed_parms[i] = p.get_value().copy()
+        for i, m in enumerate(self.model.masks):
+            self.checkpointed_masks[i] = m.get_value().copy()
+      
 
     def restore(self):
         """
@@ -402,3 +406,5 @@ class ModelCheckpointer:
         """
         for i, p in enumerate(self.checkpointed_parms):
             self.model.parms[i].set_value(p)
+        for i, m in enumerate(self.checkpointed_masks):
+            self.model.masks[i].set_value(m.astype(dtype))
