@@ -21,7 +21,7 @@ n_trials = 100
 val_tol = 0.001
 mini_batch=256
 fine_tune=True
-num_stages=14
+num_stages=10
 step = ss.Adam()
 # N_range=range(1,11)
 N=15
@@ -65,8 +65,8 @@ for i in range(n_trials):
         for nj,n_nodes in enumerate(nodes):              
             hidden_layers = [n_nodes]*n_layers           
             if thread1 is not None:
-                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_results() + correction1
-                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_results() + correction2
+                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_result() + correction1
+                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_result() + correction2
 
             misc.print_border("Calculate H(x) laplace, Nodes={}, Layers={}, iter: {}".format(n_nodes,n_layers,i+1))            
 
@@ -79,15 +79,7 @@ for i in range(n_trials):
 
             old_idx1 = (2*i,ni,nj)
             old_idx2 = (2*i+1,ni,nj)
-
-
-            H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = ent.calc_entropy(
-                sim_model = sim_laplace, 
-                n_samples = n_train_samples,
-                base_samples=laplace_base,
-                val_tol=val_tol,
-                method=method,
-                n_hiddens=hidden_layers)                    
+                   
 
             # #if thread finishes early, get results, but only once
             # if ~thread.used_result() & ~thread.is_alive():
