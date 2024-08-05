@@ -11,6 +11,7 @@ from misc_CPDSSS import util as misc
 def compare_models(samples,name,base_folder,new_model_folder):
     model = ent.create_model(samples.shape[1])
     name = f'CPDSSS_{name}_{folder}'
+    print(f"checking training loss for {name}")
     old_loss = ent.load_model(model,name,base_folder).eval_trnloss(samples)
     new_loss = ent.load_model(model,name,new_model_folder).eval_trnloss(samples)
     print(f"old loss: {old_loss:.3f}, new loss: {new_loss:.3f}")
