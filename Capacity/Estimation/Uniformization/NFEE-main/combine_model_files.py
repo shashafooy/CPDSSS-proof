@@ -26,7 +26,7 @@ L=2
 M=int(N/L)
 P=N-int(N/L)
 
-min_samples = 200000 #samples to generate per entropy calc
+min_samples = 2000000 #samples to generate per entropy calc
 n_train_samples = 100000
 GQ_gaussian = False
 
