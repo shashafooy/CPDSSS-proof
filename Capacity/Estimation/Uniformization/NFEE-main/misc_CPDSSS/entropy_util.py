@@ -201,6 +201,8 @@ def learn_model(sim_model, pretrained_model=None, n_samples=100,train_samples = 
     
     net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages) if pretrained_model is None else pretrained_model
     estimator = entropy.UMestimator(sim_model,net,train_samples)
+    if train_samples is not None:
+        print(f"Starting Loss: {net.eval_trnloss(train_samples):.3f}")
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
     estimator.learn_transformation(
@@ -213,6 +215,7 @@ def learn_model(sim_model, pretrained_model=None, n_samples=100,train_samples = 
         )
     end_time = time.time()        
     print("learning time: ",str(timedelta(seconds = int(end_time - start_time))))
+    print(f"Final Loss: {net.eval_trnloss(train_samples):.3f}")
 
     return estimator
 
