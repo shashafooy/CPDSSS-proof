@@ -63,7 +63,7 @@ for i in range(n_trials):
         
         if H_thread1 is not None:
             H_unif_KL[old_idx1],H_unif_KSG[old_idx1] = H_thread1.get_result() + H_correction1
-            H_unif_KL[old_idx2],H_unif_KSG[old_idx2] = H_thread2.get_result() + H_correction2
+            # H_unif_KL[old_idx2],H_unif_KSG[old_idx2] = H_thread2.get_result() + H_correction2
 
         misc.print_border("Calculate H(x) laplace, stages={} iter: {}".format(n_stages,i+1))    
         estimator = ent.learn_model(sim_laplace, n_train_samples, n_hiddens=hidden, n_stages=n_stages, mini_batch=minibatch, fine_tune=False, step=step)
@@ -71,11 +71,12 @@ for i in range(n_trials):
         uniform,H_correction1 = estimator.uniform_correction(laplace_base)
         H_thread1 = estimator.start_knn_thread(uniform,method=method)        
 
-        uniform,H_correction2 = estimator.uniform_correction(sim_laplace.sim(knn_samples))
-        H_thread2 = estimator.start_knn_thread(uniform,method=method)
-
-        old_idx1=(2*i,ns)     
-        old_idx2=(2*i+1,ns)
+        # uniform,H_correction2 = estimator.uniform_correction(sim_laplace.sim(knn_samples))
+        # H_thread2 = estimator.start_knn_thread(uniform,method=method)
+# 
+        old_idx1=(i,ns)
+        # old_idx1=(2*i,ns)     
+        # old_idx2=(2*i+1,ns)
 
         util.io.save((stages,H_unif_KL,H_unif_KSG,H_KL,H_KSG),os.path.join(path,filename))
 

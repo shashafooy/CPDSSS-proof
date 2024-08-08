@@ -27,6 +27,7 @@ step = ss.Adam()
 N=15
 method='both'
 layers = [2,3,4]
+layers = [4]
 nodes = [100,150,200]
 
 # method='both'
@@ -65,8 +66,8 @@ for i in range(n_trials):
         for nj,n_nodes in enumerate(nodes):              
             hidden_layers = [n_nodes]*n_layers           
             if thread1 is not None:
-                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_result() + correction1
-                H_unif_KL[i,ni,nj],H_unif_KSG[i,ni,nj] = thread1.get_result() + correction2
+                H_unif_KL[old_idx1],H_unif_KSG[old_idx1] = thread1.get_result() + correction1
+                H_unif_KL[old_idx2],H_unif_KSG[old_idx2] = thread1.get_result() + correction2
 
             misc.print_border("Calculate H(x) laplace, Nodes={}, Layers={}, iter: {}".format(n_nodes,n_layers,i+1))            
 

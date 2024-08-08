@@ -27,6 +27,8 @@ N=15
 # idx=0
 # for idx,filepath in enumerate(filepaths):
 for filename in os.listdir(filepath):
+    if not os.path.isfile(os.path.join(filepath,filename)):
+        continue
     filename=os.path.splitext(filename)[0] #remove extention
     _layers,_nodes,_H_unif_KL,_H_unif_KSG,_H_KL,_H_KSG = util.io.load(os.path.join(filepath, filename))
 
