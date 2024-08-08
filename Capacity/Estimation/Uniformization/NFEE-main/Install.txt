@@ -1,0 +1,47 @@
+matplotlib==3.7.2
+numpy==1.20.3 
+pandas==2.1.4
+scikit-learn==1.3.2 (-c conda-forge) (1.2.2 for compatibility?)
+scipy==1.10.1
+seaborn==0.13.1
+Theano==1.0.5
+python==3.9.7
+joblib==1.4.2
+conda install -c conda-forge pygpu theano
+
+
+#Install all in one
+mamba create -n gpuknn -c rapidsai -c conda-forge -c nvidia \
+numpy=1.20.3 numba=0.56.4 cuml=22.06 python=3.9.7 scikit-learn==1.2.2 scipy=1.10.1 seaborn=0.13.1 pygpu theano mkl-service pydot
+
+
+
+Theano graphs
+pip install pydot
+sudo apt install graphviz
+
+
+Linux Install
+CUDA
+https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#debian
+https://developer.nvidia.com/cuda-downloads
+    follow instructions for required command to install cuda
+cudnn (optional)
+    https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html#installlinux-tar
+    https://developer.nvidia.com/rdp/cudnn-download
+    extract tar files to /usr/local/cuda directory
+        $ cd folder/extracted/contents
+        $ sudo cp include/cudnn.h /usr/local/cuda/include
+        $ sudo cp lib64/libcudnn* /usr/local/cuda/lib64
+        $ sudo chmod a+r /usr/local/cuda/lib64/libcudnn*
+
+    Make sure there are no conflits with anaconda cudnn files
+        Search for cudnn.h libsudnn.so (include,lib) in anaconda and replace those with the .tar versions
+Troubleshooting:
+    Remove ALL nvidia drivers
+    https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#removing-cuda-toolkit-and-driver
+    Reinstall nvidia driver, CUDA, and cudnn
+
+
+
+

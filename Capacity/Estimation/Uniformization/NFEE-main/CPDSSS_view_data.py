@@ -102,8 +102,9 @@ if COMBINE_ENTROPIES:
     H_cond_tot_long = np.append(temp,H_cond_tot,axis=0)
     H_cond_mean = np.nanmean(H_cond_tot_long,axis=0)
 
+    len_n = min(H_gxc_tot_long.shape[0],H_xxc_tot_long.shape[0])
     MI_mean = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
-    MI_tot_long = H_gxc_tot_long + H_xxc_tot_long - H_joint_tot_long - H_cond_tot_long
+    MI_tot_long = H_gxc_tot_long[:len_n,:] + H_xxc_tot_long[:len_n,:] - H_joint_tot_long[:len_n,:] - H_cond_tot_long[:len_n,:]
     # Due to inserting NaN to align matrices, first and last columns will always be NaN
     # Use original MI for first and last columns
     MI_tot_long[:MI_tot.shape[0],[0, MI_tot_long.shape[1]-1]] = MI_tot[:,[0,MI_tot_long.shape[1]-1]]

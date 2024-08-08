@@ -70,7 +70,7 @@ class SGD_Template:
             self.validate = None  # to be implemented by a subclass
 
             # create checkpointer to store best model
-            self.checkpointer = ModelCheckpointer(model)
+            self.checkpointer = ModelCheckpointer(model)            
             self.best_val_loss = float('inf')
 
         # initialize some variables
@@ -292,6 +292,8 @@ class SGD(SGD_Template):
                 outputs=val_loss,
                 givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens
             )
+            if self.set_batch_norm_stats is not None: self.set_batch_norm_stats()
+            self.best_val_loss = self.validate()
     def reduce_step_size(self):
         """update the step size to use smaller step size for fine tuning during training
         """

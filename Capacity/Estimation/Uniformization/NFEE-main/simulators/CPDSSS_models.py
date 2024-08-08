@@ -169,6 +169,18 @@ class CPDSSS:
         X_T=X[:,-self.N:]
         X_cond = X[:,0:-self.N]
         return X,X_T,X_cond,self.h
+    
+    def set_dim_hxc(self):
+        self.x_dim = (self.N-1)*self.T + self.N
+
+    def set_dim_xxc(self):
+        self.x_dim = self.N*self.T
+
+    def set_dim_cond(self):
+        self.x_dim = (self.N-1)*self.T
+
+    def set_dim_joint(self):
+        self.x_dim = self.N*self.T + self.N
 
 
 class CPDSSS_XS(CPDSSS):

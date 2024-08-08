@@ -60,20 +60,22 @@ def save_model(model,name,path = 'temp_data/saved_models'):
         parms[i] = p.get_value().copy()
     for i, m  in enumerate(model.masks):
         masks[i] = m.get_value().copy()
-    util.io.save([parms,masks],os.path.join(path,name))
+    util.io.save([parms,masks,model.n_inputs,model.n_hiddens,model.n_mades],os.path.join(path,name))
 
     # util.io.save((model),os.path.join(path,name))
 
-def load_model(model, name, path = 'temp_data/saved_models'):
+def load_model(model = None, name = 'model_name', path = 'temp_data/saved_models'):
 
     # model = util.io.load(os.path.join(path,name))
     # return model
    # model = create_model(target_model.n_inputs, n_hiddens = target_model.n_hiddens, n_mades = target_model.n_mades)
     try:
-        params,masks = util.io.load(os.path.join(path,name))
+        params,masks,n_inputs,n_hiddens,n_mades = util.io.load(os.path.join(path,name))
     except FileNotFoundError:
         print(f"model {name} not found at {path}")
         return None
+    
+    model = create_model(n_inputs,n_hiddens=n_hiddens,n_mades=n_mades) if model is None else model
 
     assert len(params) == len(model.parms),'number of parameters is not the same, likely due to different number of stages'
     assert params[0].shape[0] == model.parms[0].get_value().shape[0], f'invalid model input dimension. Expected {model.parms[0].get_value().shape[0]}, got {params[0].shape[0]}'
@@ -151,12 +153,14 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,pat
     else:
         return H
     
-def calc_entropy_thread(sim_model,n_train,base_samples,reuse=True,method='umtksg'):
+def calc_entropy_thread(sim_model,n_train,base_samples,model = None,reuse=True,method='umtksg'):
     """Train the MAF model, evaluate the uniformizing correction term, and launch the knn algorithm as a thread
 
     Args:
-        sim_model (_type_): model used to generate points from target distribution. Must have method sim()
+        sim_model (_type_): model used to generate points from target distribution. Must have method sim()        
         n_train (_type_): number of samples used in training. This will be scaled by the dimensionality of the data.
+        base_samples (numpy): Samples to be used in entropy estimate derived from sim_model.
+        model (MaskedAutoregressiveFlow): Pretrained neural net. Create new model if set to None. Defaults to None.
         base_samples (_type_,optional): samples generated from the target distribution to be used in knn. Default None
         method (str, optional): type of knn metric to use ('umtkl','umtksg','both'). Defaults to 'umtksg'.
 
@@ -164,18 +168,25 @@ def calc_entropy_thread(sim_model,n_train,base_samples,reuse=True,method='umtksg
     Returns:
         (thread,numpy): return started thread handle used for calculating entropy and the associated entropy correction term
     """
-
-    estimator = learn_model(sim_model, n_train, train_samples= base_samples if reuse else None)
+    fine_tune = True if model is None else False
+    step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
+    estimator = learn_model(sim_model,
+                            model,
+                            n_train, 
+                            train_samples= base_samples if reuse else None,
+                            fine_tune=fine_tune,
+                            step=step)
     # estimator.samples=base_samples
     uniform,correction = estimator.uniform_correction(base_samples)
     thread = estimator.start_knn_thread(uniform,method=method)
     return thread,correction,estimator
 
-def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,patience=5,n_hiddens=[200,200,200],n_stages=14, mini_batch=256, fine_tune=True, step=ss.Adam()):
+def learn_model(sim_model, pretrained_model=None, n_samples=100,train_samples = None,val_tol=0.0005,patience=5,n_hiddens=[200,200,200],n_stages=14, mini_batch=256, fine_tune=True, step=ss.Adam()):
     """Create a MAF model and train it with the given parameters
 
     Args:
         sim_model (_type_): model to generate points from target distribution
+        pretrained_model (MaskedAutoregressiveFlow, optional): pretrained neural net model. Create new model with random weights if set to none. Default to none
         n_samples (int, optional): number of samples to train on. Scaled by sim_model dimension. Defaults to 100.
         val_tol (float, optional): validation tolerance threshold to decide if model has improved. Defaults to 0.001.
         patience (int, optional): number of epochs without improvement before exiting training. Defaults to 5.
@@ -188,8 +199,10 @@ def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,pat
         entropy.UMestimator: estimator object used for training and entropy calculation
     """
     
-    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages)
+    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages) if pretrained_model is None else pretrained_model
     estimator = entropy.UMestimator(sim_model,net,train_samples)
+    if train_samples is not None:
+        print(f"Starting Loss: {net.eval_trnloss(train_samples):.3f}")
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
     estimator.learn_transformation(
@@ -202,6 +215,7 @@ def learn_model(sim_model, n_samples=100,train_samples = None,val_tol=0.0005,pat
         )
     end_time = time.time()        
     print("learning time: ",str(timedelta(seconds = int(end_time - start_time))))
+    print(f"Final Loss: {net.eval_trnloss(train_samples):.3f}")
 
     return estimator
 
