@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import NearestNeighbors as cpuNN
 from sklearn.decomposition import PCA
 from scipy import stats
 import scipy.special as spl
@@ -12,6 +12,23 @@ import ml.step_strategies as ss
 
 from misc_CPDSSS.util import BackgroundThread
 
+
+config = configparser.ConfigParser()
+config.read('CPDSSS.ini')
+if 'GLOBAL' in config:
+    n_jobs = int(config['GLOBAL'].get('knn_cores',1))
+    knn_compute = config['GLOBAL'].get('knn_compute',"cpu"]
+else:
+    n_jobs = 1
+    knn_compute = "cpu"
+
+if knn_compute == "gpu":
+    from cuml.neighbors import NearestNeighbors
+    algorithm='auto'
+else:
+    from sklearn.neighbors import NearestNeighbors
+    algorithm='kd_tree'
+    
 
 
 def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
@@ -41,12 +58,6 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
         k_range = range(k,k+1)
     # k=k if max_k is None else max_k
     
-    config = configparser.ConfigParser()
-    if config.read('CPDSSS.ini') != []:
-        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
-    else: 
-        n_jobs = 1
-    
     if n is None:
         n = N
     else:
@@ -62,7 +73,7 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
 
 
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbor(n_neighbors=max_k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     # k_range = range(1,max_k+1) if max_k is not None else range(k,k+1)
@@ -131,12 +142,6 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         max_k=k
         k_range=range(k,k+1)
 
-    config = configparser.ConfigParser()
-    if config.read('CPDSSS.ini') != []:
-        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
-    else: 
-        n_jobs = 1
-
 
     if standardize == True:
         y_std = np.std(y, axis=0)
@@ -155,7 +160,7 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     
     # knn search
     # print("starting distance search")
-    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm='auto', metric='chebyshev').fit(y)
+    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm='auto', metric='chebyshev',n_jobs = n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     h_kl=np.empty(len(k_range))
@@ -227,7 +232,7 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev', n_jobs = n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     zeros_mask = dist[:,k]!=0
     dist = dist[zeros_mask,:]
@@ -261,12 +266,6 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
     y = np.asarray(y, float)
     N, dim = y.shape
     
-    config = configparser.ConfigParser()
-    if config.read('CPDSSS.ini') != []:
-        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
-    else: 
-        n_jobs = 1
-    
     if n is None:
         n = N
     else:
@@ -282,6 +281,7 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
 
     # knn search
     nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
+
     dist, idx = nbrs.kneighbors(y)
 
     zeros_mask = dist[:,k]!=0
@@ -380,7 +380,8 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         rng.shuffle(y)
     
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev').fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='auto', metric='chebyshev',n_jobs=n_jobs).fit(y)
+
     dist, idx = nbrs.kneighbors(y)
     
     # hh = np.empty(n)
@@ -412,11 +413,6 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     Implements the KSG entropy estimation in m-dimensional case, as discribed by:
     Alexander Kraskov, Harald Stogbauer, and Peter Grassberger, "Estimating Mutual Information", Physical review E, 2004 
     """
-    config = configparser.ConfigParser()
-    if config.read('CPDSSS.ini') != []:
-        n_jobs = int(config['GLOBAL']['knn_cores']) #number of cores for knn, negative value uses all cores but n+1
-    else: 
-        n_jobs = 1
     y = np.asarray(y, float)
     N, dim = y.shape
     
@@ -431,10 +427,10 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     
     #Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
     # algorithm = 'brute' if dim>30 else 'kd_tree'
-    algorithm = 'kd_tree' #should almost always be faster for the uniform truncated case (range [0 1])
+#    algorithm = 'kd_tree' #should almost always be faster for the uniform truncated case (range [0 1])
 
     # knn search
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbor(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
 
