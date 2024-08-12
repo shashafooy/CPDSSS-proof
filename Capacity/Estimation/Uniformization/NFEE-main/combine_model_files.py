@@ -32,53 +32,42 @@ P=N-int(N/L)
 min_samples = 2000000 #samples to generate per entropy calc
 n_train_samples = 100000
 GQ_gaussian = False
+max_T=7
 
 """
 Generate data
 """
 
-model_path_old = 'temp_data/saved_models'
-model_path_new = 'temp_data/saved_models/HPC'
+model_path_old = 'temp_data/saved_models/4N'
+model_path_new = 'temp_data/saved_models/4N_old'
 
-sub_folders = ['2T','3T','4T','5T','6T','7T']
+sub_folders = ['X','XH']
 
 
 
-for folder in sub_folders:
-    base_folder = os.path.join(model_path_old,folder)
-    hpc_folder = os.path.join(model_path_new,folder)
-    
-    T = int(folder[:-1])
-    print(f"\nComparing models for {T}T")
-    
-    sim_model = CPDSSS(T,N,L,use_gaussian_approx=GQ_gaussian)
-    #generate base samples based on max dimension
-    sim_model.set_dim_joint()
-    knn_samples = int(min(min_samples, 0.75*n_train_samples * sim_model.x_dim))
-    X,X_T,X_cond,h = sim_model.get_base_X_h(knn_samples)
-    hxc=np.concatenate((X_cond,h),axis=1)
-    joint=np.concatenate((X,h),axis=1)
+# for folder in sub_folders:
+#     base_folder = os.path.join(model_path_old,folder)
+#     new_folder = os.path.join(model_path_new,folder)
+base_folder_X = 'temp_data/saved_models/4N/X'
+base_folder_XH = 'temp_data/saved_models/4N/XH'
+old_folder_X = 'temp_data/saved_models/4N_old/X'
+old_folder_XH = 'temp_data/saved_models/4N_old/XH'
+
+sim_model = CPDSSS(max_T,N,L)
+#generate base samples based on max dimension
+sim_model.set_dim_joint()
+knn_samples = int(min(min_samples, 0.75*n_train_samples * sim_model.x_dim))
+X,_,_,h = sim_model.get_base_X_h(knn_samples)
+
+for file in os.listdir(base_folder_X):
+    T=int(file[0])
+    X_samp = X[:,:T*N]
+    XH_samp=np.concatenate((X_samp,h),axis=1)
+
+    name = f'{T}T'
 
     #Compare with new model files
-    name = f'CPDSSS_hxc_{folder}'
-    compare_models(hxc,name,base_folder,name,hpc_folder)
+    compare_models(X_samp,name,base_folder_X,name,old_folder_X)
+    compare_models(XH_samp,name,base_folder_XH,name,old_folder_XH)
+    
 
-    name = f'CPDSSS_xxc_{folder}'
-    compare_models(X,name,base_folder,name,hpc_folder)
-
-    name = f'CPDSSS_Xcond_{folder}'
-    compare_models(X_cond,name,base_folder,name,hpc_folder)
-
-    name = f'CPDSSS_joint_{folder}'
-    compare_models(joint,name,base_folder,name,hpc_folder)
-
-    #Compare with models from previous T, but same distribution
-    if folder != sub_folders[0]:
-        print(f"\nComparing models {T}T with previous {T-1}T")
-        sim_model.set_dim_hxc()
-        compare_models(hxc,f'CPDSSS_hxc_{T}T',base_folder,f'CPDSSS_joint_{T-1}T',prev_folder)
-
-        sim_model.set_dim_cond()
-        compare_models(X_cond,f'CPDSSS_Xcond_{T}T',base_folder,f'CPDSSS_xxc_{T-1}T',prev_folder)
-
-    prev_folder = base_folder
