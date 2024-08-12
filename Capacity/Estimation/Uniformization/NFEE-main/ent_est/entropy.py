@@ -15,14 +15,11 @@ from misc_CPDSSS.util import BackgroundThread
 
 config = configparser.ConfigParser()
 config.read('CPDSSS.ini')
-if 'GLOBAL' in config:
-    n_jobs = int(config['GLOBAL'].get('knn_cores',1))
-    knn_compute = config['GLOBAL'].get('knn_compute',"cpu")
-else:
-    n_jobs = 1
-    knn_compute = "cpu"
+n_jobs = config['GLOBAL'].getint('knn_cores',1)
+KNN_GPU = config['GLOBAL'].getboolean('knn_GPU',False)
 
-if knn_compute == "gpu":
+
+if KNN_GPU:
     from cuml.neighbors import NearestNeighbors
     algorithm='auto'
 else:
