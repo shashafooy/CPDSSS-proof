@@ -126,15 +126,13 @@ def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='
     This method does not implement any speed up from threading
 
     Args:
-        sim_model (_type_): dataset model used to generate points from the target distribution
-        base_samples (_type_, optional): data samples used in knn. Defaults to None.
-        n_samples (int, optional): number of samples used in training. This will be scaled by the dimensionality of the data. Defaults to 100.
-        k (int, optional): k value used in knn. Defaults to 1.
-        val_tol (float, optional): tolerance level during training to decide if model has improved. Defaults to 0.001.
-        patience (int, optional): number of training epochs that must pass with improvement before stopping training. Defaults to 5.
-        method (str, optional): knn type to evaluate. types are 'umtkl','umtksg','both'. Defaults to 'umtkl'.
-        n_hiddens (list, optional): number of hidden layers and nodes per stage. Defaults to [100,100].
-        n_stages (int, optional): number of stages in the model. Defaults to 14.
+        sim_model (_type_): model used to generate points from target distribution. Must have method sim()        
+        n_train (_type_): number of samples used in training. This will be scaled by the dimensionality of the data.
+        base_samples (numpy): Samples to be used in entropy estimate derived from sim_model.
+        model (MaskedAutoregressiveFlow): Pretrained neural net. Create new model if set to None. Defaults to None.
+        reuse (Boolean,optional): Set to True to use base_samples for both training and knn. Generates new samples for training if set to False. Default True
+        method (str, optional): type of knn metric to use ('umtkl','umtksg','both'). Defaults to 'umtksg'.
+
 
     Returns:
         _type_: entropy estimate
@@ -148,7 +146,10 @@ def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='
                             train_samples= base_samples if reuse else None,
                             fine_tune=fine_tune,
                             step=step)
+    start_time = time.time()
     H = estimator.calc_ent(samples=base_samples,method=method)
+    end_time = time.time()
+    print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))
 
     for i in range(3): gc.collect()
     if method=='both':
