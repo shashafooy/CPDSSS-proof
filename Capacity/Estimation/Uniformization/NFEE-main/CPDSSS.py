@@ -12,7 +12,7 @@ from datetime import date
 import configparser
 config = configparser.ConfigParser()
 config.read('CPDSSS.ini')
-KNN_THREADING = config['GLOBAL'].getboolean('knn_GPU',False)
+KNN_THREADING = not config['GLOBAL'].getboolean('knn_GPU',False) #Use threading if GPU not used
 
 
 

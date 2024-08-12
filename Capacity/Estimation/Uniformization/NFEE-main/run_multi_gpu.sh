@@ -20,7 +20,7 @@ CONDA_BASE=$(conda info --base)
 
 source "$CONDA_BASE/etc/profile.d/conda.sh"
 
-conda activate gpuknn
+conda activate gpuknn_new
 
 PIDS=()
 for ((i=1; i<=$N_RUNS; i++)); do
