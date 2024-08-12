@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.neighbors import NearestNeighbors as cpuNN
+# from sklearn.neighbors import NearestNeighbors as cpuNN
 from sklearn.decomposition import PCA
 from scipy import stats
 import scipy.special as spl
@@ -17,7 +17,7 @@ config = configparser.ConfigParser()
 config.read('CPDSSS.ini')
 if 'GLOBAL' in config:
     n_jobs = int(config['GLOBAL'].get('knn_cores',1))
-    knn_compute = config['GLOBAL'].get('knn_compute',"cpu"]
+    knn_compute = config['GLOBAL'].get('knn_compute',"cpu")
 else:
     n_jobs = 1
     knn_compute = "cpu"
@@ -73,7 +73,7 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
 
 
     # knn search
-    nbrs = NearestNeighbor(n_neighbors=max_k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=max_k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
     # k_range = range(1,max_k+1) if max_k is not None else range(k,k+1)
@@ -430,7 +430,7 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
 #    algorithm = 'kd_tree' #should almost always be faster for the uniform truncated case (range [0 1])
 
     # knn search
-    nbrs = NearestNeighbor(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm=algorithm, metric='chebyshev',n_jobs=n_jobs).fit(y)
     dist, idx = nbrs.kneighbors(y)
     
 
@@ -826,7 +826,7 @@ class UMestimator:
             )
         logger.write('training done\n')
         
-    def calc_ent(self, k=1, reuse_samples=True, method='umtksg',SHOW_PDF_PLOTS=False):
+    def calc_ent(self, k=1, samples=None, method='umtksg',SHOW_PDF_PLOTS=False):
         """After training, evaluate the correction terms and knn entropy. Does not utilize paralell processing
 
         Args:
@@ -838,11 +838,17 @@ class UMestimator:
         Returns:
             _type_: entropy estimate. Return tuple (H KL, H KSG) if method='both'
         """
+        if samples is None:
+            samples = self.sim_model.sim(self.n_samples)
+            
 
-
-        uniform,correction = self.uniform_correction(SHOW_PDF_PLOTS=SHOW_PDF_PLOTS)
-        thread = self.start_knn_thread(uniform,k,method)
-        H = thread.get_result()
+        uniform,correction = self.uniform_correction(samples,SHOW_PDF_PLOTS)
+        if method == 'umtkl':                        
+            H = tkl(uniform, k=k)
+        elif method == 'umtksg':            
+            H = tksg(uniform, k=k)
+        elif method == 'both':
+            H = tkl_tksg(uniform,k=k)
 
         #If method is 'both', then H is a tuple with (H_KL,H_KSG)
         return H + correction
@@ -938,15 +944,6 @@ class UMestimator:
         # correction2 = -np.mean(self.model.logdet_jacobi_u(samples)[idx])
 
         return uniform, correction1 + correction2
-
-        result = h_thread.get_result()
-        if method == 'both':
-            (h,h2)=result + correction1
-        else:
-            h=result + correction1
-            
-        # return h+correction2, correction1+correction2, kl(u)+correction2, ksg(u)+correction2
-        return h+correction2,h2+correction2
     
     def start_knn_thread(self,data,k=1,method='umtksg'):        
         """Start the knn algorithm in a thread and return the background thread for the user to handle

@@ -121,7 +121,7 @@ def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_mod
         return new_loss
 
 
-def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,patience=5,method='umtkl',n_hiddens=[200,200,200],n_stages=14):
+def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='umtksg'):
     """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
     This method does not implement any speed up from threading
 
@@ -140,18 +140,21 @@ def calc_entropy(sim_model,base_samples=None,n_samples=100,k=1,val_tol=0.001,pat
         _type_: entropy estimate
     """
     
-    H = None
-    # patience=10
-    #redo learning if calc_ent returns error
-    while H is None:
-        estimator = learn_model(sim_model,n_samples,val_tol,patience,n_hiddens,n_stages)
-        H = knn_entropy(estimator,base_samples,k,method)        
+    fine_tune = True if model is None else False
+    step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
+    estimator = learn_model(sim_model,
+                            model,
+                            n_train, 
+                            train_samples= base_samples if reuse else None,
+                            fine_tune=fine_tune,
+                            step=step)
+    H = estimator.calc_ent(samples=base_samples,method=method)
 
-        for i in range(3): gc.collect()
+    for i in range(3): gc.collect()
     if method=='both':
-        return H[0],H[1]
+        return H[0],H[1],estimator
     else:
-        return H
+        return H,estimator
     
 def calc_entropy_thread(sim_model,n_train,base_samples,model = None,reuse=True,method='umtksg'):
     """Train the MAF model, evaluate the uniformizing correction term, and launch the knn algorithm as a thread
@@ -232,10 +235,8 @@ def knn_entropy(estimator: entropy.UMestimator,base_samples=None,k=1,method='umt
     Returns:
         _type_: Entropy value. If method='both' is used, then return tuple with entropy using KL and KSG
     """
-    estimator.samples = estimator.samples if base_samples is None else base_samples
-    reuse = False if base_samples is None else True
     start_time = time.time()
-    H,H2 = estimator.calc_ent(reuse_samples=reuse, method=method,k=k)
+    H,H2 = estimator.calc_ent(samples=base_samples,method=method,k=k)
     end_time = time.time()        
     print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))    
     if method=='both':
