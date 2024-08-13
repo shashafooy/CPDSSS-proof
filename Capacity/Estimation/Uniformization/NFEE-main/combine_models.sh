@@ -8,7 +8,7 @@ git stash push -m "Stash before pulling" temp_data/saved_models/4N/*
 echo "Committing changes in temp_data/CPDSSS_data/*..."
 git add temp_data/CPDSSS_data/*
 git commit -m "Update CPDSSS data"
-git push
+#git push
 
 # Step 3: Pull changes (this will include changes to temp_data/saved_models/4N)
 echo "Pulling latest changes..."
@@ -22,6 +22,7 @@ mv temp_data/saved_models/4N/* temp_data/saved_models/4N_old/
 # Step 5: Restore the git stash
 echo "Restoring stashed changes..."
 git stash pop
+git checkout --theirs temp_data/saved_models/4N/*
 
 # Step 6: Activate conda environment and run the Python script
 echo "Activating conda environment and running combine_model_files.py..."
