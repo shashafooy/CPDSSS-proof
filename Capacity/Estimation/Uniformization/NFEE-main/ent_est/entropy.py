@@ -779,6 +779,9 @@ class UMestimator:
         self.n_samples = None
         self.xdim = None
         self.target = sim_model.entropy()
+        self.checkpointer = trainers.ModelCheckpointer(model)
+
+        self.checkpointer.checkpoint()
         
     def learn_transformation(self, n_samples, logger=sys.stdout, rng=np.random,patience=5,val_tol=None, show_progress=False, minibatch = 256, fine_tune=True, step = ss.Adam()):
         """Learn the transformation to push a gaussian towards target distribution
@@ -890,19 +893,31 @@ class UMestimator:
         if samples is None:
             samples = self.sim_model.sim(self.n_samples)
         
-
+        
         '''Memory can grow too large if evaluated for all samples, limit to 1M samples at a time'''
-        u=[]
-        max_samp = int(2000000 / samples.shape[1]) #approximately 1M total points
-        for i in range(0, samples.shape[0], max_samp):
-            u.append(self.model.calc_random_numbers(samples[i:i+max_samp,:]))
+        # u=[]
+        # max_samp = int(2000000 / samples.shape[1]) #approximately 1M total points
+        # for i in range(0, samples.shape[0], max_samp):
+        #     u.append(self.model.calc_random_numbers(samples[i:i+max_samp,:]))
 
-        # Concatenate the results into a single array
-        u = np.concatenate(u)
+        # # Concatenate the results into a single array
+        # u = np.concatenate(u)
+
+        u = self.model.calc_random_numbers(samples)
+
+        #something went wrong in training, reload initial value
+        if np.any(np.isnan(u)):
+            self.checkpointer.restore()
+            u=self.model.calc_random_numbers(samples)
 
         #remove extreme data that isn't within 99.9999% of the norm dist
         idx = np.all(np.abs(u)<stats.norm.ppf(1.0-1e-6), axis=1) 
         u = u[idx]
+
+        # Made a bad gaussian estimate
+        if(u.shape[0]<0.01*self.samples.shape[0]):
+            return None
+            
 
         if(SHOW_PDF_PLOTS==True):
             #Plot histograms of original data, gaussian, and uniform transforms
@@ -920,9 +935,7 @@ class UMestimator:
             
         
 
-        #Made a bad gaussian estimate
-        if(u.shape[0]<0.01*self.samples.shape[0]):
-            return None,0,0,0
+        
         
         
         # Jacobian correction from the CDF
@@ -930,11 +943,12 @@ class UMestimator:
         correction1 = - np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
     
         #Jacobian correction from g(x), split computation to minimize memory usage
-        logdet=[]                
-        for i in range(0, samples.shape[0], max_samp):
-            logdet.append(self.model.logdet_jacobi_u(samples[i:i+max_samp,:]))
-        # Concatenate the results into a single array
-        logdet = np.concatenate(logdet)
+        # logdet=[]                
+        # for i in range(0, samples.shape[0], max_samp):
+        #     logdet.append(self.model.logdet_jacobi_u(samples[i:i+max_samp,:]))
+        # # Concatenate the results into a single array
+        # logdet = np.concatenate(logdet)
+        logdet = self.model.logdet_jacobi_u(samples)
         correction2 = -np.mean(logdet[idx])
         
         #calculating logdet in one shot can lead to large memory requirement
