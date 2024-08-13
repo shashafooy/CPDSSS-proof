@@ -114,11 +114,11 @@ def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_mod
     checkpointer.restore()
     
     print(f"Saved best test loss: {best_trn_loss:.3f}, new model test loss: {new_loss:.3f}")
-    if best_trn_loss < new_loss:
-        return best_trn_loss
-    else:
+    if best_trn_loss > new_loss:
         save_model(model,name,path)
-        return new_loss
+        return new_loss        
+    else:
+        return best_trn_loss
 
 
 def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='umtksg'):

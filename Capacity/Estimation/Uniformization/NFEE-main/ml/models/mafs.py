@@ -50,6 +50,8 @@ class MaskedAutoregressiveFlow:
         self.u = self.input
         self.logdet_dudx = 0.0
 
+        self.max_samp=1000000
+
         for i in range(n_mades):
 
             # create a new made
@@ -140,7 +142,7 @@ class MaskedAutoregressiveFlow:
         trn_loss=[]
         n_size = []
         x = np.asarray(x, dtype=dtype)
-        max_samp = int(1000000 / x.shape[1]) #approximately 1M total points
+        max_samp = int(self.max_samp / x.shape[1]) #approximately 1M total points
         for i in range(0, x.shape[0], max_samp):
             trn_loss.append(self._eval_trn_loss(x[i:i+max_samp,:]))
             n_size.append(x[i:i+max_samp,:].shape[0])
@@ -209,8 +211,19 @@ class MaskedAutoregressiveFlow:
             )
 
         x = np.asarray(x, dtype=dtype)
+        
+        if x.ndim==1:
+            u=self.eval_us_f(x[np.newaxis, :])[0]
+        else:
+            u=[]
+            max_samp = int(self.max_samp / x.shape[1]) #approximately 1M total points
+            for i in range(0, x.shape[0], max_samp):
+                u.append(self.eval_us_f(x[i:i+max_samp,:]))
 
-        return self.eval_us_f(x[np.newaxis, :])[0] if x.ndim == 1 else self.eval_us_f(x)
+            # Concatenate the results into a single array
+            u = np.concatenate(u)
+        return u
+        
     
     def logdet_jacobi_u(self, x):
         
@@ -221,7 +234,15 @@ class MaskedAutoregressiveFlow:
                     )
     
         x = np.asarray(x, dtype=dtype)
-        logdet_jacobi = self.eval_jacobian_u(x[np.newaxis, :])[0] if x.ndim == 1 else self.eval_jacobian_u(x)
+        if x.ndim==1:            
+            logdet_jacobi = self.eval_jacobian_u(x[np.newaxis, :])[0]
+        else:
+            logdet_jacobi=[]                
+            max_samp = int(self.max_samp / x.shape[1]) #approximately 1M total points
+            for i in range(0, x.shape[0], max_samp):
+                logdet_jacobi.append(self.eval_jacobian_u(x[i:i+max_samp,:]))
+            # Concatenate the results into a single array
+            logdet_jacobi = np.concatenate(logdet_jacobi)
 
         return logdet_jacobi
     
