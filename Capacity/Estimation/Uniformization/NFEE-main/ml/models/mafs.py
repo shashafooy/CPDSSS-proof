@@ -77,7 +77,9 @@ class MaskedAutoregressiveFlow:
                 self.bns.append(bn)
             self.stage_loss.append(-tt.mean(-0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx))
 
-        
+        #convert python list to theano indexable list
+        self.stage_loss_tensor = tt.stack(self.stage_loss,axis=0)
+
         self.input_order = self.mades[0].input_order
 
         # log likelihoods
@@ -158,10 +160,9 @@ class MaskedAutoregressiveFlow:
         if self._eval_stage_loss is None:
             # trn_losses = [made.trn_loss for made in self.mades]
             # Stack the list of trn_loss expressions into a Theano tensor
-            self.stage_trn_loss_tensor = tt.stack(self.stage_loss,axis=0)
             self._eval_stage_loss = theano.function(
                 inputs = [self.input,self.stage_idx],
-                outputs = self.stage_trn_loss_tensor[self.stage_idx]
+                outputs = self.stage_loss_tensor[self.stage_idx]
             )
 
         stg_loss=[]

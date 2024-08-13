@@ -45,7 +45,7 @@ class SGD_Template:
         """Do not use batch_norm_stats due to memory consumption if dataset is too large"""
         # if model uses batch norm, compile a theano function for setting up stats.
         # A large enough dataset, and thus validation set should not need to evaluate batch norm mean/variances
-        if getattr(model, 'batch_norm', False) and self.n_trn_data < 100000:
+        if getattr(model, 'batch_norm', False) and self.n_trn_data < 50000:
             self.batch_norm_givens = [(bn.m, bn.bm) for bn in model.bns] + [(bn.v, bn.bv) for bn in model.bns]
             self.set_batch_norm_stats = theano.function(
                 inputs=[],

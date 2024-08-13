@@ -89,7 +89,7 @@ def load_model(model = None, name = 'model_name', path = 'temp_data/saved_models
 
     return model
 
-def update_best_model(model,samples,best_trn_loss,name,path='temp_data/saved_models'):
+def update_best_model(model,samples,best_trn_loss=1e5,name='model_name',path='temp_data/saved_models'):
     """Compare the given model with the saved model {name} located at {path}. If new model has lower training loss, save to given file
 
     Args:
