@@ -16,7 +16,7 @@ import ml.step_strategies as ss
 
 
 
-n_train_samples = 10000
+n_train_samples = 100000
 n_trials = 100
 use_pretrained = True
 # fine_tune = not use_pretrained
@@ -47,12 +47,12 @@ laplace_base = sim_laplace.sim(n_train_samples * sim_laplace.x_dim)
 #Train all stages together
 misc.print_border("Train all stages together")
 name = f'{n_stages[-1]}_stages'
-# model = ent.load_model(name=name,path=model_path)
-# fine_tune = True if model is None else False
-# step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
-# estimator = ent.learn_model(laplace_base,model,n_train_samples,laplace_base,fine_tune=fine_tune,step=step)
-# H_all_stages = estimator.model.eval_trnloss(laplace_base)
-# _ = ent.update_best_model(estimator.model,laplace_base,name=name,path=model_path)
+model = ent.load_model(name=name,path=model_path)
+fine_tune = True if model is None else False
+step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
+estimator = ent.learn_model(sim_laplace,model,n_train_samples,laplace_base,fine_tune=fine_tune,step=step)
+H_all_stages = estimator.model.eval_trnloss(laplace_base)
+_ = ent.update_best_model(estimator.model,laplace_base,name=name,path=model_path)
 
 
 n_inputs = sim_laplace.x_dim
