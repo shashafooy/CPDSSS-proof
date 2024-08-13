@@ -20,12 +20,12 @@ M=int(N/L)
 P=N-int(N/L)
 T=4
 
-n_stages=range(1,15)
+n_stages=range(0,14)
 """
 Number of iterations
 """
-min_samp = 2e4
-scale_samp = 1e3
+min_samp = 2e5
+scale_samp = 1e4
 n_samples = int(min(min_samp,scale_samp*(N+1)*T)) #samples to generate per entropy calc
 
 """
@@ -71,3 +71,5 @@ plt.plot(n_stages,H_xxc)
 plt.xlabel("Num stages")
 plt.ylabel("Loss")
 plt.title("Loss after N stages")
+
+plt.show()

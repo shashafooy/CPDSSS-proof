@@ -52,7 +52,7 @@ class MaskedAutoregressiveFlow:
         self.u = self.input
         self.logdet_dudx = 0.0
 
-        self.max_samp=1000000
+        self.max_samp=4000000
 
         for i in range(n_mades):
 
@@ -75,7 +75,7 @@ class MaskedAutoregressiveFlow:
                 self.parms += bn.parms
                 self.logdet_dudx += tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
                 self.bns.append(bn)
-            # self.stage_loss += -tt.mean(-0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx)            
+            self.stage_loss.append(-tt.mean(-0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx))
 
         
         self.input_order = self.mades[0].input_order
@@ -156,19 +156,23 @@ class MaskedAutoregressiveFlow:
 
     def eval_stageloss(self,x,index):
         if self._eval_stage_loss is None:
-            trn_losses = [made.trn_loss for made in self.mades]
+            # trn_losses = [made.trn_loss for made in self.mades]
             # Stack the list of trn_loss expressions into a Theano tensor
-            self.stage_trn_loss_tensor = tt.stack(*trn_losses)
+            self.stage_trn_loss_tensor = tt.stack(self.stage_loss,axis=0)
             self._eval_stage_loss = theano.function(
                 inputs = [self.input,self.stage_idx],
                 outputs = self.stage_trn_loss_tensor[self.stage_idx]
             )
 
         stg_loss=[]
+        n_size=[]
         x=np.asarray(x,dtype=dtype)
         max_samp = int(self.max_samp / x.shape[1])
         for i in range(0, x.shape[0], max_samp):
             stg_loss.append(self._eval_stage_loss(x[i:i+max_samp,:],index))
+            n_size.append(x[i:i+max_samp,:].shape[0])
+        #combine means
+        return sum(np.asarray(stg_loss)*np.asarray(n_size))/(sum(n_size))
         if len(stg_loss)>1:
             stg_loss = np.concatenate(stg_loss)
         else:
