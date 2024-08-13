@@ -11,9 +11,9 @@ conda install -c conda-forge pygpu theano
 
 
 #Install all in one
-mamba create -n gpuknn -c rapidsai -c conda-forge -c nvidia numpy=1.20.3 numba=0.56.4 cuml=22.06 python=3.9.7 scikit-learn==1.2.2 scipy=1.10.1 seaborn=0.13.1 pygpu theano mkl-service pydot
+mamba create -n gpuknn -c rapidsai -c conda-forge -c nvidia numpy=1.20.3 numba=0.56.4 cuml=22.12 python=3.9.7 scikit-learn=1.2.2 scipy=1.10.1 seaborn=0.13.1 pygpu theano mkl-service pydot
 #If mamba not available
-conda create -n gpuknn -c rapidsai -c conda-forge -c nvidia numpy=1.20.3 numba=0.56.4 cuml=22.06 python=3.9.7 scikit-learn==1.2.2 scipy=1.10.1 seaborn=0.13.1 pygpu theano mkl-service pydot
+conda create -n gpuknn -c rapidsai -c conda-forge -c nvidia numpy=1.20.3 numba=0.56.4 cuml=22.12 python=3.9.7 scikit-learn=1.2.2 scipy=1.10.1 seaborn=0.13.1 pygpu theano mkl-service pydot
 
 
 
