@@ -44,7 +44,7 @@ class CPDSSS:
             self.samples = self.h
             return self.h
 
-        if(self.gaussian_approx):
+        if(self.gaussian_approx): #use approximation that G,Q are gaussian
             g = self.sim_g.sim(n_samples=n_samples)
             self.G = np.zeros((n_samples,self.N,self.NL))
             #make toeplitz matrix
@@ -53,7 +53,7 @@ class CPDSSS:
 
             self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NL))
             Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples,self.N,self.NNL))
-        else:
+        else: #Evaluate true G,Q according to CPDSSS
             self.G,Q = self.sim_GQ(n_samples=n_samples)
         # import timeit
         # timeit.timeit(lambda: self.sim_GQ(n_samples=200000),number=1)

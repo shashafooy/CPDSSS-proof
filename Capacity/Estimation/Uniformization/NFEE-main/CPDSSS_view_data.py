@@ -25,7 +25,8 @@ filepath = base_path+'50k_N4_L2'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepath = base_path + 'NlogN_10k_K=3,T=8'
 # filepath = base_path + 'knn=200k_T=2-7'
-filepath = base_path + 'coarse-fine_75k_x_dims'
+# filepath = base_path + 'coarse-fine_75k_x_dims'
+filepath = base_path + 'pretrained_model'
 
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_tol_0.1_patience_10'
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_samples'
@@ -72,6 +73,14 @@ H_gxc_mean = np.nanmean(H_gxc_tot,axis=0)
 H_xxc_mean = np.nanmean(H_xxc_tot,axis=0)
 H_joint_mean = np.nanmean(H_joint_tot,axis=0)
 H_cond_mean = np.nanmean(H_cond_tot,axis=0)
+
+MI_var = np.nanvar(MI_tot,axis=0)
+H_gxc_var = np.nanvar(H_gxc_tot,axis=0)
+H_xxc_var = np.nanvar(H_xxc_tot,axis=0)
+H_joint_var = np.nanvar(H_joint_tot,axis=0)
+H_cond_var = np.nanvar(H_cond_tot,axis=0)
+
+
 T_range = old_range
 #Potentially more accurate taking into accound each mean value
 MI_mean_sum = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean

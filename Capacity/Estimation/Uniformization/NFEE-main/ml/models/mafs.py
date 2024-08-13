@@ -42,11 +42,13 @@ class MaskedAutoregressiveFlow:
         self.mode = mode
 
         self.input = tt.matrix('x', dtype=dtype) if input is None else input
+        self.stage_idx = tt.iscalar('stage_index')
         self.parms = []
         self.masks = []
 
         self.mades = []
         self.bns = []
+        self.stage_loss = []
         self.u = self.input
         self.logdet_dudx = 0.0
 
@@ -73,7 +75,9 @@ class MaskedAutoregressiveFlow:
                 self.parms += bn.parms
                 self.logdet_dudx += tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
                 self.bns.append(bn)
+            # self.stage_loss += -tt.mean(-0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx)            
 
+        
         self.input_order = self.mades[0].input_order
 
         # log likelihoods
@@ -89,6 +93,7 @@ class MaskedAutoregressiveFlow:
         self.eval_grad_f = None
         self.eval_us_f = None
         self._eval_trn_loss = None
+        self._eval_stage_loss = None
 
     def reset_theano_functions(self):
         """
@@ -149,6 +154,27 @@ class MaskedAutoregressiveFlow:
         #combine means
         return sum(np.asarray(trn_loss)*np.asarray(n_size))/(sum(n_size))
 
+    def eval_stageloss(self,x,index):
+        if self._eval_stage_loss is None:
+            trn_losses = [made.trn_loss for made in self.mades]
+            # Stack the list of trn_loss expressions into a Theano tensor
+            self.stage_trn_loss_tensor = tt.stack(*trn_losses)
+            self._eval_stage_loss = theano.function(
+                inputs = [self.input,self.stage_idx],
+                outputs = self.stage_trn_loss_tensor[self.stage_idx]
+            )
+
+        stg_loss=[]
+        x=np.asarray(x,dtype=dtype)
+        max_samp = int(self.max_samp / x.shape[1])
+        for i in range(0, x.shape[0], max_samp):
+            stg_loss.append(self._eval_stage_loss(x[i:i+max_samp,:],index))
+        if len(stg_loss)>1:
+            stg_loss = np.concatenate(stg_loss)
+        else:
+            stg_loss=stg_loss[0]
+
+        return stg_loss
 
     def grad_log_p(self, x):
         """
@@ -221,7 +247,8 @@ class MaskedAutoregressiveFlow:
                 u.append(self.eval_us_f(x[i:i+max_samp,:]))
 
             # Concatenate the results into a single array
-            u = np.concatenate(u)
+            if len(u)>1:
+                u = np.concatenate(u)
         return u
         
     
@@ -242,7 +269,8 @@ class MaskedAutoregressiveFlow:
             for i in range(0, x.shape[0], max_samp):
                 logdet_jacobi.append(self.eval_jacobian_u(x[i:i+max_samp,:]))
             # Concatenate the results into a single array
-            logdet_jacobi = np.concatenate(logdet_jacobi)
+            if len(logdet_jacobi)>1:
+                logdet_jacobi = np.concatenate(logdet_jacobi)
 
         return logdet_jacobi
     
