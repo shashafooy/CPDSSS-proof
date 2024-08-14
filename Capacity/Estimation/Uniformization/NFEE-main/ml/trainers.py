@@ -138,6 +138,9 @@ class SGD_Template:
                     val_loss = self.validate()
                     patience_left -= 1
 
+                    if np.isnan(val_loss):
+                        self.checkpointer.restore()
+
                     if val_loss < self.best_val_loss:
                         val_diff = self.best_val_loss - val_loss
 

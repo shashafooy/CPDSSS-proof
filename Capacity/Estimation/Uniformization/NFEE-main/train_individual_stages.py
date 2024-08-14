@@ -19,6 +19,7 @@ import ml.step_strategies as ss
 n_train_samples = 100000
 n_trials = 100
 use_pretrained = True
+val_tol=0.0005
 # fine_tune = not use_pretrained
 
 N=16
@@ -96,7 +97,8 @@ for i,ns in enumerate(n_stages):
     estimator.learn_transformation(
         n_samples = int(n_train_samples*sim_laplace.x_dim),
         fine_tune=fine_tune,
-        step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
+        step = ss.Adam() if fine_tune else ss.Adam(a=1e-5),
+        val_tol=val_tol
     )
     H_indep[i] = model.eval_stageloss(laplace_base,i)
 
