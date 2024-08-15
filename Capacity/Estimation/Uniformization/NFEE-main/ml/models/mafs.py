@@ -20,7 +20,7 @@ class MaskedAutoregressiveFlow:
     mades are of the same type. If there is only one made in the stack, then it's equivalent to a single made.
     """
 
-    def __init__(self, n_inputs, n_hiddens, act_fun, n_mades, batch_norm=True, input_order='sequential', mode='sequential', input=None, rng=np.random):
+    def __init__(self, n_inputs, n_hiddens, act_fun, n_mades, batch_norm=True, input_order='sequential', mode='sequential', input=None, rng=np.random,target_logpdf=None):
         """
         Constructor.
         :param n_inputs: number of inputs
@@ -40,6 +40,7 @@ class MaskedAutoregressiveFlow:
         self.n_mades = n_mades
         self.batch_norm = batch_norm
         self.mode = mode
+        self.target_logpdf = target_logpdf
 
         self.input = tt.matrix('x', dtype=dtype) if input is None else input
         self.stage_idx = tt.iscalar('stage_index')
@@ -53,6 +54,8 @@ class MaskedAutoregressiveFlow:
         self.logdet_dudx = 0.0
 
         self.max_samp=4000000
+
+        self.target_lnpx = target_logpdf(self.input) if target_logpdf is not None else 0
 
         for i in range(n_mades):
 
@@ -75,7 +78,8 @@ class MaskedAutoregressiveFlow:
                 self.parms += bn.parms
                 self.logdet_dudx += tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
                 self.bns.append(bn)
-            self.stage_loss.append(-tt.mean(-0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx))
+            L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx
+            self.stage_loss.append(tt.mean(tt.abs_(self.target_lnpx - L)))
             self.stage_loss[-1].name = f'stage_{i}_loss'
 
         #convert python list to theano indexable list
@@ -88,7 +92,8 @@ class MaskedAutoregressiveFlow:
         self.L.name = 'L'
 
         # train objective
-        self.trn_loss = -tt.mean(self.L)
+        # self.trn_loss = -tt.mean(self.L)
+        self.trn_loss = tt.mean(tt.abs_(self.target_lnpx - self.L))
         self.trn_loss.name = 'trn_loss'
 
         # theano evaluation functions, will be compiled when first needed

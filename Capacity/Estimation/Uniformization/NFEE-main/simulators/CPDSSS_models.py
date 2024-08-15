@@ -1,3 +1,4 @@
+import abc
 import numpy as np
 import scipy.linalg as lin
 import scipy.special as spec
@@ -5,9 +6,34 @@ import scipy.stats as stats
 from simulators.complex import mvn
 import math 
 from joblib import Parallel,delayed
+import theano.tensor as tt
 
-class CPDSSS:
+
+class _distribution:
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self,x_dim):
+        self.x_dim=x_dim
+
+    @abc.abstractmethod
+    def sim(self):
+        """Method to generate sample from the distribution"""
+        return
+        
+    def entropy(self):
+        """Method returning the entropy of the given distribution. Use default method if entropy unknown.
+          Defaults to returning none."""
+        return None
+    def pdf(self,x):
+        """PDF of the distribution"""
+        return None
+    def logpdf(self,x):
+        """log(pdf) of the distribution. Useful for entropy calculations"""
+        return None
+    
+class CPDSSS(_distribution):
     def __init__(self, num_tx, N, L, use_gaussian_approx=False):
+        super().__init__(x_dim=N*num_tx+N)
         self.T=num_tx
         self.N=N
         self.L=L
@@ -249,14 +275,13 @@ class CPDSSS_XG:
         g_term = self.base_model.G[:,:,0]
         return np.concatenate((joint_X,g_term),axis=1)
  
-class Exponential:
+class Exponential(_distribution):
     """Class to simulate an exponential distribution
     https://en.wikipedia.org/wiki/Exponential_distribution
     """
     def __init__(self,lamb):
+        super.__init__(x_dim=1)
         self.lamb=lamb
-        self.x_dim=1
-
     
     def sim(self,n_samples):        
         return np.random.default_rng().exponential(scale = 1/self.lamb, size = (n_samples,1))
@@ -264,17 +289,17 @@ class Exponential:
     def entropy(self):
         return 1- np.log(self.lamb)
     
-class Exponential_sum:
+class Exponential_sum(_distribution):
     """Class to simulate the sum of two independent exponential variables
     https://en.wikipedia.org/wiki/Exponential_distribution
     """
     def __init__(self,lambda1,lambda2):
+        super().__init__(x_dim=1)
         assert lambda1>lambda2, "lambda1 > lambda2 for this entropy test"
         self.lambda1=lambda1
         self.lambda2=lambda2
         self.expo1=Exponential(lambda1)
         self.expo2=Exponential(lambda2)
-        self.x_dim=1
 
     def sim(self,n_samples):
         return self.expo1.sim(n_samples) + self.expo2.sim(n_samples)
@@ -282,23 +307,27 @@ class Exponential_sum:
     def entropy(self):
         return 1 + np.euler_gamma + np.log((self.lambda1-self.lambda2)/(self.lambda1*self.lambda2)) + spec.digamma(self.lambda1/(self.lambda1 - self.lambda2))
     
-class Laplace:
+class Laplace(_distribution):
     def __init__(self,mu,b,N=1):        
+        super().__init__(x_dim=N)
         self.mu=mu
         self.b=b
-        self.x_dim=N
     
     def sim(self,n_samples):
         return np.random.default_rng().laplace(self.mu,self.b,(n_samples,self.x_dim))
     
     def entropy(self):
         return (1 + np.log(2*self.b))*self.x_dim
+    def pdf(self,x):
+        return 1/(2*self.b)*np.exp(-np.abs(x-self.mu)/self.b)
+    def logpdf(self,x):
+        return -self.x_dim*np.log(2*self.b) - tt.sum(tt.abs_(x-self.mu)/self.b,axis=1)
     
-class Cauchy:
+class Cauchy(_distribution):
     def __init__(self,mu,gamma,N=1):        
+        super().__init__(x_dim=N)
         self.mu=mu
         self.gamma=gamma
-        self.x_dim=N
 
     def sim(self,n_samples):
         return stats.cauchy.rvs(loc=self.mu,scale=self.gamma, size=(n_samples,self.x_dim))
@@ -306,11 +335,11 @@ class Cauchy:
     def entropy(self):
         return np.log(4*np.pi*self.gamma)*self.x_dim
     
-class Logistic:
+class Logistic(_distribution):
     def __init__(self,mu,s,N=1):
+        super().__init__(x_dim=N)
         self.s=s
         self.mu=mu
-        self.x_dim=N
 
     def sim(self,n_samples):
         return stats.logistic.rvs(loc=self.mu,scale=self.s,size=(n_samples,self.x_dim))

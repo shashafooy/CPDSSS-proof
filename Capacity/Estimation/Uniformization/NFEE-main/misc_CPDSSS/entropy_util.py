@@ -26,7 +26,7 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14):
+def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14,sim_model=None):
     """Generate a multi stage Masked Autoregressive Flow (MAF) model
     George Papamakarios, Theo Pavlakou, and Iain Murray. “Masked Autoregressive Flow for Density Estimation”
 
@@ -41,6 +41,7 @@ def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14):
     """
     n_hiddens=n_hiddens
     act_fun='tanh'
+    pdf = sim_model.logpdf if sim_model is not None else None
 
 
     return mafs.MaskedAutoregressiveFlow(
@@ -50,7 +51,8 @@ def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14):
                 n_mades=n_mades,
                 input_order='random',
                 mode='random',
-                rng=rng
+                rng=rng,
+                target_logpdf=pdf
             )
 
 def save_model(model,name,path = 'temp_data/saved_models'):    
@@ -203,7 +205,7 @@ def learn_model(sim_model, pretrained_model=None, n_samples=100,train_samples = 
         entropy.UMestimator: estimator object used for training and entropy calculation
     """
     
-    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages) if pretrained_model is None else pretrained_model
+    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages,sim_model=sim_model) if pretrained_model is None else pretrained_model
     estimator = entropy.UMestimator(sim_model,net,train_samples)
     if train_samples is not None:
         print(f"Starting Loss: {net.eval_trnloss(train_samples):.3f}")

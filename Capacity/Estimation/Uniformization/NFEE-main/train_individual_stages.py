@@ -51,12 +51,12 @@ for k in range(n_trials):
     #Train all stages together
     misc.print_border(f"Iter {k}, Train all stages together")
     name = f'{n_stages[-1]}_stages'
-    model = ent.load_model(name=name,path=model_path)
-    fine_tune = True if model is None else False
-    step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
-    estimator = ent.learn_model(sim_laplace,model,n_train_samples,laplace_base,fine_tune=fine_tune,step=step)
-    H_all_stages[k] = estimator.model.eval_trnloss(laplace_base)
-    _ = ent.update_best_model(estimator.model,laplace_base,name=name,path=model_path)
+    # model = ent.load_model(name=name,path=model_path)
+    # fine_tune = True if model is None else False
+    # step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
+    # estimator = ent.learn_model(sim_laplace,model,n_train_samples,laplace_base,fine_tune=fine_tune,step=step)
+    # H_all_stages[k] = estimator.model.eval_trnloss(laplace_base)
+    # _ = ent.update_best_model(estimator.model,laplace_base,name=name,path=model_path)
     # print(f'True entropy: {true_H:.3f}')
 
     n_inputs = sim_laplace.x_dim
@@ -70,7 +70,7 @@ for k in range(n_trials):
     model = ent.load_model(name=name,path=indep_stage_path)
     if model is None:
         fine_tune=True
-        model = ent.create_model(n_inputs,n_mades=n_stages[-1])
+        model = ent.create_model(n_inputs,n_mades=n_stages[-1],sim_model=sim_laplace)
 
     all_parms = model.parms
     trn_loss = model.trn_loss
