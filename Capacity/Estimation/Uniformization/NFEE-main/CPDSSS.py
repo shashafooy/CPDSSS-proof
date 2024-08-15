@@ -19,16 +19,14 @@ KNN_THREADING = not config['GLOBAL'].getboolean('knn_GPU',False) #Use threading 
 """
 Parameters for CPDSSS
 """
-N=4
+N=2
 L=2
 M=int(N/L)
 P=N-int(N/L)
-max_T=5
-T_range = range(2,N+max_T)
-T_range = range(8,9)
 T_range = range(2,8)
 
 SAVE_MODEL = True
+REUSE_MODEL = False
 
 """
 Number of iterations
@@ -61,6 +59,7 @@ H_hxc_thread = None
 H_cond_thread = None
 H_xxc_thread = None
 H_joint_thread = None
+model = None
 
 
         
@@ -68,10 +67,10 @@ H_joint_thread = None
 File names
 """
 today=date.today().strftime("%b_%d")
-base_path = "temp_data/CPDSSS_data/MI(h,X)/N4_L2/"
+base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
 
 path = base_path + "coarse-fine_75k_x_dims"
-path = base_path + "pretrained_model"
+# path = base_path + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
 model_path = f'temp_data/saved_models/{N}N'
@@ -115,7 +114,8 @@ for i in range(n_trials):
         misc.print_border("1/4 calculating H(h,x_old), T: {0}, iter: {1}".format(T,i+1))        
         sim_model.set_dim_hxc()
         name = f'{T-1}T'        
-        model = ent.load_model(name=name,path = XH_path)
+        if REUSE_MODEL:
+            model = ent.load_model(name=name,path = XH_path)
         if KNN_THREADING:            
             H_hxc_thread,H_hxc_correction,estimator = ent.calc_entropy_thread(sim_model,n_train_samples,hxc,model = model)
             if H_joint_thread is not None: #don't run if first iteration            
@@ -135,7 +135,8 @@ for i in range(n_trials):
         
         sim_model.set_dim_cond()
         name=f'{T-1}T'
-        model = ent.load_model(name=name,path = X_path)
+        if REUSE_MODEL:
+            model = ent.load_model(name=name,path = X_path)
         if KNN_THREADING:
             H_cond_thread,H_cond_correction,estimator = ent.calc_entropy_thread(sim_model,n_train_samples,X_cond,model=model)        
             #wait for knn H(h,x_cond)
@@ -153,7 +154,8 @@ for i in range(n_trials):
         misc.print_border("3/4 calculating H(x_T, x_old), T: {0}, iter: {1}".format(T,i+1))        
         sim_model.set_dim_xxc()
         name=f'{T}T'
-        model = ent.load_model(name=name,path = X_path)
+        if REUSE_MODEL:
+            model = ent.load_model(name=name,path = X_path)
         if KNN_THREADING:
             H_xxc_thread, H_xxc_correction,estimator = ent.calc_entropy_thread(sim_model,n_train_samples,X,model=model)
             knn = H_cond_thread.get_result() #previous result
@@ -169,7 +171,8 @@ for i in range(n_trials):
         misc.print_border("4/4 calculating H_(h,x_T,x_old), T: {0}, iter: {1}".format(T,i+1))
         sim_model.set_dim_joint()
         name=f'{T}T'
-        model = ent.load_model(name=name,path = XH_path)
+        if REUSE_MODEL:
+            model = ent.load_model(name=name,path = XH_path)
         if KNN_THREADING:
             H_joint_thread, H_joint_correction,estimator = ent.calc_entropy_thread(sim_model,n_train_samples,joint,model=model)        
             knn = H_xxc_thread.get_result()
