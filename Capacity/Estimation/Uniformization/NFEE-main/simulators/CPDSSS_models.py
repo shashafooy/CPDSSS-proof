@@ -90,10 +90,26 @@ class CPDSSS:
 
         
         # start_time = time.time()
-        results = Parallel(n_jobs=-1)(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+        # start_time = time.time()
+        # results = Parallel(n_jobs=-1)(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+        # print(f"parallel time: {time.time() - start_time}")
 
-        G = np.array([result[0] for result in results])
-        Q = np.array([result[1] for result in results])
+        # G = np.array([result[0] for result in results])
+        # Q = np.array([result[1] for result in results])
+        
+        import multiprocessing
+        # start_time = time.time()
+        pool = multiprocessing.Pool()
+        results = pool.map(self._gen_GQ_sample,[self.h[i,:] for i in range(n_samples)])
+
+        pool.close()
+        pool.join()
+        # print(f"pool time: {time.time() - start_time}")
+
+        G_results,Q_results = zip(*results)
+        G=np.array(G_results)
+        Q=np.array(Q_results)
+
         
         return G,Q
     
@@ -171,13 +187,13 @@ class CPDSSS:
         return X,X_T,X_cond,self.h
     
     def set_dim_hxc(self):
-        self.x_dim = (self.N-1)*self.T + self.N
+        self.x_dim = self.N*(self.T-1) + self.N
 
     def set_dim_xxc(self):
         self.x_dim = self.N*self.T
 
     def set_dim_cond(self):
-        self.x_dim = (self.N-1)*self.T
+        self.x_dim = self.N*(self.T-1)
 
     def set_dim_joint(self):
         self.x_dim = self.N*self.T + self.N
