@@ -5,6 +5,7 @@ import theano
 import theano.tensor as tt
 import matplotlib.pyplot as plt
 import abc
+import warnings
 
 import ml.step_strategies as ss
 import ml.data_streams as ds
@@ -394,14 +395,19 @@ class ModelCheckpointer:
         self.model = model
         self.checkpointed_parms = [np.empty_like(p.get_value()) for p in model.parms]
         self.checkpointed_masks = [np.empty_like(m.get_value()) for m in model.masks]
+        self.checkpoint()
 
     def checkpoint(self):
         """
         Checkpoints current model. Overwrites previous checkpoint.
-        """
+        """        
+        is_valid  =  np.all([np.isin(m.get_value(),[0,1]).all() for m in self.model.masks])
+        if not is_valid:
+            warnings.warn("Warning.....Masks are not binary values, possible corruption. Not saving model weights or masks")
+            return
         for i, p in enumerate(self.model.parms):
-            self.checkpointed_parms[i] = p.get_value().copy()
-        for i, m in enumerate(self.model.masks):
+            self.checkpointed_parms[i] = p.get_value().copy()    
+        for i, m in enumerate(self.model.masks):                            
             self.checkpointed_masks[i] = m.get_value().copy()
       
 

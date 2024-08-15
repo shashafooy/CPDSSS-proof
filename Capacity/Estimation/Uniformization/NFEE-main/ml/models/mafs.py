@@ -76,6 +76,7 @@ class MaskedAutoregressiveFlow:
                 self.logdet_dudx += tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
                 self.bns.append(bn)
             self.stage_loss.append(-tt.mean(-0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx))
+            self.stage_loss[-1].name = f'stage_{i}_loss'
 
         #convert python list to theano indexable list
         self.stage_loss_tensor = tt.stack(self.stage_loss,axis=0)
@@ -105,6 +106,8 @@ class MaskedAutoregressiveFlow:
         self.eval_lprob_f = None
         self.eval_grad_f = None
         self.eval_us_f = None
+        self._eval_trn_loss = None
+        self._eval_stage_loss = None
 
         for made in self.mades:
             made.reset_theano_functions()
@@ -252,8 +255,7 @@ class MaskedAutoregressiveFlow:
                 u.append(self.eval_us_f(x[i:i+max_samp,:]))
 
             # Concatenate the results into a single array
-            if len(u)>1:
-                u = np.concatenate(u)
+            u = np.concatenate(u) if len(u)>1 else u[0]
         return u
         
     
@@ -274,8 +276,7 @@ class MaskedAutoregressiveFlow:
             for i in range(0, x.shape[0], max_samp):
                 logdet_jacobi.append(self.eval_jacobian_u(x[i:i+max_samp,:]))
             # Concatenate the results into a single array
-            if len(logdet_jacobi)>1:
-                logdet_jacobi = np.concatenate(logdet_jacobi)
+            logdet_jacobi = np.concatenate(logdet_jacobi) if len(logdet_jacobi)>1 else logdet_jacobi[0]
 
         return logdet_jacobi
     
