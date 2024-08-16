@@ -24,7 +24,7 @@ def compare_models(samples,name1,base_folder, name2, new_model_folder):
 """
 Parameters for CPDSSS
 """
-N=4
+N=2
 L=2
 M=int(N/L)
 P=N-int(N/L)
@@ -38,8 +38,8 @@ max_T=7
 Generate data
 """
 
-model_path_old = 'temp_data/saved_models/4N'
-model_path_new = 'temp_data/saved_models/4N_old'
+model_path_old = f'temp_data/saved_models/{N}N'
+model_path_new = f'temp_data/saved_models/{N}N_old'
 
 sub_folders = ['X','XH']
 
@@ -48,10 +48,10 @@ sub_folders = ['X','XH']
 # for folder in sub_folders:
 #     base_folder = os.path.join(model_path_old,folder)
 #     new_folder = os.path.join(model_path_new,folder)
-base_folder_X = 'temp_data/saved_models/4N/X'
-base_folder_XH = 'temp_data/saved_models/4N/XH'
-old_folder_X = 'temp_data/saved_models/4N_old/X'
-old_folder_XH = 'temp_data/saved_models/4N_old/XH'
+base_folder_X = os.path.join(model_path_old,'X')
+base_folder_XH = os.path.join(model_path_old,'XH')
+old_folder_X = os.path.join(model_path_new,'X')
+old_folder_XH = os.path.join(model_path_new,'XH')
 
 sim_model = CPDSSS(max_T,N,L)
 #generate base samples based on max dimension
