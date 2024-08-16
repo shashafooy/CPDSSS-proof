@@ -26,10 +26,10 @@ class _distribution:
         return None
     def pdf(self,x):
         """PDF of the distribution"""
-        return None
+        return 0
     def logpdf(self,x):
         """log(pdf) of the distribution. Useful for entropy calculations"""
-        return None
+        return 0
     
 class CPDSSS(_distribution):
     def __init__(self, num_tx, N, L, use_gaussian_approx=False):
