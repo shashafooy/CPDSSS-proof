@@ -26,7 +26,7 @@ P=N-int(N/L)
 T_range = range(2,8)
 
 SAVE_MODEL = True
-REUSE_MODEL = False
+REUSE_MODEL = True
 
 """
 Number of iterations
@@ -34,9 +34,6 @@ Number of iterations
 n_trials = 100 #iterations to average
 min_knn_samples = 2000000 #samples to generate per entropy calc
 n_train_samples = 100000
-GQ_gaussian = False
-use_pretrained = True
-fine_tune = False
 
 
 """
@@ -70,7 +67,7 @@ today=date.today().strftime("%b_%d")
 base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
 
 path = base_path + "coarse-fine_75k_x_dims"
-# path = base_path + "pretrained_model"
+path = base_path + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
 model_path = f'temp_data/saved_models/{N}N'
@@ -82,16 +79,16 @@ XH_path = os.path.join(model_path,'XH')
 filename = misc.update_filename(path,filename,-1,rename=False)     
 # model = ent.load_model(8,'CPDSSS_hxc_2T','temp_data/saved_models/2T')
 
-"""
-Generate data
-"""
+
 prev_idx=(0,0)
 for i in range(n_trials):        
             
     for k, T in enumerate(T_range):
         index = (i,k)
-
-        sim_model = CPDSSS(T,N,L,use_gaussian_approx=GQ_gaussian)
+        """
+        Generate samples
+        """
+        sim_model = CPDSSS(T,N,L)
         #generate base samples based on max dimension
         sim_model.set_dim_joint()
         knn_samples = int(min(min_knn_samples, 0.75*n_train_samples * sim_model.x_dim))
@@ -107,8 +104,6 @@ for i in range(n_trials):
                 combine knn entropy with jacobian correction term (main thread)
                 Start new model while current knn is running (main thread)
          """
-
-        prev_tx_model = CPDSSS(T-1,N,L,use_gaussian_approx=GQ_gaussian)
         
         '''Train H(h,x_cond)'''
         misc.print_border("1/4 calculating H(h,x_old), T: {0}, iter: {1}".format(T,i+1))        
