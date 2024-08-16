@@ -4,7 +4,6 @@ Functions for generating the model and entropy
 from datetime import timedelta
 import gc
 import os
-from threading import Thread
 import time
 import re
 import multiprocessing as mp
@@ -26,32 +25,6 @@ def UM_KL_Gaussian(x):
     z=stats.norm.cdf(x)
     return entropy.tkl(z) - np.mean(np.log(np.prod(stats.norm.pdf(x),axis=1)))
 
-def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14):
-    """Generate a multi stage Masked Autoregressive Flow (MAF) model
-    George Papamakarios, Theo Pavlakou, and Iain Murray. “Masked Autoregressive Flow for Density Estimation”
-
-    Args:
-        n_inputs (_type_): dimension of the input sample
-        rng (_type_): type of rng generator to use
-        n_hiddens (list, optional): number of hidden layers and hidden nodes per MAF stage. Defaults to [100,100].
-        n_mades (int, optional): number of MAF stages. Defaults to 14.
-
-    Returns:
-        _type_: MAF model
-    """
-    n_hiddens=n_hiddens
-    act_fun='tanh'
-
-
-    return mafs.MaskedAutoregressiveFlow(
-                n_inputs=n_inputs,
-                n_hiddens=n_hiddens,
-                act_fun=act_fun,
-                n_mades=n_mades,
-                input_order='random',
-                mode='random',
-                rng=rng
-            )
 
 def save_model(model,name,path = 'temp_data/saved_models'):    
     parms = [np.empty_like(p.get_value()) for p in model.parms]
@@ -64,7 +37,7 @@ def save_model(model,name,path = 'temp_data/saved_models'):
 
     # util.io.save((model),os.path.join(path,name))
 
-def load_model(model = None, name = 'model_name', path = 'temp_data/saved_models'):
+def load_model(model = None, name = 'model_name', path = 'temp_data/saved_models',sim_model=None):
 
     # model = util.io.load(os.path.join(path,name))
     # return model
@@ -75,7 +48,7 @@ def load_model(model = None, name = 'model_name', path = 'temp_data/saved_models
         print(f"model {name} not found at {path}")
         return None
     
-    model = create_model(n_inputs,n_hiddens=n_hiddens,n_mades=n_mades) if model is None else model
+    model = create_model(n_inputs,n_hiddens=n_hiddens,n_mades=n_mades,sim_model=sim_model) if model is None else model
 
     assert len(params) == len(model.parms),'number of parameters is not the same, likely due to different number of stages'
     assert params[0].shape[0] == model.parms[0].get_value().shape[0], f'invalid model input dimension. Expected {model.parms[0].get_value().shape[0]}, got {params[0].shape[0]}'
@@ -120,6 +93,35 @@ def update_best_model(model,samples,best_trn_loss=1e5,name='model_name',path='te
     else:
         return best_trn_loss
 
+def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14,sim_model=None):
+    """Generate a multi stage Masked Autoregressive Flow (MAF) model
+    George Papamakarios, Theo Pavlakou, and Iain Murray. “Masked Autoregressive Flow for Density Estimation”
+
+    Args:
+        n_inputs (_type_): dimension of the input sample
+        rng (_type_): type of rng generator to use
+        n_hiddens (list, optional): number of hidden layers and hidden nodes per MAF stage. Defaults to [100,100].
+        n_mades (int, optional): number of MAF stages. Defaults to 14.
+
+    Returns:
+        _type_: MAF model
+    """
+    n_hiddens=n_hiddens
+    act_fun='tanh'
+    pdf = sim_model.logpdf if sim_model is not None else None
+
+
+    return mafs.MaskedAutoregressiveFlow(
+                n_inputs=n_inputs,
+                n_hiddens=n_hiddens,
+                act_fun=act_fun,
+                n_mades=n_mades,
+                input_order='random',
+                mode='random',
+                rng=rng,
+                target_logpdf=pdf
+            )
+
 
 def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='umtksg'):
     """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
@@ -137,15 +139,10 @@ def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='
     Returns:
         _type_: entropy estimate
     """
-    
-    fine_tune = True if model is None else False
-    step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
     estimator = learn_model(sim_model,
                             model,
                             n_train, 
-                            train_samples= base_samples if reuse else None,
-                            fine_tune=fine_tune,
-                            step=step)
+                            train_samples= base_samples if reuse else None)
     start_time = time.time()
     H = estimator.calc_ent(samples=base_samples,method=method)
     end_time = time.time()
@@ -172,14 +169,10 @@ def calc_entropy_thread(sim_model,n_train,base_samples,model = None,reuse=True,m
     Returns:
         (thread,numpy): return started thread handle used for calculating entropy and the associated entropy correction term
     """
-    fine_tune = True if model is None else False
-    step = ss.Adam() if fine_tune else ss.Adam(a=1e-5)
     estimator = learn_model(sim_model,
                             model,
                             n_train, 
-                            train_samples= base_samples if reuse else None,
-                            fine_tune=fine_tune,
-                            step=step)
+                            train_samples= base_samples if reuse else None)
     # estimator.samples=base_samples
     uniform,correction = estimator.uniform_correction(base_samples)
     thread = estimator.start_knn_thread(uniform,method=method)
@@ -202,8 +195,12 @@ def learn_model(sim_model, pretrained_model=None, n_samples=100,train_samples = 
     Returns:
         entropy.UMestimator: estimator object used for training and entropy calculation
     """
+    if pretrained_model is not None:
+        mini_batch=mini_batch*4
+        step=ss.Adam(a=1e-5)
+        fine_tune=False
     
-    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages) if pretrained_model is None else pretrained_model
+    net=create_model(sim_model.x_dim, rng=np.random,n_hiddens=n_hiddens,n_mades=n_stages,sim_model=sim_model) if pretrained_model is None else pretrained_model
     estimator = entropy.UMestimator(sim_model,net,train_samples)
     if train_samples is not None:
         print(f"Starting Loss: {net.eval_trnloss(train_samples):.3f}")

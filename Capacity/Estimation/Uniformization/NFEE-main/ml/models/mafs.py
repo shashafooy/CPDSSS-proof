@@ -20,7 +20,7 @@ class MaskedAutoregressiveFlow:
     mades are of the same type. If there is only one made in the stack, then it's equivalent to a single made.
     """
 
-    def __init__(self, n_inputs, n_hiddens, act_fun, n_mades, batch_norm=True, input_order='sequential', mode='sequential', input=None, rng=np.random):
+    def __init__(self, n_inputs, n_hiddens, act_fun, n_mades, batch_norm=True, input_order='sequential', mode='sequential', input=None, rng=np.random,target_logpdf=None):
         """
         Constructor.
         :param n_inputs: number of inputs
@@ -40,6 +40,7 @@ class MaskedAutoregressiveFlow:
         self.n_mades = n_mades
         self.batch_norm = batch_norm
         self.mode = mode
+        self.target_logpdf = target_logpdf
 
         self.input = tt.matrix('x', dtype=dtype) if input is None else input
         self.stage_idx = tt.iscalar('stage_index')
@@ -49,10 +50,13 @@ class MaskedAutoregressiveFlow:
         self.mades = []
         self.bns = []
         self.stage_loss = []
+        self.out = []
         self.u = self.input
         self.logdet_dudx = 0.0
 
         self.max_samp=4000000
+
+        self.target_lnpx = target_logpdf(self.input) if target_logpdf is not None else 0
 
         for i in range(n_mades):
 
@@ -75,11 +79,18 @@ class MaskedAutoregressiveFlow:
                 self.parms += bn.parms
                 self.logdet_dudx += tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
                 self.bns.append(bn)
-            self.stage_loss.append(-tt.mean(-0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx))
-            self.stage_loss[-1].name = f'stage_{i}_loss'
+            L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + 0.5 * tt.sum(made.logp,axis=1) + tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
+            # self.stage_loss.append(tt.mean(tt.abs_(self.target_lnpx - L)))
+            self.stage_loss.append(-tt.mean(L))
+            self.stage_loss[-1].name = f'stage_{i+1}_loss'
+
+            self.out.append(self.u)
+            self.out[-1].name = f'stage_{i+1}_u'
+
 
         #convert python list to theano indexable list
         self.stage_loss_tensor = tt.stack(self.stage_loss,axis=0)
+        self.out_tensor = tt.stack(self.out,axis=0)
 
         self.input_order = self.mades[0].input_order
 
@@ -88,8 +99,11 @@ class MaskedAutoregressiveFlow:
         self.L.name = 'L'
 
         # train objective
-        self.trn_loss = -tt.mean(self.L)
+        # self.trn_loss = -tt.mean(self.L)
+        self.trn_loss = tt.mean(tt.abs_(self.target_lnpx - self.L))
         self.trn_loss.name = 'trn_loss'
+
+        self._trn_loss = self.trn_loss #backup
 
         # theano evaluation functions, will be compiled when first needed
         self.eval_lprob_f = None
@@ -230,7 +244,7 @@ class MaskedAutoregressiveFlow:
 
         return x
 
-    def calc_random_numbers(self, x):
+    def calc_random_numbers(self, x, stage_idx=-1):
         """
         Givan a dataset, calculate the random numbers used internally to generate the dataset.
         :param x: numpy array, rows are datapoints
@@ -239,20 +253,28 @@ class MaskedAutoregressiveFlow:
 
         # compile theano function, if haven't already done so
         if self.eval_us_f is None:
+            # self.eval_us_f = theano.function(
+            #     inputs=[self.input],
+            #     outputs=self.u
+            # )
             self.eval_us_f = theano.function(
-                inputs=[self.input],
-                outputs=self.u
+                inputs = [self.input,self.stage_idx],
+                outputs = self.out_tensor[self.stage_idx]
             )
 
         x = np.asarray(x, dtype=dtype)
+        if stage_idx < 0:
+            stage_idx = len(self.out)+stage_idx
+        if stage_idx>=len(self.out):
+            stage_idx = len(self.out)-1
         
         if x.ndim==1:
             u=self.eval_us_f(x[np.newaxis, :])[0]
         else:
             u=[]
-            max_samp = int(self.max_samp / x.shape[1]) #approximately 1M total points
+            max_samp = int(self.max_samp / x.shape[1])
             for i in range(0, x.shape[0], max_samp):
-                u.append(self.eval_us_f(x[i:i+max_samp,:]))
+                u.append(self.eval_us_f(x[i:i+max_samp,:],stage_idx))
 
             # Concatenate the results into a single array
             u = np.concatenate(u) if len(u)>1 else u[0]

@@ -189,7 +189,7 @@ fig3.tight_layout()
 '''Plot Mutual Information, but include bars showing variance'''
 fig4,ax4=plt.subplots(2,1)
 fig4.suptitle("N={}, L={}".format(N,L))
-yerr=np.insert(np.nanvar(MI_tot,axis=0),0,0)
+yerr=np.insert(np.nanstd(MI_tot,axis=0),0,0)
 ax4[0].cla(),ax4[0].errorbar(temp_range,MI_mean,yerr=yerr)
 ax4[0].set_title(r'$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$'),ax4[0].set_xlabel(r'$T$')
 ax4[1].cla(),ax4[1].errorbar(temp_range,np.cumsum(MI_mean),yerr=np.cumsum(yerr),label = r'$I(\mathbf{g},\mathbf{X})$'),ax4[1].set_title('total MI'),ax4[1].set_xlabel('T')
