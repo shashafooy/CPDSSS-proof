@@ -79,9 +79,10 @@ class MaskedAutoregressiveFlow:
                 self.parms += bn.parms
                 self.logdet_dudx += tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
                 self.bns.append(bn)
-            L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + 0.5 * tt.sum(made.logp,axis=1) + tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
-            # self.stage_loss.append(tt.mean(tt.abs_(self.target_lnpx - L)))
-            self.stage_loss.append(-tt.mean(L))
+            L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + self.logdet_dudx
+            self.stage_loss.append(tt.mean(tt.abs_(self.target_lnpx - L)))
+            # L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + 0.5 * tt.sum(made.logp,axis=1) + tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
+            # self.stage_loss.append(-tt.mean(L))
             self.stage_loss[-1].name = f'stage_{i+1}_loss'
 
             self.out.append(self.u)

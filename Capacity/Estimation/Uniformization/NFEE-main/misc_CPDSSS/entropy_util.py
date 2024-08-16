@@ -195,7 +195,7 @@ def learn_model(sim_model, pretrained_model=None, n_samples=100,train_samples = 
     Returns:
         entropy.UMestimator: estimator object used for training and entropy calculation
     """
-    if pretrained_model is not None:
+    if pretrained_model is not None and fine_tune:
         mini_batch=mini_batch*4
         step=ss.Adam(a=1e-5)
         fine_tune=False

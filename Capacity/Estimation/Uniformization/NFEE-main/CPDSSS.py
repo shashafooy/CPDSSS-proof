@@ -91,7 +91,7 @@ for i in range(n_trials):
         sim_model = CPDSSS(T,N,L)
         #generate base samples based on max dimension
         sim_model.set_dim_joint()
-        knn_samples = int(min(min_knn_samples, 0.75*n_train_samples * sim_model.x_dim))
+        knn_samples = int(max(min_knn_samples, 0.75*n_train_samples * sim_model.x_dim))
         X,X_T,X_cond,h = sim_model.get_base_X_h(knn_samples)
         hxc=np.concatenate((X_cond,h),axis=1)
         joint=np.concatenate((X,h),axis=1)
