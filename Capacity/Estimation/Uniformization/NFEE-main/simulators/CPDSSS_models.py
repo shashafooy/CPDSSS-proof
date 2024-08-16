@@ -97,32 +97,7 @@ class CPDSSS(_distribution):
         # xT_term = X[:,:,self.T-1]
         # xCond_term = X[:,:,0:self.T-1].reshape((n_samples,self.N*(self.T-1)),order='F')#order 'F' needed to make arrays stack instead of interlaced
     
-    def sim_GQ(self,n_samples=1000):
-        # z=np.exp(1j*2*np.pi*np.arange(0,self.N)**2 / self.N)/np.sqrt(self.N)
-        # Z=lin.toeplitz(z,np.concatenate(([z[0]], z[-1:0:-1])))
-
-        # E=np.eye(self.N)
-        # E=E[:,0::self.L]
-
-        # a=np.zeros((self.NL,1))
-        # a[0]=1
-
-        #Flat fading
-        
-        # G = np.zeros((n_samples,self.N,self.NL))
-        # Q = np.zeros((n_samples,self.N,self.NNL))
-        # from datetime import timedelta
-        # import time
-
-        
-        # start_time = time.time()
-        # start_time = time.time()
-        # results = Parallel(n_jobs=-1)(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
-        # print(f"parallel time: {time.time() - start_time}")
-
-        # G = np.array([result[0] for result in results])
-        # Q = np.array([result[1] for result in results])
-        
+    def sim_GQ(self,n_samples=1000):        
         import multiprocessing
         # start_time = time.time()
         pool = multiprocessing.Pool()
@@ -163,10 +138,6 @@ class CPDSSS(_distribution):
     
     def chan_entropy(self):
         return 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.diag(self.fading)))
-
-    def entropy(self):
-        """Unknown entropy"""
-        return None
 
 
     def use_chan_in_sim(self,h_flag=True):
@@ -308,6 +279,8 @@ class Exponential_sum(_distribution):
         return 1 + np.euler_gamma + np.log((self.lambda1-self.lambda2)/(self.lambda1*self.lambda2)) + spec.digamma(self.lambda1/(self.lambda1 - self.lambda2))
     
 class Laplace(_distribution):
+    """Simulate the laplace distribution
+    https://en.wikipedia.org/wiki/Laplace_distribution"""
     def __init__(self,mu,b,N=1):        
         super().__init__(x_dim=N)
         self.mu=mu
