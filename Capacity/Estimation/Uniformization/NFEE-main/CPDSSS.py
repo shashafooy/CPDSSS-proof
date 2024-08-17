@@ -64,7 +64,7 @@ model = None
 File names
 """
 today=date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
+base_path = f"temp_data/HPC/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
 
 path = base_path + "coarse-fine_75k_x_dims"
 path = base_path + "pretrained_model"
