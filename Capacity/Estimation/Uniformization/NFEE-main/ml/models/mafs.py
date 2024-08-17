@@ -54,7 +54,7 @@ class MaskedAutoregressiveFlow:
         self.u = self.input
         self.logdet_dudx = 0.0
 
-        self.max_samp=4000000
+        self.max_samp=1000000
 
         self.target_lnpx = target_logpdf(self.input) if target_logpdf is not None else 0
 
