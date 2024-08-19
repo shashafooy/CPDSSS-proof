@@ -819,7 +819,6 @@ class UMestimator:
             patience=patience, 
             val_tol=val_tol, 
             minibatch=minibatch,
-            target=self.target,
             show_progress=show_progress,
             fine_tune=fine_tune,
             step=step
