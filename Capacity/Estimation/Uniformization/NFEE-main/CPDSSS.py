@@ -15,8 +15,8 @@ config.read('CPDSSS.ini')
 KNN_THREADING = not config['GLOBAL'].getboolean('knn_GPU',False) #Use threading if GPU not used
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
-REUSE_MODEL = False
+TRAIN_ONLY = False
+REUSE_MODEL = True
 
 def run_CPDSSS(sim_model,base_samples,old_thread = None,old_correction = 0,model_name = '', model_path = ''):
     

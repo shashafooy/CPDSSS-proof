@@ -146,7 +146,8 @@ def calc_entropy(sim_model,n_train=10000,base_samples=None,model = None,reuse=Tr
     start_time = time.time()
     H = estimator.calc_ent(samples=base_samples,method=method)
     end_time = time.time()
-    print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))
+    print(f"knn time: {str(timedelta(seconds = int(end_time - start_time)))}")
+    print(f"H={H:.3f}")
 
     for i in range(3): gc.collect()
     if method=='both':
