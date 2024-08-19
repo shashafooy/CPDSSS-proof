@@ -24,7 +24,7 @@ def compare_models(samples,name1,base_folder, name2, new_model_folder):
 """
 Parameters for CPDSSS
 """
-N=2
+N=6
 L=2
 M=int(N/L)
 P=N-int(N/L)
