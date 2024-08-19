@@ -808,7 +808,7 @@ class UMestimator:
         self.x_dim = self.samples.shape[1]
         
         #Scale so validation occurs at most every 10**5 / minibatch during training
-        monitor_every = min(10 ** 5 / float(n_samples), 1.0) 
+        monitor_every = min(10 ** 5 / float(self.n_samples), 1.0) 
         logger.write('training model...\n')
         learn_density(
             self.model, 
@@ -819,7 +819,6 @@ class UMestimator:
             patience=patience, 
             val_tol=val_tol, 
             minibatch=minibatch,
-            target=self.target,
             show_progress=show_progress,
             fine_tune=fine_tune,
             step=step

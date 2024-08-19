@@ -123,7 +123,7 @@ def create_model(n_inputs, rng=np.random, n_hiddens = [200,200,200],n_mades=14,s
             )
 
 
-def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='umtksg'):
+def calc_entropy(sim_model,n_train=10000,base_samples=None,model = None,reuse=True,method='umtksg'):
     """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
     This method does not implement any speed up from threading
 
@@ -146,7 +146,8 @@ def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='
     start_time = time.time()
     H = estimator.calc_ent(samples=base_samples,method=method)
     end_time = time.time()
-    print("knn time: ",str(timedelta(seconds = int(end_time - start_time))))
+    print(f"knn time: {str(timedelta(seconds = int(end_time - start_time)))}")
+    print(f"H={H:.3f}")
 
     for i in range(3): gc.collect()
     if method=='both':
@@ -154,7 +155,7 @@ def calc_entropy(sim_model,n_train,base_samples,model = None,reuse=True,method='
     else:
         return H,estimator
     
-def calc_entropy_thread(sim_model,n_train,base_samples,model = None,reuse=True,method='umtksg'):
+def calc_entropy_thread(sim_model,n_train=10000,base_samples=None,model = None,reuse=True,method='umtksg'):
     """Train the MAF model, evaluate the uniformizing correction term, and launch the knn algorithm as a thread
 
     Args:
@@ -206,8 +207,9 @@ def learn_model(sim_model, pretrained_model=None, n_samples=100,train_samples = 
         print(f"Starting Loss: {net.eval_trnloss(train_samples):.3f}")
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
+    n_samples= n_samples*sim_model.x_dim if train_samples is None else train_samples.shape[0]
     estimator.learn_transformation(
-        n_samples = int(n_samples*sim_model.x_dim),
+        n_samples = n_samples,
         val_tol=val_tol,
         patience=patience, 
         fine_tune=fine_tune,

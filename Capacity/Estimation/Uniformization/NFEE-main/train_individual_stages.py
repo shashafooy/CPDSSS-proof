@@ -39,11 +39,11 @@ def plot_model_output(model,input,rows=4,cols=4):
 
 n_train_samples = 200000
 n_trials = 100
-use_pretrained = True
+USE_PRETRAINED = False
 val_tol=0.0005
 # fine_tune = not use_pretrained
 
-train_one_shot = False
+TRAIN_ONE_SHOT = True
 
 N=10
 n_stages = range(1,4)
@@ -75,12 +75,12 @@ for k in range(n_trials):
 
     #Train all stages together
     misc.print_border(f"Iter {k}, Train all stages together")    
-    if train_one_shot:
-        model = ent.load_model(name=name,path=model_path,sim_model=sim_laplace) if use_pretrained else None
+    if TRAIN_ONE_SHOT:
+        model = ent.load_model(name=name,path=model_path,sim_model=sim_laplace) if USE_PRETRAINED else None
         estimator = ent.learn_model(sim_laplace,model,n_train_samples,laplace_base,fine_tune=True,n_stages=n_stages[-1])
         H_all_stages[k] = estimator.model.eval_trnloss(laplace_base)
         _ = ent.update_best_model(estimator.model,laplace_base,name=name,path=model_path)
-        plot_model_output(estimator.model,laplace_base)
+        plot_model_output(estimator.model,laplace_base,rows=rows,cols=cols)
 
     n_inputs = sim_laplace.x_dim
     #load models
