@@ -38,13 +38,13 @@ class MoG:
                 self.xs = [Gaussian(m=m, S=S) for m, S in zip(ms, Ss)]
 
             else:
-                raise ValueError('Precision information missing.')
+                raise ValueError("Precision information missing.")
 
         elif xs is not None:
             self.xs = xs
 
         else:
-            raise ValueError('Mean information missing.')
+            raise ValueError("Mean information missing.")
 
         self.a = np.asarray(a)
         self.n_dims = self.xs[0].n_dims
@@ -126,7 +126,11 @@ class MoG:
         for i, (x, y) in enumerate(zip(self.xs, ys)):
 
             lcs[i] = x.logdetP + other.logdetP - y.logdetP
-            lcs[i] -= np.dot(x.m, np.dot(x.P, x.m)) + np.dot(other.m, np.dot(other.P, other.m)) - np.dot(y.m, np.dot(y.P, y.m))
+            lcs[i] -= (
+                np.dot(x.m, np.dot(x.P, x.m))
+                + np.dot(other.m, np.dot(other.P, other.m))
+                - np.dot(y.m, np.dot(y.P, y.m))
+            )
             lcs[i] *= 0.5
 
         la = np.log(self.a) + lcs
@@ -163,7 +167,11 @@ class MoG:
         for i, (x, y) in enumerate(zip(self.xs, ys)):
 
             lcs[i] = x.logdetP - other.logdetP - y.logdetP
-            lcs[i] -= np.dot(x.m, np.dot(x.P, x.m)) - np.dot(other.m, np.dot(other.P, other.m)) - np.dot(y.m, np.dot(y.P, y.m))
+            lcs[i] -= (
+                np.dot(x.m, np.dot(x.P, x.m))
+                - np.dot(other.m, np.dot(other.P, other.m))
+                - np.dot(y.m, np.dot(y.P, y.m))
+            )
             lcs[i] *= 0.5
 
         la = np.log(self.a) + lcs
@@ -237,7 +245,9 @@ class MoG:
         return res, err
 
 
-def fit_mog(x, n_components, w=None, tol=1.0e-9, maxiter=float('inf'), verbose=False, rng=np.random):
+def fit_mog(
+    x, n_components, w=None, tol=1.0e-9, maxiter=float("inf"), verbose=False, rng=np.random
+):
     """
     Fit and return a mixture of gaussians to (possibly weighted) data using expectation maximization.
     """
@@ -252,7 +262,9 @@ def fit_mog(x, n_components, w=None, tol=1.0e-9, maxiter=float('inf'), verbose=F
     iter = 0
 
     # calculate log p(x,z), log p(x) and total log likelihood
-    logPxz = np.array([scipy.stats.multivariate_normal.logpdf(x, ms[k], Ss[k]) for k in xrange(n_components)])
+    logPxz = np.array(
+        [scipy.stats.multivariate_normal.logpdf(x, ms[k], Ss[k]) for k in xrange(n_components)]
+    )
     logPxz += np.log(a)[:, np.newaxis]
     logPx = scipy.misc.logsumexp(logPxz, axis=0)
     loglik_prev = np.mean(logPx) if w is None else np.dot(w, logPx)
@@ -279,7 +291,9 @@ def fit_mog(x, n_components, w=None, tol=1.0e-9, maxiter=float('inf'), verbose=F
                 Ss[k] = np.dot(xm.T * zw[k], xm) / a[k]
 
         # calculate log p(x,z), log p(x) and total log likelihood
-        logPxz = np.array([scipy.stats.multivariate_normal.logpdf(x, ms[k], Ss[k]) for k in xrange(n_components)])
+        logPxz = np.array(
+            [scipy.stats.multivariate_normal.logpdf(x, ms[k], Ss[k]) for k in xrange(n_components)]
+        )
         logPxz += np.log(a)[:, np.newaxis]
         logPx = scipy.misc.logsumexp(logPxz, axis=0)
         loglik = np.mean(logPx) if w is None else np.dot(w, logPx)
@@ -287,9 +301,11 @@ def fit_mog(x, n_components, w=None, tol=1.0e-9, maxiter=float('inf'), verbose=F
         # check progress
         iter += 1
         diff = loglik - loglik_prev
-        assert diff >= 0.0, 'Log likelihood decreased! There is a bug somewhere!'
-        if verbose: print('Iteration = {0}, log likelihood = {1}, diff = {2}'.format(iter, loglik, diff))
-        if diff < tol or iter > maxiter: break
+        assert diff >= 0.0, "Log likelihood decreased! There is a bug somewhere!"
+        if verbose:
+            print("Iteration = {0}, log likelihood = {1}, diff = {2}".format(iter, loglik, diff))
+        if diff < tol or iter > maxiter:
+            break
         loglik_prev = loglik
 
     return MoG(a=a, ms=ms, Ss=Ss)
@@ -349,11 +365,16 @@ def test_mog():
     # plot mog and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
-    cmap = plt.get_cmap('rainbow')
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
+    cmap = plt.get_cmap("rainbow")
     cols = [cmap(i) for i in np.linspace(0, 1, mog.n_components)]
     eli_params = [prec2ellipse(x.P, x.Pm) for x in mog.xs]
-    elis = [Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, ec=col, lw=6) for (m, s1, s2, theta), col in zip(eli_params, cols)]
+    elis = [
+        Ellipse(
+            xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, ec=col, lw=6
+        )
+        for (m, s1, s2, theta), col in zip(eli_params, cols)
+    ]
     [ax.add_artist(eli) for eli in elis]
     ax.legend(elis, map(str, mog.a))
     ax.set_xlim(xlim)
@@ -368,9 +389,9 @@ def test_mog():
     # plot projected gaussian and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
     m, s1, s2, theta = prec2ellipse(gaussian.P, gaussian.Pm)
-    eli = Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, lw=6)
+    eli = Ellipse(xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, lw=6)
     ax.add_artist(eli)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
@@ -389,9 +410,14 @@ def test_mog():
     # plot mog and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
     eli_params = [prec2ellipse(x.P, x.Pm) for x in mog.xs]
-    elis = [Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, ec=col, lw=6) for (m, s1, s2, theta), col in zip(eli_params, cols)]
+    elis = [
+        Ellipse(
+            xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, ec=col, lw=6
+        )
+        for (m, s1, s2, theta), col in zip(eli_params, cols)
+    ]
     [ax.add_artist(eli) for eli in elis]
     ax.legend(elis, map(str, mog.a))
     ax.set_xlim(xlim)
@@ -406,9 +432,9 @@ def test_mog():
     # plot projected gaussian and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
     m, s1, s2, theta = prec2ellipse(gaussian.P, gaussian.Pm)
-    eli = Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, lw=6)
+    eli = Ellipse(xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, lw=6)
     ax.add_artist(eli)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
@@ -450,11 +476,16 @@ def test_em_mog():
     # plot mog and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
-    cmap = plt.get_cmap('rainbow')
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
+    cmap = plt.get_cmap("rainbow")
     cols = [cmap(i) for i in np.linspace(0, 1, mog.n_components)]
     eli_params = [prec2ellipse(x.P, x.Pm) for x in mog.xs]
-    elis = [Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, ec=col, lw=6) for (m, s1, s2, theta), col in zip(eli_params, cols)]
+    elis = [
+        Ellipse(
+            xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, ec=col, lw=6
+        )
+        for (m, s1, s2, theta), col in zip(eli_params, cols)
+    ]
     [ax.add_artist(eli) for eli in elis]
     ax.legend(elis, map(str, mog.a))
     ax.set_xlim(xlim)
@@ -465,21 +496,26 @@ def test_em_mog():
     ax = fig.add_subplot(133)
     ax.plot(yy, mog.eval(yy[:, np.newaxis], ii=[1], log=False))
     ax.set_xlim(ylim)
-    fig.suptitle('original')
+    fig.suptitle("original")
 
     # fit another mog to the samples
     mog_em = fit_mog(samples, n_components=n_components, verbose=True)
     kl, err = mog.kl(mog_em)
-    print('KL(mog | fitted mog) = {0} +/- {1}'.format(kl, 3.0 * err))
+    print("KL(mog | fitted mog) = {0} +/- {1}".format(kl, 3.0 * err))
 
     # plot fitted mog and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
-    cmap = plt.get_cmap('rainbow')
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
+    cmap = plt.get_cmap("rainbow")
     cols = [cmap(i) for i in np.linspace(0, 1, mog_em.n_components)]
     eli_params = [prec2ellipse(x.P, x.Pm) for x in mog_em.xs]
-    elis = [Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, ec=col, lw=6) for (m, s1, s2, theta), col in zip(eli_params, cols)]
+    elis = [
+        Ellipse(
+            xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, ec=col, lw=6
+        )
+        for (m, s1, s2, theta), col in zip(eli_params, cols)
+    ]
     [ax.add_artist(eli) for eli in elis]
     ax.legend(elis, map(str, mog_em.a))
     ax.set_xlim(xlim)
@@ -490,7 +526,7 @@ def test_em_mog():
     ax = fig.add_subplot(133)
     ax.plot(yy, mog_em.eval(yy[:, np.newaxis], ii=[1], log=False))
     ax.set_xlim(ylim)
-    fig.suptitle('fitted')
+    fig.suptitle("fitted")
 
     plt.show()
 
@@ -526,11 +562,16 @@ def test_weighted_em_mog():
     # plot mog and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
-    cmap = plt.get_cmap('rainbow')
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
+    cmap = plt.get_cmap("rainbow")
     cols = [cmap(i) for i in np.linspace(0, 1, mog.n_components)]
     eli_params = [prec2ellipse(x.P, x.Pm) for x in mog.xs]
-    elis = [Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, ec=col, lw=6) for (m, s1, s2, theta), col in zip(eli_params, cols)]
+    elis = [
+        Ellipse(
+            xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, ec=col, lw=6
+        )
+        for (m, s1, s2, theta), col in zip(eli_params, cols)
+    ]
     [ax.add_artist(eli) for eli in elis]
     ax.legend(elis, map(str, mog.a))
     ax.set_xlim(xlim)
@@ -541,21 +582,26 @@ def test_weighted_em_mog():
     ax = fig.add_subplot(133)
     ax.plot(yy, mog.eval(yy[:, np.newaxis], ii=[1], log=False))
     ax.set_xlim(ylim)
-    fig.suptitle('original')
+    fig.suptitle("original")
 
     # fit another mog to the weighted samples
     mog_em = fit_mog(samples, w=np.exp(logweights), n_components=n_components, verbose=True)
     kl, err = mog.kl(mog_em)
-    print('KL(mog | fitted mog) = {0} +/- {1}'.format(kl, 3.0 * err))
+    print("KL(mog | fitted mog) = {0} +/- {1}".format(kl, 3.0 * err))
 
     # plot fitted mog and samples
     fig = plt.figure()
     ax = fig.add_subplot(131)
-    ax.plot(samples[:, 0], samples[:, 1], '.', ms=1)
-    cmap = plt.get_cmap('rainbow')
+    ax.plot(samples[:, 0], samples[:, 1], ".", ms=1)
+    cmap = plt.get_cmap("rainbow")
     cols = [cmap(i) for i in np.linspace(0, 1, mog_em.n_components)]
     eli_params = [prec2ellipse(x.P, x.Pm) for x in mog_em.xs]
-    elis = [Ellipse(xy=m, width=2*s1, height=2*s2, angle=theta/np.pi*180.0, fill=False, ec=col, lw=6) for (m, s1, s2, theta), col in zip(eli_params, cols)]
+    elis = [
+        Ellipse(
+            xy=m, width=2 * s1, height=2 * s2, angle=theta / np.pi * 180.0, fill=False, ec=col, lw=6
+        )
+        for (m, s1, s2, theta), col in zip(eli_params, cols)
+    ]
     [ax.add_artist(eli) for eli in elis]
     ax.legend(elis, map(str, mog_em.a))
     ax.set_xlim(xlim)
@@ -566,6 +612,6 @@ def test_weighted_em_mog():
     ax = fig.add_subplot(133)
     ax.plot(yy, mog_em.eval(yy[:, np.newaxis], ii=[1], log=False))
     ax.set_xlim(ylim)
-    fig.suptitle('fitted')
+    fig.suptitle("fitted")
 
     plt.show()

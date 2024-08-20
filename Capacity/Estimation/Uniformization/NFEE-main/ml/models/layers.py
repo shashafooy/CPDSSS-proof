@@ -12,8 +12,10 @@ class BatchNorm:
         self.input = x
 
         # parameters
-        self.log_gamma = theano.shared(np.zeros(n_units, dtype=dtype), name='log_gamma', borrow=True)
-        self.beta = theano.shared(np.zeros(n_units, dtype=dtype), name='beta', borrow=True)
+        self.log_gamma = theano.shared(
+            np.zeros(n_units, dtype=dtype), name="log_gamma", borrow=True
+        )
+        self.beta = theano.shared(np.zeros(n_units, dtype=dtype), name="beta", borrow=True)
         self.parms = [self.log_gamma, self.beta]
 
         # minibatch statistics
@@ -25,8 +27,8 @@ class BatchNorm:
         self.y = tt.exp(self.log_gamma) * x_hat + self.beta
 
         # batch statistics to be used at test time
-        self.bm = theano.shared(np.zeros(n_units, dtype=dtype), name='bm', borrow=True)
-        self.bv = theano.shared(np.ones(n_units, dtype=dtype), name='bv', borrow=True)
+        self.bm = theano.shared(np.zeros(n_units, dtype=dtype), name="bm", borrow=True)
+        self.bv = theano.shared(np.ones(n_units, dtype=dtype), name="bv", borrow=True)
 
         # theano evaluation functions, will be compiled when needed
         self.set_stats_f = None
@@ -48,8 +50,7 @@ class BatchNorm:
 
         if self.set_stats_f is None:
             self.set_stats_f = theano.function(
-                inputs=[self.input],
-                updates=[(self.bm, self.m), (self.bv, self.v)]
+                inputs=[self.input], updates=[(self.bm, self.m), (self.bv, self.v)]
             )
 
         self.set_stats_f(x.astype(dtype))
@@ -63,9 +64,7 @@ class BatchNorm:
 
         if self.eval_f is None:
             self.eval_f = theano.function(
-                inputs=[self.input],
-                outputs=[self.y],
-                givens=[(self.m, self.bm), (self.v, self.bv)]
+                inputs=[self.input], outputs=[self.y], givens=[(self.m, self.bm), (self.v, self.bv)]
             )
 
         x = np.asarray(x, dtype=dtype)
@@ -79,14 +78,16 @@ class BatchNorm:
         :return: input as numpy array
         """
 
-        x_hat = (y - self.beta.get_value(borrow=True)) * np.exp(-self.log_gamma.get_value(borrow=True))
+        x_hat = (y - self.beta.get_value(borrow=True)) * np.exp(
+            -self.log_gamma.get_value(borrow=True)
+        )
         x = np.sqrt(self.bv.get_value(borrow=True)) * x_hat + self.bm.get_value(borrow=True)
 
         return x
-    
+
     def release_shared_data(self):
         self.log_gamma.set_value([])
         self.beta.set_value([])
-        
+
         self.bm.set_value([])
         self.bv.set_value([])

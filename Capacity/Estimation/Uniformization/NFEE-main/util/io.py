@@ -4,6 +4,7 @@ import os
 import sys
 import numpy as np
 
+
 def save(data, file):
     """
     Saves data to a file.
@@ -13,7 +14,7 @@ def save(data, file):
     if dir:
         make_folder(dir)
 
-    with open(file + '.pkl', 'wb') as f:
+    with open(file + ".pkl", "wb") as f:
         pickle.dump(data, f)
 
 
@@ -22,10 +23,10 @@ def load(file):
     Loads data from file.
     """
 
-    with open(file + '.pkl', 'rb') as f:
+    with open(file + ".pkl", "rb") as f:
         data = pickle.load(f)
 
-    if hasattr(data, 'reset_theano_functions'):
+    if hasattr(data, "reset_theano_functions"):
         data.reset_theano_functions()
 
     return data
@@ -40,7 +41,7 @@ def save_txt(str, file):
     if dir:
         make_folder(dir)
 
-    with open(file, 'w') as f:
+    with open(file, "w") as f:
         f.write(str)
 
 
@@ -49,7 +50,7 @@ def load_txt(file):
     Loads string from text file.
     """
 
-    with open(file, 'r') as f:
+    with open(file, "r") as f:
         str = f.read()
 
     return str
@@ -59,8 +60,9 @@ def save_txt_from_numpy(data, file):
     dir = os.path.dirname(file)
     if dir:
         make_folder(dir)
-        
-    np.savetxt(file, data, fmt='%f', delimiter=' ')
+
+    np.savetxt(file, data, fmt="%f", delimiter=" ")
+
 
 def make_folder(folder):
     """
@@ -80,7 +82,7 @@ class Logger:
         """
         :param filename: file to be created for logging
         """
-        self.f = open(filename, 'w')
+        self.f = open(filename, "w")
 
     def write(self, msg):
         """

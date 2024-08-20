@@ -8,7 +8,7 @@ class ImproperCovarianceError(Exception):
     """
 
     def __str__(self):
-        return 'Covariance matrix is not strictly positive definite'
+        return "Covariance matrix is not strictly positive definite"
 
 
 class Gaussian:
@@ -59,7 +59,7 @@ class Gaussian:
                     self.logdetP = -2.0 * np.sum(np.log(np.diagonal(self.C)))
 
                 else:
-                    raise ValueError('Precision information missing.')
+                    raise ValueError("Precision information missing.")
 
             elif Pm is not None:
                 Pm = np.asarray(Pm)
@@ -92,10 +92,10 @@ class Gaussian:
                     self.logdetP = -2.0 * np.sum(np.log(np.diagonal(self.C)))
 
                 else:
-                    raise ValueError('Precision information missing.')
+                    raise ValueError("Precision information missing.")
 
             else:
-                raise ValueError('Mean information missing.')
+                raise ValueError("Mean information missing.")
 
         except np.linalg.LinAlgError:
             raise ImproperCovarianceError()
@@ -225,7 +225,7 @@ class Gaussian:
         Incrementally raise gaussian to a power.
         """
 
-        res = self ** power
+        res = self**power
 
         self.m = res.m
         self.P = res.P
@@ -265,7 +265,7 @@ def fit_gaussian(x, w=None, eps=None):
     """
 
     x = np.asarray(x)
-    assert x.ndim == 2, 'wrong size'
+    assert x.ndim == 2, "wrong size"
 
     if w is None:
 
@@ -285,24 +285,24 @@ def fit_gaussian(x, w=None, eps=None):
 
 
 class Bounded_Gaussian(Gaussian):
-    
-    '''
+    """
     Generate samples from a bounded Gaussian distribution
-    '''
+    """
+
     def __init__(self, lims, m=None, P=None, U=None, S=None, Pm=None):
-        
+
         Gaussian.__init__(self, m, P, U, S, Pm)
-        
+
         lims = np.asarray(lims)
         self.lims = lims
-        
+
     def gen(self, n_samples=None, rng=np.random):
         """
         Returns independent samples from the bounded gaussian.
         """
 
         one_sample = n_samples is None
-        
+
         i = 0
         samples = np.zeros((1 if one_sample else n_samples, self.n_dims))
         while i < n_samples:
@@ -312,9 +312,9 @@ class Bounded_Gaussian(Gaussian):
             if self._isaccepted(sample):
                 samples[i] = sample
                 i += 1
-                
+
         return samples[0] if one_sample else samples
-    
+
     def _isaccepted(self, sample):
-        
-        return all((sample<self.lims[:,1]) & (sample >self.lims[:,0]))
+
+        return all((sample < self.lims[:, 1]) & (sample > self.lims[:, 0]))

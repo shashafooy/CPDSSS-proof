@@ -24,7 +24,7 @@ class FeedforwardNet:
         Constructs a net with a given number of inputs and no layers.
         """
 
-        assert util.math.isposint(n_inputs), 'Number of inputs must be a positive integer.'
+        assert util.math.isposint(n_inputs), "Number of inputs must be a positive integer."
 
         self.n_inputs = n_inputs
         self.n_outputs = n_inputs
@@ -34,7 +34,7 @@ class FeedforwardNet:
 
         self.Ws = []
         self.bs = []
-        self.hs = [tt.matrix('x') if input is None else input]
+        self.hs = [tt.matrix("x") if input is None else input]
         self.parms = self.Ws + self.bs
         self.input = self.hs[0]
         self.output = self.hs[-1]
@@ -57,7 +57,7 @@ class FeedforwardNet:
         """
 
         # check number of units
-        assert util.math.isposint(n_units), 'Number of units must be a positive integer.'
+        assert util.math.isposint(n_units), "Number of units must be a positive integer."
 
         # choose activation function
         actfun = util.ml.select_theano_act_function(type, dtype)
@@ -68,10 +68,16 @@ class FeedforwardNet:
         self.n_layers += 1
         self.n_params += (n_prev_units + 1) * n_units
 
-        W = theano.shared((rng.randn(n_prev_units, n_units) / np.sqrt(n_prev_units + 1)).astype(dtype), name='W' + str(self.n_layers), borrow=True)
-        b = theano.shared(np.zeros(n_units, dtype=dtype), name='b' + str(self.n_layers), borrow=True)
+        W = theano.shared(
+            (rng.randn(n_prev_units, n_units) / np.sqrt(n_prev_units + 1)).astype(dtype),
+            name="W" + str(self.n_layers),
+            borrow=True,
+        )
+        b = theano.shared(
+            np.zeros(n_units, dtype=dtype), name="b" + str(self.n_layers), borrow=True
+        )
         h = actfun(tt.dot(self.hs[-1], W) + b)
-        h.name = 'h' + str(self.n_layers)
+        h.name = "h" + str(self.n_layers)
 
         self.Ws.append(W)
         self.bs.append(b)
@@ -86,7 +92,7 @@ class FeedforwardNet:
         Removes a layer from the network.
         """
 
-        assert self.n_layers > 0, 'There is no layer to remove.'
+        assert self.n_layers > 0, "There is no layer to remove."
 
         n_params_to_rem = self.n_outputs * (self.n_units[-2] + 1)
         self.n_outputs = self.n_units[-2]
@@ -109,10 +115,7 @@ class FeedforwardNet:
 
         # compile theano computation graph, if haven't already done so
         if self.eval_f is None:
-            self.eval_f = theano.function(
-                inputs=[self.hs[0]],
-                outputs=self.hs[-1]
-            )
+            self.eval_f = theano.function(inputs=[self.hs[0]], outputs=self.hs[-1])
 
         x = np.asarray(x, dtype=dtype)
 
@@ -123,12 +126,12 @@ class FeedforwardNet:
         Prints some useful info about the net.
         """
 
-        print('Number of inputs  =', self.n_inputs)
-        print('Number of outputs =', self.n_outputs)
-        print('Number of units   =', self.n_units)
-        print( 'Number of layers  =', self.n_layers)
-        print('Number of params  =', self.n_params)
-        print('Data type =', dtype)
+        print("Number of inputs  =", self.n_inputs)
+        print("Number of outputs =", self.n_outputs)
+        print("Number of units   =", self.n_units)
+        print("Number of layers  =", self.n_layers)
+        print("Number of params  =", self.n_params)
+        print("Data type =", dtype)
 
     def visualize_weights(self, layer, imsize, layout):
         """
@@ -153,20 +156,17 @@ class FeedforwardNet:
         if layers is None:
             layers = xrange(self.n_layers)
 
-        forwprop = theano.function(
-            inputs=[self.hs[0]],
-            outputs=self.hs[1:]
-        )
+        forwprop = theano.function(inputs=[self.hs[0]], outputs=self.hs[1:])
         hs = forwprop(x.astype(dtype))
 
         for l in layers:
 
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
-            ax.imshow(hs[l], cmap='gray', interpolation='none')
-            ax.set_title('Layer ' + str(l))
-            ax.set_xlabel('layer units')
-            ax.set_ylabel('data points')
+            ax.imshow(hs[l], cmap="gray", interpolation="none")
+            ax.set_title("Layer " + str(l))
+            ax.set_xlabel("layer units")
+            ax.set_ylabel("data points")
 
         plt.show(block=False)
 
@@ -186,11 +186,11 @@ class FeedforwardNet:
 
             nbins = int(np.sqrt(self.Ws[l].get_value().size))
             ax1.hist(self.Ws[l].get_value().flatten(), nbins, normed=True)
-            ax1.set_title('weights, layer ' + str(l))
+            ax1.set_title("weights, layer " + str(l))
 
             nbins = int(np.sqrt(self.bs[l].get_value().size))
             ax2.hist(self.bs[l].get_value(), nbins, normed=True)
-            ax2.set_title('biases, layer ' + str(l))
+            ax2.set_title("biases, layer " + str(l))
 
         plt.show(block=False)
 
@@ -206,7 +206,7 @@ class FeedforwardNet_SVI:
         Constructs a net with a given number of inputs and no layers.
         """
 
-        assert util.math.isposint(n_inputs), 'Number of inputs must be a positive integer.'
+        assert util.math.isposint(n_inputs), "Number of inputs must be a positive integer."
 
         self.n_inputs = n_inputs
         self.n_outputs = n_inputs
@@ -221,7 +221,7 @@ class FeedforwardNet_SVI:
         self.uas = []
         self.mas = []
         self.zas = []
-        self.hs = [tt.matrix('x')]
+        self.hs = [tt.matrix("x")]
 
         self.mps = self.mWs + self.mbs
         self.sps = self.sWs + self.sbs
@@ -251,7 +251,7 @@ class FeedforwardNet_SVI:
         """
 
         # check number of units
-        assert util.math.isposint(n_units), 'Number of units must be a positive integer.'
+        assert util.math.isposint(n_units), "Number of units must be a positive integer."
 
         # choose activation function
         actfun = util.ml.select_theano_act_function(type, dtype)
@@ -262,16 +262,28 @@ class FeedforwardNet_SVI:
         self.n_layers += 1
         self.n_params += 2 * (n_prev_units + 1) * n_units
 
-        mW = theano.shared((rng.randn(n_prev_units, n_units) / np.sqrt(n_prev_units + 1)).astype(dtype), name='mW' + str(self.n_layers), borrow=True)
-        mb = theano.shared(np.zeros(n_units, dtype=dtype), name='mb' + str(self.n_layers), borrow=True)
-        sW = theano.shared(-5.0 * np.ones([n_prev_units, n_units], dtype=dtype), name='sW' + str(self.n_layers), borrow=True)
-        sb = theano.shared(-5.0 * np.ones(n_units, dtype=dtype), name='sb' + str(self.n_layers), borrow=True)
+        mW = theano.shared(
+            (rng.randn(n_prev_units, n_units) / np.sqrt(n_prev_units + 1)).astype(dtype),
+            name="mW" + str(self.n_layers),
+            borrow=True,
+        )
+        mb = theano.shared(
+            np.zeros(n_units, dtype=dtype), name="mb" + str(self.n_layers), borrow=True
+        )
+        sW = theano.shared(
+            -5.0 * np.ones([n_prev_units, n_units], dtype=dtype),
+            name="sW" + str(self.n_layers),
+            borrow=True,
+        )
+        sb = theano.shared(
+            -5.0 * np.ones(n_units, dtype=dtype), name="sb" + str(self.n_layers), borrow=True
+        )
         ua = self.srng.normal((self.hs[-1].shape[0], n_units), dtype=dtype)
         ma = tt.dot(self.hs[-1], mW) + mb
-        sa = tt.dot(self.hs[-1]**2, tt.exp(2*sW)) + tt.exp(2*sb)
+        sa = tt.dot(self.hs[-1] ** 2, tt.exp(2 * sW)) + tt.exp(2 * sb)
         za = tt.sqrt(sa) * ua + ma
         h = actfun(za)
-        h.name = 'h' + str(self.n_layers)
+        h.name = "h" + str(self.n_layers)
 
         self.mWs.append(mW)
         self.mbs.append(mb)
@@ -294,7 +306,7 @@ class FeedforwardNet_SVI:
         Removes a layer from the network.
         """
 
-        assert self.n_layers > 0, 'There is no layer to remove.'
+        assert self.n_layers > 0, "There is no layer to remove."
 
         n_params_to_rem = 2 * self.n_outputs * (self.n_units[-2] + 1)
         self.n_outputs = self.n_units[-2]
@@ -330,25 +342,28 @@ class FeedforwardNet_SVI:
             # compile theano computation graph, if haven't already done so
             if self.eval_f_rand is None:
 
-                n_data = tt.iscalar('n_data')
-                uas = [tt.tile(self.srng.normal((n_units,), dtype=dtype), [n_data, 1]) for n_units in self.n_units[1:]]
+                n_data = tt.iscalar("n_data")
+                uas = [
+                    tt.tile(self.srng.normal((n_units,), dtype=dtype), [n_data, 1])
+                    for n_units in self.n_units[1:]
+                ]
 
                 self.eval_f_rand = theano.function(
-                    inputs=[self.hs[0], n_data],
-                    outputs=self.hs[-1],
-                    givens=zip(self.uas, uas)
+                    inputs=[self.hs[0], n_data], outputs=self.hs[-1], givens=zip(self.uas, uas)
                 )
 
-            return self.eval_f_rand(x[np.newaxis, :], 1)[0] if x.ndim == 1 else self.eval_f_rand(x, x.shape[0])
+            return (
+                self.eval_f_rand(x[np.newaxis, :], 1)[0]
+                if x.ndim == 1
+                else self.eval_f_rand(x, x.shape[0])
+            )
 
         else:
 
             # compile theano computation graph, if haven't already done so
             if self.eval_f is None:
                 self.eval_f = theano.function(
-                    inputs=[self.hs[0]],
-                    outputs=self.hs[-1],
-                    givens=zip(self.zas, self.mas)
+                    inputs=[self.hs[0]], outputs=self.hs[-1], givens=zip(self.zas, self.mas)
                 )
 
             return self.eval_f(x[np.newaxis, :])[0] if x.ndim == 1 else self.eval_f(x)
@@ -358,12 +373,12 @@ class FeedforwardNet_SVI:
         Prints some useful info about the net.
         """
 
-        print('Number of inputs  =', self.n_inputs)
-        print('Number of outputs =', self.n_outputs)
-        print('Number of units   =', self.n_units)
-        print('Number of layers  =', self.n_layers)
-        print('Number of params  =', self.n_params)
-        print('Data type =', dtype)
+        print("Number of inputs  =", self.n_inputs)
+        print("Number of outputs =", self.n_outputs)
+        print("Number of units   =", self.n_units)
+        print("Number of layers  =", self.n_layers)
+        print("Number of params  =", self.n_params)
+        print("Data type =", dtype)
 
     def visualize_weights(self, layer, imsize, layout):
         """
@@ -388,20 +403,17 @@ class FeedforwardNet_SVI:
         if layers is None:
             layers = xrange(self.n_layers)
 
-        forwprop = theano.function(
-            inputs=[self.hs[0]],
-            outputs=self.hs[1:]
-        )
+        forwprop = theano.function(inputs=[self.hs[0]], outputs=self.hs[1:])
         hs = forwprop(x.astype(dtype))
 
         for l in layers:
 
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1)
-            ax.imshow(hs[l], cmap='gray', interpolation='none')
-            ax.set_title('Layer ' + str(l))
-            ax.set_xlabel('layer units')
-            ax.set_ylabel('data points')
+            ax.imshow(hs[l], cmap="gray", interpolation="none")
+            ax.set_title("Layer " + str(l))
+            ax.set_xlabel("layer units")
+            ax.set_ylabel("data points")
 
         plt.show(block=False)
 
@@ -421,14 +433,14 @@ class FeedforwardNet_SVI:
 
             nbins = int(np.sqrt(self.mWs[l].get_value().size))
             axs[0, 0].hist(self.mWs[l].get_value().flatten(), nbins, normed=True)
-            axs[0, 0].set_title('weight means, layer ' + str(l))
+            axs[0, 0].set_title("weight means, layer " + str(l))
             axs[1, 0].hist(self.sWs[l].get_value().flatten(), nbins, normed=True)
-            axs[1, 0].set_title('weight log stds, layer ' + str(l))
+            axs[1, 0].set_title("weight log stds, layer " + str(l))
 
             nbins = int(np.sqrt(self.mbs[l].get_value().size))
             axs[0, 1].hist(self.mbs[l].get_value(), nbins, normed=True)
-            axs[0, 1].set_title('bias means, layer ' + str(l))
+            axs[0, 1].set_title("bias means, layer " + str(l))
             axs[1, 1].hist(self.sbs[l].get_value(), nbins, normed=True)
-            axs[1, 1].set_title('bias log stds, layer ' + str(l))
+            axs[1, 1].set_title("bias log stds, layer " + str(l))
 
         plt.show(block=False)

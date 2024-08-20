@@ -54,7 +54,7 @@ def logsoftmax(x):
         return x - scipy.misc.logsumexp(x, axis=1)[:, np.newaxis]
 
     else:
-        raise ValueError('input must be either vector or matrix')
+        raise ValueError("input must be either vector or matrix")
 
 
 def softmax(x):
@@ -113,7 +113,7 @@ def ess_importance(ws):
     sampling or sequential monte carlo). Takes as input the normalized sample weights.
     """
 
-    ess = 1.0 / np.sum(ws ** 2)
+    ess = 1.0 / np.sum(ws**2)
     return ess
 
 
@@ -129,10 +129,11 @@ def ess_mcmc(xs):
     xms = xs - mean
 
     acors = np.zeros_like(xms)
-    for i in xrange(n_dims):
-        for lag in xrange(n_samples):
-            acor = np.sum(xms[:n_samples-lag, i] * xms[lag:, i]) / (n_samples - lag)
-            if acor <= 0.0: break
+    for i in range(n_dims):
+        for lag in range(n_samples):
+            acor = np.sum(xms[: n_samples - lag, i] * xms[lag:, i]) / (n_samples - lag)
+            if acor <= 0.0:
+                break
             acors[lag, i] = acor
 
     act = 1.0 + 2.0 * np.sum(acors[1:], axis=0) / acors[0]
@@ -146,7 +147,7 @@ def calc_whitening_transform(xs):
     Calculates the parameters that whiten a dataset.
     """
 
-    assert xs.ndim == 2, 'Data must be a matrix'
+    assert xs.ndim == 2, "Data must be a matrix"
     N = xs.shape[0]
 
     means = np.mean(xs, axis=0)
@@ -198,6 +199,6 @@ def median_distance(xs):
 
     xs = np.asarray(xs)
     diffs = np.array([x1 - x2 for x1, x2 in itertools.combinations(xs, 2)])
-    dists = np.sqrt(np.sum(diffs ** 2, axis=1))
+    dists = np.sqrt(np.sum(diffs**2, axis=1))
 
     return np.median(dists)

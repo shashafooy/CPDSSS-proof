@@ -31,10 +31,10 @@ def disp_imdata(xs, imsize, layout=(1, 1)):
     def plot_page():
         """Plots the next page."""
 
-        ii = np.arange(idx[0], idx[0]+num_plots) % num_xs
+        ii = np.arange(idx[0], idx[0] + num_plots) % num_xs
 
         for ax, i in zip(axs, ii):
-            ax.imshow(xs[i].reshape(imsize), cmap='gray', interpolation='none')
+            ax.imshow(xs[i].reshape(imsize), cmap="gray", interpolation="none")
             ax.set_title(str(i))
 
         fig.canvas.draw()
@@ -44,26 +44,26 @@ def disp_imdata(xs, imsize, layout=(1, 1)):
 
         key = event.key
 
-        if key == 'right':
+        if key == "right":
             # show next page
             idx[0] = (idx[0] + num_plots) % num_xs
             plot_page()
 
-        elif key == 'left':
+        elif key == "left":
             # show previous page
             idx[0] = (idx[0] - num_plots) % num_xs
             plot_page()
 
-        elif key == ' ':
+        elif key == " ":
             # show first page
             idx[0] = 0
             plot_page()
 
-        elif key == 'escape':
+        elif key == "escape":
             # close figure
             plt.close(fig)
 
-    fig.canvas.mpl_connect('key_press_event', on_key_event)
+    fig.canvas.mpl_connect("key_press_event", on_key_event)
     plot_page()
 
 
@@ -118,8 +118,9 @@ def plot_pdf_marginals(pdf, lims, gt=None, levels=(0.68, 0.95, 0.99), upper=Fals
         ax.plot(xx, pp)
         ax.set_xlim(lims)
         ax.set_ylim([0.0, ax.get_ylim()[1]])
-        ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-        if gt is not None: ax.vlines(gt, 0, ax.get_ylim()[1], color='r')
+        ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)
+        if gt is not None:
+            ax.vlines(gt, 0, ax.get_ylim()[1], color="r")
 
     else:
 
@@ -140,9 +141,11 @@ def plot_pdf_marginals(pdf, lims, gt=None, levels=(0.68, 0.95, 0.99), upper=Fals
                     ax.set_xlim(lims[i])
                     ax.set_ylim([0.0, ax.get_ylim()[1]])
                     ax.set_ylim([0.0, ax.get_ylim()[1]])
-                    ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-                    if i < pdf.n_dims - 1 and not upper: ax.tick_params(axis='x', which='both', labelbottom=False)
-                    if gt is not None: ax.vlines(gt[i], 0, ax.get_ylim()[1], color='r')
+                    ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)
+                    if i < pdf.n_dims - 1 and not upper:
+                        ax.tick_params(axis="x", which="both", labelbottom=False)
+                    if gt is not None:
+                        ax.vlines(gt[i], 0, ax.get_ylim()[1], color="r")
 
                 else:
                     xx = np.linspace(lims[j, 0], lims[j, 1], 200)
@@ -154,10 +157,14 @@ def plot_pdf_marginals(pdf, lims, gt=None, levels=(0.68, 0.95, 0.99), upper=Fals
                     ax.contour(X, Y, probs2contours(pp, levels), levels)
                     ax.set_xlim(lims[j])
                     ax.set_ylim(lims[i])
-                    if i < pdf.n_dims - 1: ax.tick_params(axis='x', which='both', labelbottom=False)
-                    if j > 0: ax.tick_params(axis='y', which='both', labelleft=False)
-                    if j == pdf.n_dims - 1: ax.tick_params(axis='y', which='both', labelright=True)
-                    if gt is not None: ax.plot(gt[j], gt[i], 'r.', ms=8)
+                    if i < pdf.n_dims - 1:
+                        ax.tick_params(axis="x", which="both", labelbottom=False)
+                    if j > 0:
+                        ax.tick_params(axis="y", which="both", labelleft=False)
+                    if j == pdf.n_dims - 1:
+                        ax.tick_params(axis="y", which="both", labelright=True)
+                    if gt is not None:
+                        ax.plot(gt[j], gt[i], "r.", ms=8)
 
     return fig
 
@@ -175,9 +182,11 @@ def plot_hist_marginals(data, weights=None, lims=None, gt=None, upper=False, ras
         fig, ax = plt.subplots(1, 1)
         ax.hist(data, weights=weights, bins=n_bins, density=True, rasterized=rasterized)
         ax.set_ylim([0.0, ax.get_ylim()[1]])
-        ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-        if lims is not None: ax.set_xlim(lims)
-        if gt is not None: ax.vlines(gt, 0, ax.get_ylim()[1], color='r')
+        ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)
+        if lims is not None:
+            ax.set_xlim(lims)
+        if gt is not None:
+            ax.vlines(gt, 0, ax.get_ylim()[1], color="r")
 
     else:
 
@@ -185,11 +194,11 @@ def plot_hist_marginals(data, weights=None, lims=None, gt=None, upper=False, ras
         fig = plt.figure()
 
         if weights is None:
-            col = 'k'
+            col = "k"
             vmin, vmax = None, None
         else:
             col = weights
-            vmin, vmax = 0., np.max(weights)
+            vmin, vmax = 0.0, np.max(weights)
 
         if lims is not None:
             lims = np.asarray(lims)
@@ -201,22 +210,46 @@ def plot_hist_marginals(data, weights=None, lims=None, gt=None, upper=False, ras
                 ax = fig.add_subplot(n_dim, n_dim, i * n_dim + j + 1)
 
                 if i == j:
-                    ax.hist(data[:, i], weights=weights, bins=n_bins, density=True, rasterized=rasterized)
+                    ax.hist(
+                        data[:, i],
+                        weights=weights,
+                        bins=n_bins,
+                        density=True,
+                        rasterized=rasterized,
+                    )
                     ax.set_ylim([0.0, ax.get_ylim()[1]])
-                    ax.tick_params(axis='y', which='both', left=False, right=False, labelleft=False)
-                    if i < n_dim - 1 and not upper: ax.tick_params(axis='x', which='both', labelbottom=False)
-                    if lims is not None: ax.set_xlim(lims[i])
-                    if gt is not None: ax.vlines(gt[i], 0, ax.get_ylim()[1], color='r')
+                    ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)
+                    if i < n_dim - 1 and not upper:
+                        ax.tick_params(axis="x", which="both", labelbottom=False)
+                    if lims is not None:
+                        ax.set_xlim(lims[i])
+                    if gt is not None:
+                        ax.vlines(gt[i], 0, ax.get_ylim()[1], color="r")
 
                 else:
-                    ax.scatter(data[:, j], data[:, i], c=col, s=3, marker='o', vmin=vmin, vmax=vmax, cmap='binary', edgecolors='none', rasterized=rasterized)
-                    if i < n_dim - 1: ax.tick_params(axis='x', which='both', labelbottom=False)
-                    if j > 0: ax.tick_params(axis='y', which='both', labelleft=False)
-                    if j == n_dim - 1: ax.tick_params(axis='y', which='both', labelright=True)
+                    ax.scatter(
+                        data[:, j],
+                        data[:, i],
+                        c=col,
+                        s=3,
+                        marker="o",
+                        vmin=vmin,
+                        vmax=vmax,
+                        cmap="binary",
+                        edgecolors="none",
+                        rasterized=rasterized,
+                    )
+                    if i < n_dim - 1:
+                        ax.tick_params(axis="x", which="both", labelbottom=False)
+                    if j > 0:
+                        ax.tick_params(axis="y", which="both", labelleft=False)
+                    if j == n_dim - 1:
+                        ax.tick_params(axis="y", which="both", labelright=True)
                     if lims is not None:
                         ax.set_xlim(lims[j])
                         ax.set_ylim(lims[i])
-                    if gt is not None: ax.scatter(gt[j], gt[i], c='r', s=12, marker='o', edgecolors='none')
+                    if gt is not None:
+                        ax.scatter(gt[j], gt[i], c="r", s=12, marker="o", edgecolors="none")
 
     return fig
 
@@ -240,7 +273,7 @@ def plot_traces(xs, var_names=None):
         for ax, name in zip(axs, var_names):
             ax.set_ylabel(name)
 
-    axs[-1].set_xlabel('samples')
+    axs[-1].set_xlabel("samples")
     plt.show(block=False)
 
     return fig

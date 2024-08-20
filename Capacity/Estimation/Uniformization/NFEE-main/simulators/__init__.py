@@ -75,7 +75,7 @@ def gaussian_synthetic_likelihood(px, sim_model, log=True, n_sims=100, rng=np.ra
         xs_sim = np.array([x_sim for x_sim in xs_sim if x_sim is not None])
 
         if xs_sim.size == 0:
-            L = -float('inf')
+            L = -float("inf")
         else:
             L = pdfs.fit_gaussian(xs_sim, eps=1.0e-6).eval(x, log=log)
 
@@ -97,7 +97,7 @@ class SimulatorModel:
 
     def sim(self, ps):
 
-        raise NotImplementedError('simulator model must be implemented as a subclass')
+        raise NotImplementedError("simulator model must be implemented as a subclass")
 
 
 class RealTimeSimsLoader:
@@ -124,13 +124,15 @@ class RealTimeSimsLoader:
 
         if self.ps is None or self.xs is None:
 
-            self.ps, self.ds, self.xs = sim_data(self.prior.gen, self.design_prior.gen,
-                                        self.sim_model, n_sims, rng=self.rng)
+            self.ps, self.ds, self.xs = sim_data(
+                self.prior.gen, self.design_prior.gen, self.sim_model, n_sims, rng=self.rng
+            )
 
         while self.ps.shape[0] < n_samples:
 
-            ps, ds, xs = sim_data(self.prior.gen, self.design_prior.gen, 
-                              self.sim_model, n_sims, rng=self.rng)
+            ps, ds, xs = sim_data(
+                self.prior.gen, self.design_prior.gen, self.sim_model, n_sims, rng=self.rng
+            )
             self.ps = np.concatenate([self.ps, ps], axis=0)
             self.ds = np.concatenate([self.ds, ds], axis=0)
             self.xs = np.concatenate([self.xs, xs], axis=0)
@@ -174,6 +176,6 @@ class StoredSimsLoader:
                 assert self.ps.shape[0] == self.xs.shape[0]
 
         except IOError:
-            raise RuntimeError('not enough data available')
+            raise RuntimeError("not enough data available")
 
         return self.ps[:n_samples], self.xs[:n_samples]

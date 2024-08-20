@@ -10,28 +10,28 @@ def select_theano_act_function(name, dtype=theano.config.floatX):
     Given the name of an activation function, returns a handle for the corresponding function in theano.
     """
 
-    if name == 'logistic':
-        clip = 15.0 if dtype == 'float32' else 19.0
+    if name == "logistic":
+        clip = 15.0 if dtype == "float32" else 19.0
         f = lambda x: tt.nnet.sigmoid(tt.clip(x, -clip, clip))
 
-    elif name == 'tanh':
-        clip = 9.0 if dtype == 'float32' else 19.0
+    elif name == "tanh":
+        clip = 9.0 if dtype == "float32" else 19.0
         f = lambda x: tt.tanh(tt.clip(x, -clip, clip))
 
-    elif name == 'linear':
+    elif name == "linear":
         f = lambda x: x
 
-    elif name == 'relu':
+    elif name == "relu":
         f = tt.nnet.relu
 
-    elif name == 'softplus':
+    elif name == "softplus":
         f = tt.nnet.softplus
 
-    elif name == 'softmax':
+    elif name == "softmax":
         f = tt.nnet.softmax
 
     else:
-        raise ValueError(name + ' is not a supported activation function type.')
+        raise ValueError(name + " is not a supported activation function type.")
 
     return f
 
@@ -53,7 +53,7 @@ def one_hot_encode(labels, n_labels):
     assert np.min(labels) >= 0 and np.max(labels) < n_labels
 
     y = np.zeros([labels.size, n_labels])
-    y[xrange(labels.size), labels] = 1
+    y[range(labels.size), labels] = 1
 
     return y
 

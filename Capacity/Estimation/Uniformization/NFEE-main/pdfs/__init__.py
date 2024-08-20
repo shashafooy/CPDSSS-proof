@@ -27,7 +27,7 @@ class TruncatedPdf:
         """
 
         ls = self.pdf.eval(xs, log=log)
-        zero = -float('inf') if log else 0.0
+        zero = -float("inf") if log else 0.0
 
         return np.where(self.indicator(xs), ls, zero)
 
@@ -84,7 +84,7 @@ def gaussian_kde(xs, ws=None, std=None):
     """
 
     xs = np.array(xs)
-    assert xs.ndim == 2, 'wrong shape'
+    assert xs.ndim == 2, "wrong shape"
 
     n_data, n_dims = xs.shape
     ws = np.full(n_data, 1.0 / n_data) if ws is None else np.asarray(ws)
@@ -95,14 +95,16 @@ def gaussian_kde(xs, ws=None, std=None):
 
 def test_gaussian_kde():
 
-    pdf = MoG(a=[0.3, 0.7], ms=[[-1.0, 0.0], [1.0, 0.0]], Ss=[np.diag([0.1, 1.1]), np.diag([1.1, 0.1])])
+    pdf = MoG(
+        a=[0.3, 0.7], ms=[[-1.0, 0.0], [1.0, 0.0]], Ss=[np.diag([0.1, 1.1]), np.diag([1.1, 0.1])]
+    )
     xs = pdf.gen(5000)
     kde = gaussian_kde(xs)
 
     import util.plot
 
     lims = [-4.0, 4.0]
-    util.plot.plot_pdf_marginals(pdf, lims=lims).suptitle('original')
-    util.plot.plot_hist_marginals(xs, lims=lims).suptitle('samples')
-    util.plot.plot_pdf_marginals(kde, lims=lims).suptitle('KDE')
+    util.plot.plot_pdf_marginals(pdf, lims=lims).suptitle("original")
+    util.plot.plot_hist_marginals(xs, lims=lims).suptitle("samples")
+    util.plot.plot_pdf_marginals(kde, lims=lims).suptitle("KDE")
     util.plot.plt.show()

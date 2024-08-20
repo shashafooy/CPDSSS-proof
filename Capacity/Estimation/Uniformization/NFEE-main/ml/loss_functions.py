@@ -7,17 +7,17 @@ def SquareError(x):
     """Square error loss function."""
 
     if x.ndim == 1:
-        y = tt.vector('y')
+        y = tt.vector("y")
         L = tt.mean((x - y) ** 2)
 
     elif x.ndim == 2:
-        y = tt.matrix('y')
+        y = tt.matrix("y")
         L = tt.mean(tt.sum((x - y) ** 2, axis=1))
 
     else:
-        raise ValueError('x must be either a vector or a matrix.')
+        raise ValueError("x must be either a vector or a matrix.")
 
-    L.name = 'loss'
+    L.name = "loss"
 
     return y, L
 
@@ -32,11 +32,11 @@ def CrossEntropy(x):
         x = x[:, 0]
 
     else:
-        raise ValueError('x must be either a vector or a matrix.')
+        raise ValueError("x must be either a vector or a matrix.")
 
-    y = tt.vector('y')
-    L = -tt.mean(y * tt.log(x) + (1-y) * tt.log(1-x))
-    L.name = 'loss'
+    y = tt.vector("y")
+    L = -tt.mean(y * tt.log(x) + (1 - y) * tt.log(1 - x))
+    L.name = "loss"
 
     return y, L
 
@@ -44,11 +44,11 @@ def CrossEntropy(x):
 def MultiCrossEntropy(x):
     """Cross entropy loss function with multiple outputs."""
 
-    assert x.ndim == 2, 'x must be a matrix.'
+    assert x.ndim == 2, "x must be a matrix."
 
-    y = tt.matrix('y')
+    y = tt.matrix("y")
     L = -tt.mean(tt.sum(y * tt.log(x), axis=1))
-    L.name = 'loss'
+    L.name = "loss"
 
     return y, L
 
@@ -63,11 +63,11 @@ def Accuracy(x):
         x = x.argmax(axis=1)
 
     else:
-        raise ValueError('x must be either a vector or a matrix.')
+        raise ValueError("x must be either a vector or a matrix.")
 
-    y = tt.vector('y')
+    y = tt.vector("y")
     L = tt.mean(tt.eq(y, x))
-    L.name = 'loss'
+    L.name = "loss"
 
     return y, L
 
@@ -94,7 +94,11 @@ def SviRegularizer(mps, sps, wdecay):
 
     n_params = sum([mp.get_value().size for mp in mps])
 
-    L1 = 0.5 * wdecay * (sum([tt.sum(mp**2) for mp in mps]) + sum([tt.sum(tt.exp(sp*2)) for sp in sps]))
+    L1 = (
+        0.5
+        * wdecay
+        * (sum([tt.sum(mp**2) for mp in mps]) + sum([tt.sum(tt.exp(sp * 2)) for sp in sps]))
+    )
     L2 = sum([tt.sum(sp) for sp in sps])
     Lc = 0.5 * n_params * (1.0 + np.log(wdecay))
 
@@ -119,7 +123,9 @@ def SviRegularizer_DiagCov(mps, sps, m0s, s0s):
     m0s = [theano.shared(m0, borrow=True) for m0 in m0s]
     s0s = [theano.shared(s0, borrow=True) for s0 in s0s]
 
-    L1 = 0.5 * sum([tt.sum(tt.exp(-2.0 * s0) * (mp - m0) ** 2) for mp, m0, s0 in zip(mps, m0s, s0s)])
+    L1 = 0.5 * sum(
+        [tt.sum(tt.exp(-2.0 * s0) * (mp - m0) ** 2) for mp, m0, s0 in zip(mps, m0s, s0s)]
+    )
     L2 = 0.5 * sum([tt.sum(tt.exp(2.0 * (sp - s0))) for sp, s0 in zip(sps, s0s)])
     L3 = sum([tt.sum(s0 - sp) for sp, s0 in zip(sps, s0s)])
 

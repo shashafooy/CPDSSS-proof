@@ -7,8 +7,8 @@ def remove_whitespace(str):
     Returns the string str with all whitespace removed.
     """
 
-    p = re.compile(r'\s+')
-    return p.sub('', str)
+    p = re.compile(r"\s+")
+    return p.sub("", str)
 
 
 def prepare_cond_input(xy, dtype):
@@ -41,7 +41,7 @@ def prepare_cond_input(xy, dtype):
             y = np.tile(y, [x.shape[0], 1])
 
         else:
-            assert x.shape[0] == y.shape[0], 'wrong sizes'
+            assert x.shape[0] == y.shape[0], "wrong sizes"
 
     return x, y, one_datapoint
 
@@ -62,8 +62,8 @@ def prepare_cond_input_ed(xdy, dtype):
     one_datapoint = False
 
     if x.ndim == 1:
-        
-        assert d.ndim == 1, 'wrong sizes'
+
+        assert d.ndim == 1, "wrong sizes"
 
         if y.ndim == 1:
             x = x[np.newaxis, :]
@@ -81,12 +81,12 @@ def prepare_cond_input_ed(xdy, dtype):
             d = np.tile(d, [x.shape[0], 1])
 
         else:
-            assert x.shape[0] == d.shape[0], 'wrong sizes'
-            
+            assert x.shape[0] == d.shape[0], "wrong sizes"
+
         if y.ndim == 1:
             y = np.tile(y, [x.shape[0], 1])
 
         else:
-            assert x.shape[0] == y.shape[0], 'wrong sizes'
+            assert x.shape[0] == y.shape[0], "wrong sizes"
 
     return x, d, y, one_datapoint
