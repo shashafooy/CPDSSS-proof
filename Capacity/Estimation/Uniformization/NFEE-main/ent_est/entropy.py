@@ -39,7 +39,6 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
         n (_type_, optional): number of samples. Defaults to None.
         k (int,list, optional): number of neighbors to find. Entropy for multiple values may be found if k is a list. Defaults to 1.
         max_k (int, optional): maximum k value if K is a range. Defaults to None.
-        algorithm (str, optional): type of nearestNeighbors algorithm to use ('auto','ball_tree','kd_tree','brute'). Defaults to 'auto'.
         shuffle (bool, optional): True to shuffle the data samples. Defaults to True.
         rng (_type_, optional): type of rng generator. Defaults to np.random.
 
@@ -66,11 +65,6 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
     if shuffle is True:
         rng.shuffle(y)
 
-    # Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
-    algorithm = "brute" if dim > 30 else "kd_tree"
-    algorithm = (
-        "kd_tree"  # should almost always be faster for the uniform truncated case (range [0 1])
-    )
 
     # knn search
     nbrs = NearestNeighbors(
@@ -161,7 +155,7 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     # knn search
     # print("starting distance search")
     nbrs = NearestNeighbors(
-        n_neighbors=max_k + 1, algorithm="auto", metric="chebyshev", n_jobs=n_jobs
+        n_neighbors=max_k + 1, algorithm=algorithm, metric="chebyshev", n_jobs=n_jobs
     ).fit(y)
     dist, idx = nbrs.kneighbors(y)
 
@@ -232,7 +226,7 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
 
     # knn search
     nbrs = NearestNeighbors(
-        n_neighbors=k + 1, algorithm="auto", metric="chebyshev", n_jobs=n_jobs
+        n_neighbors=k + 1, algorithm=algorithm, metric="chebyshev", n_jobs=n_jobs
     ).fit(y)
     dist, idx = nbrs.kneighbors(y)
     zeros_mask = dist[:, k] != 0
@@ -277,10 +271,10 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
         rng.shuffle(y)
 
     # Auto algorithm switches to brute after dim=16. For truncated, better to swap at dim=30
-    algorithm = "brute" if dim > 30 else "kd_tree"
-    algorithm = (
-        "kd_tree"  # should almost always be faster for the uniform truncated case (range [0 1])
-    )
+    # algorithm = "brute" if dim > 30 else "kd_tree"
+    # algorithm = (
+    #     "kd_tree"  # should almost always be faster for the uniform truncated case (range [0 1])
+    # )
 
     # knn search
     nbrs = NearestNeighbors(
@@ -385,7 +379,7 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
 
     # knn search
     nbrs = NearestNeighbors(
-        n_neighbors=k + 1, algorithm="auto", metric="chebyshev", n_jobs=n_jobs
+        n_neighbors=k + 1, algorithm=algorithm, metric="chebyshev", n_jobs=n_jobs
     ).fit(y)
 
     dist, idx = nbrs.kneighbors(y)
