@@ -121,6 +121,7 @@ for i in range(n_trials):
         """
         Generate samples
         """
+        misc.print_border("Generating CPDSSS samples")
         sim_model = CPDSSS(T, N, L)
         # generate base samples based on max dimension
         sim_model.set_dim_joint()
