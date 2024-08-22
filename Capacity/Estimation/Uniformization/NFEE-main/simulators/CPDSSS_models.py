@@ -8,6 +8,8 @@ import math
 from joblib import Parallel, delayed
 import theano.tensor as tt
 
+# from memory_profiler import profile
+
 
 class _distribution:
     __metaclass__ = abc.ABCMeta
@@ -54,6 +56,7 @@ class CPDSSS(_distribution):
         self._sim_chan_only = False
 
         self.fading = np.exp(-np.arange(self.N) / 3)
+        self.eye = 0.0001 * np.eye(self.N)
 
     def sim(self, n_samples=1000):
         """Generate samples X and (optional) G for CPDSSS
@@ -102,45 +105,33 @@ class CPDSSS(_distribution):
         # xT_term = X[:,:,self.T-1]
         # xCond_term = X[:,:,0:self.T-1].reshape((n_samples,self.N*(self.T-1)),order='F')#order 'F' needed to make arrays stack instead of interlaced
 
+    # @profile
     def sim_GQ(self):
         import multiprocessing as mp
         import time
 
         n_samples = self.h.shape[0]
-
-        # batch_size = int(1e5)
-        # n_samples=int(1e6)
-        # start_time = time.time()
-        # cpu/2 can possibly run faster with less total memory
-        # pool = mp.Pool(int(mp.cpu_count()/2))
-        # Possible way to split data, takes longer with minimal memory conservation.
-        #   Possible to have larger memory impact with very large n_samples?
-        # split_data = [self.h[i,:] for i in range(n_samples)]
-        # G_results = []
-        # Q_results = []
-        # for i in range(0,n_samples,batch_size):
-        #     batch = split_data[i:i+batch_size]
-        #     tuple_results = pool.map(self._gen_GQ_sample,batch)
-        #     G,Q = zip(*tuple_results)
-        #     G_results.extend(G)
-        #     Q_results.extend(Q)
         workers = min(6, mp.cpu_count() - 1)  # 6 seems to be optimal due to threading overhead
 
+        chunk_size = int(n_samples / (workers * 10))
+
+        G_results = []
+        Q_results = []
+
+        # self._gen_GQ_sample(self.h[0, :])
+        # start = time.time()
+        chunk = [self.h[i, :] for i in range(n_samples)]
         with mp.Pool(workers) as pool:
-            results = pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples)))
-        # from mp import sharedctypes
-        # shared_h = sharedctypes.RawArray('d', self.h.flatten())
-        # results = pool.starmap(self._process_single_element, [(i, self.h.shape[1],shared_h) for i in range(n_samples)])
-        # split_data = [self.h[i,:] for i in range(n_samples)]
-        # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(split_data))
+            for G, Q in pool.imap(self._gen_GQ_sample, chunk, chunksize=chunk_size):
+                G_results.append(G)
+                Q_results.append(Q)
+            # G_results, Q_results = zip(*pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples))))
+            # G_results, Q_results = zip(*results)
+
+        # print(time.time() - start)
+
         # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
-        # results = pool.map(self._gen_GQ_sample, [self.h[i, :] for i in range(n_samples)])
 
-        # print(f"pool time: {time.time() - start_time}")
-        G_results, Q_results = zip(*results)
-
-        # pool.close()
-        # pool.join()
         # print(f"pool time: {time.time() - start_time}")
 
         G = np.array(G_results)
@@ -148,24 +139,22 @@ class CPDSSS(_distribution):
 
         return G, Q
 
-    def _process_single_element(self, i, n_col, shared_h):
-        h_shared = np.frombuffer(shared_h, dtype=np.float64).reshape(-1, n_col)
-        return self._gen_GQ_sample(h_shared[i, :])
-
     def _gen_GQ_sample(self, h):
 
         # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
         # A=E.T @ H
         # Slightly faster than doing E.T @ H
         HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[0 :: self.L, :]
-        R = HE.T @ HE + 0.0001 * np.eye(self.N)
+        R = HE.T @ HE + self.eye
         p = HE[0, :].T
-        g = lin.inv(R) @ p
+        # g = lin.inv(R) @ p
+        g = np.linalg.solve(R, p)  # faster than inverse
         # Only take every L columns of toepltiz matrix
         # Slightly faster than doing G@E
         G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, 0 :: self.L]
 
-        ev, V = lin.eig(R)
+        # ev, V = lin.eig(R)
+        ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
         # Only use eigenvectors associated with "zero" eigenvalue
         #  get indices of the smallest eigenvalues to find "zero" EV
         sort_indices = np.argsort(ev)
