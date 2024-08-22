@@ -90,6 +90,7 @@ H_hxc_thread = None
 H_cond_thread = None
 H_xxc_thread = None
 H_joint_thread = None
+H_joint_correction = 0
 model = None
 
 
