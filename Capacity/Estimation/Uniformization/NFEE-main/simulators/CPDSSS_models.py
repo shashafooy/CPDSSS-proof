@@ -83,7 +83,7 @@ class CPDSSS(_distribution):
             self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples, self.N, self.NL))
             Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples, self.N, self.NNL))
         else:  # Evaluate true G,Q according to CPDSSS
-            self.G, Q = self.sim_GQ(n_samples=n_samples)
+            self.G, Q = self.sim_GQ()
         # import timeit
         # timeit.timeit(lambda: self.sim_GQ(n_samples=200000),number=1)
 
@@ -102,24 +102,58 @@ class CPDSSS(_distribution):
         # xT_term = X[:,:,self.T-1]
         # xCond_term = X[:,:,0:self.T-1].reshape((n_samples,self.N*(self.T-1)),order='F')#order 'F' needed to make arrays stack instead of interlaced
 
-    def sim_GQ(self, n_samples=1000):
-        import multiprocessing
+    def sim_GQ(self):
+        import multiprocessing as mp
+        import time
 
+        n_samples = self.h.shape[0]
+
+        # batch_size = int(1e5)
+        # n_samples=int(1e6)
         # start_time = time.time()
-        pool = multiprocessing.Pool()
-        results = pool.map(self._gen_GQ_sample, [self.h[i, :] for i in range(n_samples)])
+        # cpu/2 can possibly run faster with less total memory
+        # pool = mp.Pool(int(mp.cpu_count()/2))
+        # Possible way to split data, takes longer with minimal memory conservation.
+        #   Possible to have larger memory impact with very large n_samples?
+        # split_data = [self.h[i,:] for i in range(n_samples)]
+        # G_results = []
+        # Q_results = []
+        # for i in range(0,n_samples,batch_size):
+        #     batch = split_data[i:i+batch_size]
+        #     tuple_results = pool.map(self._gen_GQ_sample,batch)
+        #     G,Q = zip(*tuple_results)
+        #     G_results.extend(G)
+        #     Q_results.extend(Q)
+        workers = min(6, mp.cpu_count() - 1)  # 6 seems to be optimal due to threading overhead
 
-        pool.close()
-        pool.join()
+        with mp.Pool(workers) as pool:
+            results = pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples)))
+        # from mp import sharedctypes
+        # shared_h = sharedctypes.RawArray('d', self.h.flatten())
+        # results = pool.starmap(self._process_single_element, [(i, self.h.shape[1],shared_h) for i in range(n_samples)])
+        # split_data = [self.h[i,:] for i in range(n_samples)]
+        # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(split_data))
+        # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+        # results = pool.map(self._gen_GQ_sample, [self.h[i, :] for i in range(n_samples)])
+
+        # print(f"pool time: {time.time() - start_time}")
+        G_results, Q_results = zip(*results)
+
+        # pool.close()
+        # pool.join()
         # print(f"pool time: {time.time() - start_time}")
 
-        G_results, Q_results = zip(*results)
         G = np.array(G_results)
         Q = np.array(Q_results)
 
         return G, Q
 
+    def _process_single_element(self, i, n_col, shared_h):
+        h_shared = np.frombuffer(shared_h, dtype=np.float64).reshape(-1, n_col)
+        return self._gen_GQ_sample(h_shared[i, :])
+
     def _gen_GQ_sample(self, h):
+
         # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
         # A=E.T @ H
         # Slightly faster than doing E.T @ H

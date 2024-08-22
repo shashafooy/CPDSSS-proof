@@ -131,10 +131,10 @@ for i in range(n_trials):
         joint = np.concatenate((X, h), axis=1)
 
         # generate independent test set on first iteration used for model testing
-        if i == 0:
-            test_X, _, test_cond, test_h = sim_model.get_base_X_h(knn_samples)
-            test_hxc = np.concatenate((test_cond, test_h), axis=1)
-            test_joint = np.concatenate((test_X, test_h), axis=1)
+        # if i == 0:
+        #     test_X, _, test_cond, test_h = sim_model.get_base_X_h(knn_samples)
+        #     test_hxc = np.concatenate((test_cond, test_h), axis=1)
+        #     test_joint = np.concatenate((test_X, test_h), axis=1)
 
         """Calculate entropies needed for mutual information. Evaluate knn entropy (CPU) while training new model (GPU)
             General flow: 
@@ -154,7 +154,6 @@ for i in range(n_trials):
             H_joint[prev_idx], H_hxc_thread, H_hxc_correction = run_CPDSSS(
                 sim_model,
                 hxc,
-                test_samples=test_hxc,
                 old_thread=H_joint_thread,
                 old_correction=H_joint_correction,
                 model_name=name,
@@ -165,7 +164,6 @@ for i in range(n_trials):
             H_hxc[index] = run_CPDSSS(
                 sim_model,
                 hxc,
-                test_samples=test_hxc,
                 model_name=name,
                 model_path=XH_path,
             )
@@ -186,7 +184,6 @@ for i in range(n_trials):
             H_hxc[index], H_cond_thread, H_cond_correction = run_CPDSSS(
                 sim_model,
                 X_cond,
-                test_samples=test_cond,
                 old_thread=H_hxc_thread,
                 old_correction=H_hxc_correction,
                 model_name=name,
@@ -196,7 +193,6 @@ for i in range(n_trials):
             H_cond[index] = run_CPDSSS(
                 sim_model,
                 X_cond,
-                test_samples=test_cond,
                 model_name=name,
                 model_path=X_path,
             )
@@ -216,7 +212,6 @@ for i in range(n_trials):
             H_cond[index], H_xxc_thread, H_xxc_correction = run_CPDSSS(
                 sim_model,
                 X,
-                test_samples=test_X,
                 old_thread=H_cond_thread,
                 old_correction=H_cond_correction,
                 model_name=name,
@@ -226,7 +221,6 @@ for i in range(n_trials):
             H_xxc[index] = run_CPDSSS(
                 sim_model,
                 X,
-                test_samples=test_X,
                 model_name=name,
                 model_path=X_path,
             )
@@ -248,7 +242,6 @@ for i in range(n_trials):
             run_CPDSSS(
                 sim_model,
                 joint,
-                test_samples=test_joint,
                 old_thread=H_xxc_thread,
                 old_correction=H_xxc_correction,
                 model_name=name,
@@ -258,7 +251,6 @@ for i in range(n_trials):
             H_joint[index] = run_CPDSSS(
                 sim_model,
                 joint,
-                test_samples=test_joint,
                 model_name=name,
                 model_path=XH_path,
             )
