@@ -7,6 +7,10 @@ from simulators.complex import mvn
 import math
 from joblib import Parallel, delayed
 import theano.tensor as tt
+import theano
+
+dtype = theano.config.floatX
+
 
 # from memory_profiler import profile
 
@@ -55,8 +59,8 @@ class CPDSSS(_distribution):
         self.use_chan_in_sim()
         self._sim_chan_only = False
 
-        self.fading = np.exp(-np.arange(self.N) / 3)
-        self.eye = 0.0001 * np.eye(self.N)
+        self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
+        self.eye = 0.0001 * np.eye(self.N).astype(dtype)
 
     def sim(self, n_samples=1000):
         """Generate samples X and (optional) G for CPDSSS
@@ -68,9 +72,12 @@ class CPDSSS(_distribution):
             numpy: (n_samples, dim_x) array of generated values
         """
 
-        self.s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples, self.NL, self.T))
-        v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples, self.NNL, self.T))
-        self.h = self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)
+        self.s = (
+            self.sim_S.sim(n_samples=n_samples).astype(dtype).reshape((n_samples, self.NL, self.T))
+        )
+
+        v = self.sim_V.sim(n_samples=n_samples).astype(dtype).reshape((n_samples, self.NNL, self.T))
+        self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
 
         if self._sim_chan_only:  # return early if we only need channel
             self.samples = self.h
@@ -118,15 +125,16 @@ class CPDSSS(_distribution):
         G_results = []
         Q_results = []
 
-        # self._gen_GQ_sample(self.h[0, :])
+        self._gen_GQ_sample(self.h[0, :])
         # start = time.time()
         chunk = [self.h[i, :] for i in range(n_samples)]
         with mp.Pool(workers) as pool:
-            for G, Q in pool.imap(self._gen_GQ_sample, chunk, chunksize=chunk_size):
-                G_results.append(G)
-                Q_results.append(Q)
-            # G_results, Q_results = zip(*pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples))))
-            # G_results, Q_results = zip(*results)
+            # for G, Q in pool.imap(self._gen_GQ_sample, chunk, chunksize=chunk_size):
+            #     G_results.append(G)
+            #     Q_results.append(Q)
+            G_results, Q_results = zip(
+                *pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples)))
+            )
 
         # print(time.time() - start)
 
@@ -284,7 +292,11 @@ class Exponential(_distribution):
         self.lamb = lamb
 
     def sim(self, n_samples):
-        return np.random.default_rng().exponential(scale=1 / self.lamb, size=(n_samples, 1))
+        return (
+            np.random.default_rng()
+            .exponential(scale=1 / self.lamb, size=(n_samples, 1))
+            .astype(dtype)
+        )
 
     def entropy(self):
         return 1 - np.log(self.lamb)
@@ -321,11 +333,13 @@ class Laplace(_distribution):
 
     def __init__(self, mu, b, N=1):
         super().__init__(x_dim=N)
-        self.mu = mu
-        self.b = b
+        self.mu = mu.astype(dtype)
+        self.b = b.astype(dtype)
 
     def sim(self, n_samples):
-        return np.random.default_rng().laplace(self.mu, self.b, (n_samples, self.x_dim))
+        return (
+            np.random.default_rng().laplace(self.mu, self.b, (n_samples, self.x_dim)).astype(dtype)
+        )
 
     def entropy(self):
         return (1 + np.log(2 * self.b)) * self.x_dim
@@ -344,7 +358,9 @@ class Cauchy(_distribution):
         self.gamma = gamma
 
     def sim(self, n_samples):
-        return stats.cauchy.rvs(loc=self.mu, scale=self.gamma, size=(n_samples, self.x_dim))
+        return stats.cauchy.rvs(loc=self.mu, scale=self.gamma, size=(n_samples, self.x_dim)).astype(
+            dtype
+        )
 
     def entropy(self):
         return np.log(4 * np.pi * self.gamma) * self.x_dim
@@ -357,7 +373,9 @@ class Logistic(_distribution):
         self.mu = mu
 
     def sim(self, n_samples):
-        return stats.logistic.rvs(loc=self.mu, scale=self.s, size=(n_samples, self.x_dim))
+        return stats.logistic.rvs(loc=self.mu, scale=self.s, size=(n_samples, self.x_dim)).astype(
+            dtype
+        )
 
     def entropy(self):
         return (np.log(self.s) + 2) * self.x_dim
