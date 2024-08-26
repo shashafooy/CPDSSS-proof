@@ -39,6 +39,7 @@ class SGD_Template:
         # prepare training data
         self.n_trn_data = self._get_n_data(trn_data)
         self.trn_data = [theano.shared(x.astype(dtype), borrow=True) for x in trn_data]
+        self.minibatch = 100  # default value, may be overridden in train()
 
         # compile theano function for a single training update
         self.trn_inputs = [model.input] if trn_target is None else [model.input, trn_target]
@@ -135,16 +136,16 @@ class SGD_Template:
         progress_epc = []
         progress_trn = []
         progress_val = []
-        minibatch = self.n_trn_data if minibatch is None else minibatch
+        self.minibatch = self.n_trn_data if minibatch is None else minibatch
         maxiter = (
             float("inf")
             if maxepochs is None
-            else np.ceil(maxepochs * self.n_trn_data / float(minibatch))
+            else np.ceil(maxepochs * self.n_trn_data / float(self.minibatch))
         )
         monitor_every = (
             float("inf")
             if monitor_every is None
-            else np.ceil(monitor_every * self.n_trn_data / float(minibatch))
+            else np.ceil(monitor_every * self.n_trn_data / float(self.minibatch))
         )
         patience = float("inf") if patience is None else patience
         patience_left = patience
@@ -155,14 +156,14 @@ class SGD_Template:
         while True:
 
             # make update to parameters
-            trn_loss = self.make_update(self.idx_stream.gen(minibatch))
+            trn_loss = self.make_update(self.idx_stream.gen(self.minibatch))
             diff = self.trn_loss - trn_loss
             iter += 1
             self.trn_loss = trn_loss
 
             if iter % monitor_every == 0:
 
-                epoch = iter * float(minibatch) / self.n_trn_data
+                epoch = iter * float(self.minibatch) / self.n_trn_data
 
                 # do validation
                 if self.do_validation:
@@ -377,6 +378,10 @@ class SGD(SGD_Template):
         self.step.reset_shared()
         new_a = np.asarray(self.step.a_t.get_value() * 0.05).astype(theano.config.floatX)
         self.step.a_t.set_value(new_a)
+        # also increase minibatch size, but don't exceed length of trn data
+        self.minibatch = (
+            self.minibatch * 2 if self.minibatch * 2 < self.n_trn_data else self.minibatch
+        )
         # step = ss.Adam(a=self.step.a*0.05, bm=self.step.bm, bv=self.step.bv, eps=self.step.eps)
 
         # idx = tt.ivector('idx')

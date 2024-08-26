@@ -15,8 +15,8 @@ config = configparser.ConfigParser()
 config.read("CPDSSS.ini")
 KNN_THREADING = not config["GLOBAL"].getboolean("knn_GPU", False)  # Use threading if GPU not used
 SAVE_MODEL = True
-TRAIN_ONLY = False
-REUSE_MODEL = True
+TRAIN_ONLY = True
+REUSE_MODEL = False
 
 
 def run_CPDSSS(
@@ -55,11 +55,11 @@ def run_CPDSSS(
 """
 Parameters for CPDSSS
 """
-N = 6
+N = 2
 L = 2
 M = int(N / L)
 P = N - int(N / L)
-T_range = range(2, 8)
+T_range = range(8, 10)
 
 
 """
