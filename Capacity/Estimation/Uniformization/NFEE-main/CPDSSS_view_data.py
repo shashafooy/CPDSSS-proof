@@ -13,15 +13,19 @@ Load and combine all datasets
 max_T = 0
 min_T = 0
 
+N_range = [2, 4, 6]
+N = 2
+L = 2
+
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
 # util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename))
-base_path = "temp_data/CPDSSS_data/MI(h,X)/N4_L2/"
-filepaths = [base_path + "50k_high_epoch", base_path + "50k_samples"]
-filepath = base_path + "50k_tol_0.1_patience_10"
-filepath = base_path + "50k_N4_L2"
-filepath = base_path + "50k_N4_L2"
+base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L2/"
+# filepaths = [base_path + "50k_high_epoch", base_path + "50k_samples"]
+# filepath = base_path + "50k_tol_0.1_patience_10"
+# filepath = base_path + "50k_N4_L2"
+# filepath = base_path + "50k_N4_L2"
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepath = base_path + 'NlogN_10k_K=3,T=8'
 # filepath = base_path + 'knn=200k_T=2-7'
@@ -32,8 +36,7 @@ filepath = base_path + "pretrained_model"
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_samples'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepaths = [base_path + 'NlogN_10k_scaling', base_path + 'Nscaling_knn=200k_T=8']
-N = 4
-L = 2
+
 # filepath=filepaths[1]
 # idx=0
 # for idx,filepath in enumerate(filepaths):
@@ -142,22 +145,7 @@ from simulators.CPDSSS_models import CPDSSS
 
 sim_model = CPDSSS(1, N, L, False)
 H_h = sim_model.chan_entropy()
-# H_G = 0.5*np.log(np.linalg.det(2*math.pi*np.exp(1)*np.eye(N)))
 
-
-# fig1,ax1=plt.subplots(2,2)
-# fig1.suptitle('Entropy increase per added transmission')
-
-# ax1[0,0].cla(),ax1[0,0].plot(H_gxc_mean[1:]-H_gxc_mean[0:-1])
-# ax1[0,0].set_title('H(g,x_cond)'),ax1[0,0].set_ylabel('delta H()'),ax1[0,0].set_xlabel('T')
-# ax1[1,0].cla(),ax1[1,0].plot(H_joint_mean[1:]-H_joint_mean[0:-1])
-# ax1[1,0].set_title('H(g,x,x_cond)'),ax1[1,0].set_ylabel('delta H()'),ax1[1,0].set_xlabel('T')
-# ax1[0,1].cla(),ax1[0,1].plot(H_cond_mean[1:]-H_cond_mean[0:-1])
-# ax1[0,1].set_title('H(x_cond)'),ax1[0,1].set_ylabel('delta H()'),ax1[0,1].set_xlabel('T')
-# ax1[1,1].cla(),ax1[1,1].plot(H_xxc_mean[1:]-H_xxc_mean[0:-1])
-# ax1[1,1].set_title('H(x,x_cond)'),ax1[1,1].set_ylabel('delta H()'),ax1[1,1].set_xlabel('T')
-
-# fig1.tight_layout()
 
 """View how each entropy changes as T increases"""
 fig2, ax2 = plt.subplots(2, 2)
@@ -182,6 +170,39 @@ diff = H_xxc_mean[1:] - H_xxc_mean[0:-1]
 yerr = np.nanvar(H_xxc_tot[:, 1:], axis=0) + np.nanvar(H_xxc_tot[:, :-1], axis=0)
 ax2[1, 1].cla(), ax2[1, 1].errorbar(T_range[:-1], diff, yerr=yerr)
 ax2[1, 1].set_title("H1(x,x_cond)"), ax2[1, 1].set_ylabel("delta H()"), ax2[1, 1].set_xlabel("T")
+
+
+"""Entropy Scatter plots"""
+fig2, ax2 = plt.subplots(2, 2)
+fig2.suptitle("Entropy increase per added transmission, N={}".format(N))
+
+
+def plt_H_diff_scatter(ax, data):
+    diff = []
+    for i in range(data.shape[1] - 1):
+        trim1, trim2 = (data[:, i + 1], data[:, i])
+        trim1 = trim1[~np.isnan(trim1)]
+        trim2 = trim2[~np.isnan(trim2)]
+        min_dim = min(trim1.shape[0], trim2.shape[0])
+        diff.append(trim1[:min_dim] - trim2[:min_dim])
+    default_color = plt.rcParams["axes.prop_cycle"].by_key()["color"][0]
+    for i, y in enumerate(diff):
+        x = np.full(y.shape, T_range[i])
+        ax.scatter(x, y, color=default_color)
+
+
+ax2[0, 0].cla(), ax2[0, 0].set_title("H(g,x_cond)")
+plt_H_diff_scatter(ax2[0, 0], H_gxc_tot)
+
+ax2[1, 0].cla(), ax2[1, 0].set_title("H(g,x,x_cond)")
+plt_H_diff_scatter(ax2[1, 0], H_joint_tot)
+
+ax2[0, 1].cla(), ax2[0, 1].set_title("H(x_cond)")
+plt_H_diff_scatter(ax2[0, 1], H_cond_tot)
+
+ax2[1, 1].cla(), ax2[1, 1].set_title("H(x,x_cond)")
+plt_H_diff_scatter(ax2[1, 1], H_xxc_tot)
+
 
 fig2.tight_layout()
 
