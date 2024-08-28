@@ -32,7 +32,7 @@ filepath = base_path + "pretrained_model"
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_samples'
 # filepath = base_path + 'NlogN_10k_scaling'
 # filepaths = [base_path + 'NlogN_10k_scaling', base_path + 'Nscaling_knn=200k_T=8']
-N = 2
+N = 4
 L = 2
 # filepath=filepaths[1]
 # idx=0
