@@ -239,7 +239,6 @@ def learn_model(
     net = (
         create_model(
             sim_model.x_dim,
-            rng=np.random,
             n_hiddens=n_hiddens,
             n_mades=n_stages,
             sim_model=sim_model,
@@ -282,10 +281,10 @@ def knn_entropy(estimator: entropy.UMestimator, base_samples=None, k=1, method="
         _type_: Entropy value. If method='both' is used, then return tuple with entropy using KL and KSG
     """
     start_time = time.time()
-    H, H2 = estimator.calc_ent(samples=base_samples, method=method, k=k)
+    H = estimator.calc_ent(samples=base_samples, method=method, k=k)
     end_time = time.time()
     print("knn time: ", str(timedelta(seconds=int(end_time - start_time))))
     if method == "both":
-        return H, H2
+        return H[0], H[1]
     else:
         return H
