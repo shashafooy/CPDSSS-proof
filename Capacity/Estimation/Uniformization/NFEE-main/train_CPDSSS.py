@@ -29,6 +29,8 @@ n_train_samples = 100000
 """
 File names
 """
+X_orig_path = f"temp_data/saved_models/{N}N/X"
+XH_orig_path = f"temp_data/saved_models/{N}N/X"
 model_path = f"temp_data/saved_models/new_models/{N}N"
 X_path = os.path.join(model_path, "X")
 XH_path = os.path.join(model_path, "XH")
@@ -51,12 +53,16 @@ for i in range(n_trials):
 
         
         misc.print_border(f"training H(X), T: {T}, iter: {i+1}")
+        print(f"original loss: {ent.load_model()}")
         sim_model.x_dim = N*T
         estimator = ent.learn_model(sim_model, train_samples=X_samp)
         _ = ent.update_best_model(estimator.model, X_samp, name=name, path=X_path)
-        
+        orig_loss = ent.load_model(estimator.model,name,X_orig_path).eval_trnloss(X_samp)
+        print(f"original loss: {orig_loss}")
         
         misc.print_border(f"training H(X,h), T: {T}, iter: {i+1}")
         sim_model.x_dim = N*T+N
         estimator = ent.learn_model(sim_model, train_samples=XH_samp)
-        _ = ent.update_best_model(estimator.model, X_samp, name=name, path=XH_path)
+        _ = ent.update_best_model(estimator.model, XH_samp, name=name, path=XH_path)
+        orig_loss = ent.load_model(estimator.model,name,XH_orig_path).eval_trnloss(XH_samp)
+        print(f"original loss: {orig_loss}")
