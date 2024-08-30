@@ -14,7 +14,7 @@ max_T = 0
 min_T = 0
 
 N_range = [2, 4, 6]
-N = 2
+N = 4
 L = 2
 
 REMOVE_OUTLIERS = True
@@ -64,6 +64,7 @@ for filename in os.listdir(filepath):
         H_cond_tot, H_cond_cum, old_range, T_range
     )
 
+T_range = old_range
 """
 Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
 """

@@ -53,10 +53,10 @@ for i in range(n_trials):
         misc.print_border(f"training H(X), T: {T}, iter: {i+1}")
         sim_model.x_dim = N*T
         estimator = ent.learn_model(sim_model, train_samples=X_samp)
-        _ = ent.update_best_model(estimator.model, X_samp, name=name, path=model_path)
+        _ = ent.update_best_model(estimator.model, X_samp, name=name, path=X_path)
         
         
         misc.print_border(f"training H(X,h), T: {T}, iter: {i+1}")
         sim_model.x_dim = N*T+N
         estimator = ent.learn_model(sim_model, train_samples=XH_samp)
-        _ = ent.update_best_model(estimator.model, X_samp, name=name, path=model_path)
+        _ = ent.update_best_model(estimator.model, X_samp, name=name, path=XH_path)
