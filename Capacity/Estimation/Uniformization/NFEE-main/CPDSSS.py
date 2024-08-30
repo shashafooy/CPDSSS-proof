@@ -101,6 +101,7 @@ today = date.today().strftime("%b_%d")
 base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
 
 path = base_path + "coarse-fine_75k_x_dims"
+path = base_path + "N9_coarse-fine_experiment"
 path = base_path + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 

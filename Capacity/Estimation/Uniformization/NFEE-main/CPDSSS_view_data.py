@@ -31,6 +31,7 @@ base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L2/"
 # filepath = base_path + 'knn=200k_T=2-7'
 # filepath = base_path + 'coarse-fine_75k_x_dims'
 filepath = base_path + "pretrained_model"
+# filepath = base_path + "N9_coarse-fine_experiment"
 
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_tol_0.1_patience_10'
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_samples'

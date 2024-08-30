@@ -239,7 +239,6 @@ def learn_model(
     net = (
         create_model(
             sim_model.x_dim,
-            rng=np.random,
             n_hiddens=n_hiddens,
             n_mades=n_stages,
             sim_model=sim_model,
