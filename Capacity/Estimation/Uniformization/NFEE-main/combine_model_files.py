@@ -9,22 +9,22 @@ from misc_CPDSSS import util as misc
 from ent_est import entropy
 
 
-def compare_models(samples, name1, base_folder, name2, old_model_folder):
+def compare_models(samples, name1, base_folder, name2, new_model_folder):
     model = ent.create_model(samples.shape[1])
     current_loss = ent.load_model(model, name1, base_folder).eval_trnloss(samples)
-    new_loss = ent.load_model(model, name2, old_model_folder).eval_trnloss(samples)
+    new_loss = ent.load_model(model, name2, new_model_folder).eval_trnloss(samples)
     print(f"{name1} current loss: {current_loss:.3f}, new loss: {new_loss:.3f}")
     if new_loss < current_loss:
         ent.save_model(model, name1, base_folder)
     else:
         model = ent.load_model(model, name1, base_folder)
-        ent.save_model(model, name2, old_model_folder)
+        ent.save_model(model, name2, new_model_folder)
 
 
 """
 Parameters for CPDSSS
 """
-N = 2
+N = 4
 L = 2
 M = int(N / L)
 P = N - int(N / L)
@@ -39,7 +39,7 @@ Generate data
 """
 
 current_model_path = f"temp_data/saved_models/{N}N"
-new_model_path = f"temp_data/saved_models/test_models/{N}N"
+new_model_path = f"temp_data/saved_models/new_models/{N}N"
 
 sub_folders = ["X", "XH"]
 
