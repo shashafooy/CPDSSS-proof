@@ -59,7 +59,7 @@ N = 4
 L = 2
 M = int(N / L)
 P = N - int(N / L)
-T_range = range(8, 10)
+T_range = range(2, 8)
 
 
 """
