@@ -13,13 +13,14 @@ def align_and_concatenate(old_data, new_data, old_range=(0), new_range=(0)):
     Returns:
         (Float,tuple): Concatenated_data,combined_range
     """
-    # add to list if input is just a 1d array
-    old_range = [old_range] if np.asarray(old_range).ndim <= 1 else old_range
-    new_range = [new_range] if np.asarray(new_range).ndim <= 1 else new_range
-    # old_range = [old_range] if isinstance(old_range,np.ndarray) else old_range
-    # new_range = [new_range] if isinstance(new_range,np.ndarray) else new_range
     # Determine the number of dimensions (excluding the 'iter' dimension)
     num_dims = old_data.ndim - 1
+
+    # add to list if input is just a 1d array
+    old_range = [old_range] if num_dims <= 1 else list(old_range)
+    new_range = [new_range] if num_dims <= 1 else list(new_range)
+    # old_range = [old_range] if isinstance(old_range,np.ndarray) else old_range
+    # new_range = [new_range] if isinstance(new_range,np.ndarray) else new_range
 
     # Find first row that contains all NaN
     nan_mask = np.isnan(new_data)
