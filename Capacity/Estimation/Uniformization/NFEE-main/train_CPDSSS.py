@@ -16,6 +16,7 @@ Parameters for CPDSSS
 N = 4
 L = 2
 T_range = range(1, 8)
+T_range = range(8,9)
 
 
 """
@@ -50,14 +51,14 @@ for i in range(n_trials):
 
         name = f"{T}T"
 
-        misc.print_border(f"training H(X), T: {T}, iter: {i+1}")
-        sim_model.x_dim = N * T
-        model = ent.learn_model(sim_model, train_samples=X_samp).model
-        _ = ent.update_best_model(model, X_samp, name=name, path=X_path)
+       # misc.print_border(f"training H(X), T: {T}, iter: {i+1}")
+       # sim_model.x_dim = N * T
+       # model = ent.learn_model(sim_model, train_samples=X_samp).model
+       # _ = ent.update_best_model(model, X_samp, name=name, path=X_path)
         # model = ent.load_model(name=name, path=X_path)
         # new_loss = model.eval_trnloss(X_samp)
-        orig_loss = ent.load_model(model, name, X_orig_path).eval_trnloss(X_samp)
-        print(f"original loss: {orig_loss:.3f}")
+        #orig_loss = ent.load_model(model, name, X_orig_path).eval_trnloss(X_samp)
+        #print(f"original loss: {orig_loss:.3f}")
         # print(f"new loss: {new_loss:.3f}")
 
         misc.print_border(f"training H(X,h), T: {T}, iter: {i+1}")
@@ -66,6 +67,6 @@ for i in range(n_trials):
         _ = ent.update_best_model(model, XH_samp, name=name, path=XH_path)
         # model = ent.load_model(name=name, path=XH_path)
         # new_loss = model.eval_trnloss(XH_samp)
-        orig_loss = ent.load_model(model, name, XH_orig_path).eval_trnloss(XH_samp)
-        print(f"original loss: {orig_loss:.3f}")
+        #orig_loss = ent.load_model(model, name, XH_orig_path).eval_trnloss(XH_samp)
+        #print(f"original loss: {orig_loss:.3f}")
         # print(f"new loss: {new_loss:.3f}")
