@@ -40,6 +40,7 @@ class SGD_Template:
         self.n_trn_data = self._get_n_data(trn_data)
         self.trn_data = [theano.shared(x.astype(dtype), borrow=True) for x in trn_data]
         self.minibatch = 100  # default value, may be overridden in train()
+        self.monitor_every = None
 
         # compile theano function for a single training update
         self.trn_inputs = [model.input] if trn_target is None else [model.input, trn_target]
@@ -132,7 +133,7 @@ class SGD_Template:
         assert isinstance(val_in_same_plot, bool), "val_in_same_plot must be boolean."
 
         # initialize some variables
-        iter = 0
+        self.iter = 0
         progress_epc = []
         progress_trn = []
         progress_val = []
@@ -142,7 +143,7 @@ class SGD_Template:
             if maxepochs is None
             else np.ceil(maxepochs * self.n_trn_data / float(self.minibatch))
         )
-        monitor_every = (
+        self.monitor_every = (
             float("inf")
             if monitor_every is None
             else np.ceil(monitor_every * self.n_trn_data / float(self.minibatch))
@@ -150,6 +151,7 @@ class SGD_Template:
         patience = float("inf") if patience is None else patience
         patience_left = patience
         best_epoch = None
+        fine_tune_epoch = None
         logger = open(os.devnull, "w") if logger is None else logger
 
         # main training loop
@@ -158,12 +160,12 @@ class SGD_Template:
             # make update to parameters
             trn_loss = self.make_update(self.idx_stream.gen(self.minibatch))
             diff = self.trn_loss - trn_loss
-            iter += 1
+            self.iter += 1
             self.trn_loss = trn_loss
 
-            if iter % monitor_every == 0:
+            if self.iter % self.monitor_every == 0:
 
-                epoch = iter * float(self.minibatch) / self.n_trn_data
+                epoch = self.iter * float(self.minibatch) / self.n_trn_data
 
                 # do validation
                 if self.do_validation:
@@ -210,7 +212,7 @@ class SGD_Template:
                     )
 
             # check for convergence
-            if (tol is not None and abs(diff) < tol) or iter >= maxiter or patience_left <= 0:
+            if (tol is not None and abs(diff) < tol) or self.iter >= maxiter or patience_left <= 0:
                 if self.do_validation:
                     self.checkpointer.restore()
                 if self.set_batch_norm_stats is not None:
@@ -227,6 +229,8 @@ class SGD_Template:
                     self.reduce_step_size()
                     patience_left = patience
                     fine_tune = False
+                    fine_tune_epoch = epoch
+
                     continue
                 else:
                     self.release_shared_data()
@@ -240,22 +244,25 @@ class SGD_Template:
                 if val_in_same_plot:
                     fig, ax = plt.subplots(1, 1)
                     ax.semilogx(progress_epc, progress_trn, "b", label="training")
-                    ax.semilogx(progress_epc, progress_val, "r", label="validation")
-                    ax.vlines(
-                        best_epoch,
-                        ax.get_ylim()[0],
-                        ax.get_ylim()[1],
-                        color="g",
-                        linestyles="dashed",
-                        label="best",
-                    )
+                    ax.semilogx(progress_epc, progress_val, "r", label="validation")                    
+                    # if fine_tune_epoch is not None:
+                    #     ax.vlines(
+                    #         fine_tune_epoch,
+                    #         ax.get_ylim()[0],
+                    #         ax.get_ylim()[1],
+                    #         color="g",
+                    #         linestyles="dashed",
+                    #         label="Fine tuning",
+                    #     )
                     if self.val_target is not None:
                         ax.axhline(self.val_target, label="target")
                         ax.set_title(
                             f"Training progress, error: {np.abs(self.best_val_loss-self.val_target):.3f}"
                         )
+                    ax.set_ylim((0,ax.get_ylim()[1]))
                     ax.set_xlabel("epochs")
                     ax.set_ylabel("loss")
+                    ax.set_title("Model Learning Curve")
                     ax.grid()
                     ax.legend()
 
@@ -379,9 +386,13 @@ class SGD(SGD_Template):
         new_a = np.asarray(self.step.a_t.get_value() * 0.05).astype(theano.config.floatX)
         self.step.a_t.set_value(new_a)
         # also increase minibatch size, but don't exceed length of trn data
-        self.minibatch = (
-            self.minibatch * 2 if self.minibatch * 2 < self.n_trn_data else self.minibatch
-        )
+        # self.minibatch = (
+        #     self.minibatch * 2 if self.minibatch * 2 < self.n_trn_data else self.minibatch
+        # )
+        if self.minibatch * 2 < self.n_trn_data:
+            self.minibatch = self.minibatch * 2
+            self.monitor_every = int(self.monitor_every / 2)
+            self.iter = int(self.iter / 2)
         # step = ss.Adam(a=self.step.a*0.05, bm=self.step.bm, bv=self.step.bv, eps=self.step.eps)
 
         # idx = tt.ivector('idx')

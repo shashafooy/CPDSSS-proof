@@ -6,13 +6,15 @@ import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
 
-from ent_est.entropy import kl, ksg
+from ent_est.entropy import kl_ksg, kl, ksg
+
+TRAIN_ONLY = False
 
 
-knn_samples = 200000
+# knn_samples = 200000
 n_train_samples = 100000
 n_trials = 100
-N_range = range(11, 21)
+N_range = range(1, 20)
 method = "both"
 patience = 5
 val_tol = 0.1
@@ -30,58 +32,67 @@ MSE_KL = np.inf
 path = "temp_data/laplace_test"
 today = date.today().strftime("%b_%d")
 filename = "laplace_data({})".format(today)
-filename = misc.update_filename(path=path, old_name=filename, iter=iter, rename=False)
+filename = misc.update_filename(path=path, old_name=filename, rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
+
+model_path = "temp_data/saved_models/laplace"
 
 
 for i in range(n_trials):
     for ni, N in enumerate(N_range):
+        model_name = f"{N}N"
+
+        knn_samples = n_train_samples * N
         sim_laplace = mod.Laplace(mu=0, b=2, N=N)
         true_H_laplace = sim_laplace.entropy()
         laplace_base = sim_laplace.sim(n_samples=knn_samples)
 
-        misc.print_border("Calculate H(x) laplace, N={}, iter: {}".format(N, i + 1))
-        if method == "umtksg":
-            H_unif_KSG[i, ni] = ent.calc_entropy(
-                sim_model=sim_laplace,
-                n_samples=n_train_samples,
-                base_samples=laplace_base,
-                val_tol=val_tol,
-                patience=patience,
-                method=method,
+        if TRAIN_ONLY:
+            estimator = ent.learn_model(sim_model=sim_laplace, train_samples=laplace_base)
+            _ = ent.update_best_model(
+                estimator.model, laplace_base, name=model_name, path=model_path
             )
-            H_KSG_laplace[i, ni] = ksg(laplace_base)
-        elif method == "umtkl":
-            H_unif_KL[i, ni] = ent.calc_entropy(
-                sim_model=sim_laplace,
-                n_samples=n_train_samples,
-                base_samples=laplace_base,
-                val_tol=0.01,
-                patience=3,
-                method=method,
-            )
-            H_KL_laplace[i, ni] = kl(laplace_base)
         else:
-            H_unif_KL[i, ni], H_unif_KSG[i, ni] = ent.calc_entropy(
-                sim_model=sim_laplace,
-                n_samples=n_train_samples,
-                base_samples=laplace_base,
-                val_tol=0.01,
-                method=method,
+            misc.print_border("Calculate H(x) laplace, N={}, iter: {}".format(N, i + 1))
+            model = ent.load_model(name=model_name, path=model_path, sim_model=sim_laplace)
+            if method == "umtksg":
+                H_unif_KSG[i, ni], estimator = ent.calc_entropy(
+                    sim_model=sim_laplace,
+                    base_samples=laplace_base,
+                    method=method,
+                    model=model,
+                )
+                H_KSG_laplace[i, ni] = ksg(laplace_base)
+                print(f"error: {np.abs(true_H_laplace - H_KSG_laplace[i,ni])}")
+            elif method == "umtkl":
+                H_unif_KL[i, ni], estimator = ent.calc_entropy(
+                    sim_model=sim_laplace,
+                    base_samples=laplace_base,
+                    method=method,
+                    model=model,
+                )
+                H_KL_laplace[i, ni] = kl(laplace_base)
+                print(f"error: {np.abs(true_H_laplace - H_KL_laplace[i,ni])}")
+
+            else:
+                H_unif_KL[i, ni], H_unif_KSG[i, ni], estimator = ent.calc_entropy(
+                    sim_model=sim_laplace,
+                    base_samples=laplace_base,
+                    method=method,
+                    model=model,
+                )
+                H_KL_laplace[i, ni], H_KSG_laplace[i, ni] = kl_ksg(laplace_base)
+                print(f"KL error: {np.abs(true_H_laplace - H_KL_laplace[i,ni])}")
+                print(f"KSG error: {np.abs(true_H_laplace - H_KSG_laplace[i,ni])}")
+                print(f"tKL error: {np.abs(true_H_laplace - H_unif_KL[i,ni])}")
+                print(f"tKSG error: {np.abs(true_H_laplace - H_unif_KSG[i,ni])}")
+
+            _ = ent.update_best_model(
+                estimator.model, laplace_base, name=model_name, path=model_path
             )
-            H_KL_laplace[i, ni] = kl(laplace_base)
-            H_KSG_laplace[i, ni] = ksg(laplace_base)
 
-        # H_unif_KL[i,ni],H_unif_KSG[i,ni] = ent.calc_entropy(sim_model = sim_laplace, n_samples = n_train_samples,base_samples=laplace_base,val_tol=0.01,method='both')
-
-        # MSE_uniform = np.mean((H_unif_KL[:i+1,N-1] - true_H_laplace)**2)
-        # MSE_KL = np.mean((H_KL_laplace[:i+1,N-1] - true_H_laplace)**2)
-        # print("laplace entropy MSE: {}\nlaplace KL entropy MSE: {}".format(MSE_uniform,MSE_KL))
-
-        if N == N_range[-1]:
-            iter = iter + 1
-            filename = misc.update_filename(path, filename, iter, rename=True)
-        util.io.save(
-            (N_range, H_unif_KL, H_unif_KSG, H_KL_laplace, H_KSG_laplace, iter),
-            os.path.join(path, filename),
-        )
+            filename = misc.update_filename(path, filename, i)
+            util.io.save(
+                (N_range, H_unif_KL, H_unif_KSG, H_KL_laplace, H_KSG_laplace, i),
+                os.path.join(path, filename),
+            )

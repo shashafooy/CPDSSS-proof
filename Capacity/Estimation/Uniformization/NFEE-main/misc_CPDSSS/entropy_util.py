@@ -166,7 +166,10 @@ def calc_entropy(
     H = estimator.calc_ent(samples=base_samples, method=method)
     end_time = time.time()
     print(f"knn time: {str(timedelta(seconds = int(end_time - start_time)))}")
-    print(f"H={H:.3f}")
+    if method == "both":
+        print(f"KL H={H[0]:.3f}\nKSG H={H[1]:.3f}")
+    else:
+        print(f"H={H:.3f}")
 
     for i in range(3):
         gc.collect()

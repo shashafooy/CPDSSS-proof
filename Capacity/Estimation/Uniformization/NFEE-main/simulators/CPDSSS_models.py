@@ -18,7 +18,7 @@ dtype = theano.config.floatX
 class _distribution:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, x_dim):
+    def __init__(self, x_dim=0):
         self.x_dim = x_dim
 
     @abc.abstractmethod
@@ -333,8 +333,8 @@ class Laplace(_distribution):
 
     def __init__(self, mu, b, N=1):
         super().__init__(x_dim=N)
-        self.mu = mu.astype(dtype)
-        self.b = b.astype(dtype)
+        self.mu = np.asarray(mu, dtype=dtype)
+        self.b = np.asarray(b, dtype=dtype)
 
     def sim(self, n_samples):
         return (
