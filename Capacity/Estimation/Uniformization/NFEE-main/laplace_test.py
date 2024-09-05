@@ -32,7 +32,7 @@ MSE_KL = np.inf
 path = "temp_data/laplace_test"
 today = date.today().strftime("%b_%d")
 filename = "laplace_data({})".format(today)
-filename = misc.update_filename(path=path, old_name=filename, iter=iter, rename=False)
+filename = misc.update_filename(path=path, old_name=filename, rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
 model_path = "temp_data/saved_models/laplace"

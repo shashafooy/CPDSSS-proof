@@ -151,6 +151,7 @@ class SGD_Template:
         patience = float("inf") if patience is None else patience
         patience_left = patience
         best_epoch = None
+        fine_tune_epoch = None
         logger = open(os.devnull, "w") if logger is None else logger
 
         # main training loop
@@ -228,6 +229,8 @@ class SGD_Template:
                     self.reduce_step_size()
                     patience_left = patience
                     fine_tune = False
+                    fine_tune_epoch = epoch
+
                     continue
                 else:
                     self.release_shared_data()
@@ -241,22 +244,25 @@ class SGD_Template:
                 if val_in_same_plot:
                     fig, ax = plt.subplots(1, 1)
                     ax.semilogx(progress_epc, progress_trn, "b", label="training")
-                    ax.semilogx(progress_epc, progress_val, "r", label="validation")
-                    ax.vlines(
-                        best_epoch,
-                        ax.get_ylim()[0],
-                        ax.get_ylim()[1],
-                        color="g",
-                        linestyles="dashed",
-                        label="best",
-                    )
+                    ax.semilogx(progress_epc, progress_val, "r", label="validation")                    
+                    # if fine_tune_epoch is not None:
+                    #     ax.vlines(
+                    #         fine_tune_epoch,
+                    #         ax.get_ylim()[0],
+                    #         ax.get_ylim()[1],
+                    #         color="g",
+                    #         linestyles="dashed",
+                    #         label="Fine tuning",
+                    #     )
                     if self.val_target is not None:
                         ax.axhline(self.val_target, label="target")
                         ax.set_title(
                             f"Training progress, error: {np.abs(self.best_val_loss-self.val_target):.3f}"
                         )
+                    ax.set_ylim((0,ax.get_ylim()[1]))
                     ax.set_xlabel("epochs")
                     ax.set_ylabel("loss")
+                    ax.set_title("Model Learning Curve")
                     ax.grid()
                     ax.legend()
 
