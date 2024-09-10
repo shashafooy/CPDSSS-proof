@@ -13,10 +13,11 @@ config.read("CPDSSS.ini")
 """
 Parameters for CPDSSS
 """
-N = 4
+N = 6
 L = 2
 T_range = range(1, 8)
 T_range = range(8,9)
+T_range = range(5,6)
 
 
 """
