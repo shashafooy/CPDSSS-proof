@@ -236,6 +236,7 @@ def learn_model(
     """
     if pretrained_model is not None and fine_tune:
         mini_batch = mini_batch * 4
+        # step = ss.Adam(a=5e-5)
         step = ss.Adam(a=1e-5)
         fine_tune = False
 

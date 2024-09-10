@@ -65,7 +65,6 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
     if shuffle is True:
         rng.shuffle(y)
 
-
     # knn search
     nbrs = NearestNeighbors(
         n_neighbors=max_k + 1, algorithm=algorithm, metric="chebyshev", n_jobs=n_jobs
@@ -847,6 +846,10 @@ class UMestimator:
         self.x_dim = self.samples.shape[1]
 
         # Scale so validation occurs at most every 10**5 / minibatch during training
+        # if fine_tune:
+        #     monitor_every = min(1e5 / float(self.n_samples), 1.0)
+        # else:
+        #     monitor_every = min(1e6 / float(self.n_samples), 1.0)
         monitor_every = min(10**5 / float(self.n_samples), 1.0)
         logger.write("training model...\n")
         learn_density(
