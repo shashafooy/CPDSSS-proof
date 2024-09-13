@@ -163,7 +163,7 @@ class SGD_Template:
             self.iter += 1
             self.trn_loss = trn_loss
 
-            if self.iter % self.monitor_every == 0:
+            if self.iter % self.monitpythor_every == 0:
 
                 epoch = self.iter * float(self.minibatch) / self.n_trn_data
 
@@ -244,7 +244,7 @@ class SGD_Template:
                 if val_in_same_plot:
                     fig, ax = plt.subplots(1, 1)
                     ax.semilogx(progress_epc, progress_trn, "b", label="training")
-                    ax.semilogx(progress_epc, progress_val, "r", label="validation")                    
+                    ax.semilogx(progress_epc, progress_val, "r", label="validation")
                     # if fine_tune_epoch is not None:
                     #     ax.vlines(
                     #         fine_tune_epoch,
@@ -259,7 +259,7 @@ class SGD_Template:
                         ax.set_title(
                             f"Training progress, error: {np.abs(self.best_val_loss-self.val_target):.3f}"
                         )
-                    ax.set_ylim((0,ax.get_ylim()[1]))
+                    ax.set_ylim((0, ax.get_ylim()[1]))
                     ax.set_xlabel("epochs")
                     ax.set_ylabel("loss")
                     ax.set_title("Model Learning Curve")

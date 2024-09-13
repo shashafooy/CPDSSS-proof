@@ -154,4 +154,5 @@ plt.legend(["Uniform KL", "Uniform KSG", "KL", "KSG"])
 plt.xlabel("N dimensions")
 plt.ylabel("log std")
 
+
 plt.show()
