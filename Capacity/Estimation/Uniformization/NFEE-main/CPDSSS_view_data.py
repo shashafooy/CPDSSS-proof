@@ -14,7 +14,7 @@ max_T = 0
 min_T = 0
 
 N_range = [2, 4, 6]
-N = 4
+N = 6
 L = 2
 
 REMOVE_OUTLIERS = True

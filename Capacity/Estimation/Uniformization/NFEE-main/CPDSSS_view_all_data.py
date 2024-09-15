@@ -79,7 +79,7 @@ for i, N in enumerate(N_range):
         H_joint_tot = viewData.remove_outlier(data=H_joint_tot, num_std=3)
         H_cond_tot = viewData.remove_outlier(data=H_cond_tot, num_std=3)
 
-    MI_mean.append(np.nanmean(MI_tot, axis=0))
+    # MI_mean.append(np.nanmean(MI_tot, axis=0))
     H_hxc_mean.append(np.nanmean(H_gxc_tot, axis=0))
     H_xxc_mean.append(np.nanmean(H_xxc_tot, axis=0))
     H_joint_mean.append(np.nanmean(H_joint_tot, axis=0))
@@ -94,6 +94,7 @@ for i, N in enumerate(N_range):
     T_range = old_range
     # Potentially more accurate taking into account each mean value
     MI_mean_sum = H_hxc_mean[-1] + H_xxc_mean[-1] - H_joint_mean[-1] - H_cond_mean[-1]
+    MI_mean.append(MI_mean_sum)
 
     del MI_tot
 
