@@ -70,6 +70,7 @@ class MaskedAutoregressiveFlow:
 
         # self.target_lnpx = target_logpdf(self.input) if target_logpdf is not None else 0
         self.target_lnpx = -target_entropy if target_entropy is not None else 0
+        self.target_lnpx = 0
 
         for i in range(n_mades):
 
@@ -101,7 +102,7 @@ class MaskedAutoregressiveFlow:
                 - 0.5 * tt.sum(self.u**2, axis=1)
                 + self.logdet_dudx
             )
-            self.stage_loss.append(tt.abs_(self.target_lnpx - tt.mean(L)))
+            self.stage_loss.append(self.target_lnpx - tt.mean(L))
             # L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + 0.5 * tt.sum(made.logp,axis=1) + tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
             # self.stage_loss.append(-tt.mean(L))
             self.stage_loss[-1].name = f"stage_{i+1}_loss"
@@ -123,7 +124,7 @@ class MaskedAutoregressiveFlow:
 
         # train objective
         # self.trn_loss = -tt.mean(self.L)
-        self.trn_loss = tt.abs_(self.target_lnpx - tt.mean(self.L))
+        self.trn_loss = self.target_lnpx - tt.mean(self.L)
         self.trn_loss.name = "trn_loss"
 
         self._trn_loss = self.trn_loss  # backup
