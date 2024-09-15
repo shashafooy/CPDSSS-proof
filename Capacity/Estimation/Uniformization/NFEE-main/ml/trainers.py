@@ -163,7 +163,7 @@ class SGD_Template:
             self.iter += 1
             self.trn_loss = trn_loss
 
-            if self.iter % self.monitpythor_every == 0:
+            if self.iter % self.monitor_every == 0:
 
                 epoch = self.iter * float(self.minibatch) / self.n_trn_data
 
