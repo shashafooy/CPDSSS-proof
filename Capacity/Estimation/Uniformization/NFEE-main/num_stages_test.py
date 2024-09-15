@@ -24,6 +24,7 @@ method = "both"
 # layers = [2,3,4]
 stages = np.arange(12, 19, 2)  # theano gradient breaks for stages>=20
 stages = [6, 7, 8, 10, 11]
+stages = [1, 2, 3, 4]
 minibatch = 128
 fine_tune = False
 hidden = [100, 100]
@@ -65,16 +66,18 @@ for i in range(n_trials):
         misc.print_border("Calculate H(x) laplace, stages={} iter: {}".format(n_stages, i + 1))
         estimator = ent.learn_model(
             sim_laplace,
-            n_train_samples,
+            n_samples=n_train_samples,
             n_hiddens=hidden,
             n_stages=n_stages,
             mini_batch=minibatch,
             fine_tune=False,
             step=step,
         )
-
-        uniform, H_correction1 = estimator.uniform_correction(laplace_base)
-        H_thread1 = estimator.start_knn_thread(uniform, method=method)
+        H_unif_KL[i, ns], H_unif_KSG[i, ns] = ent.knn_entropy(
+            estimator, laplace_base, method=method
+        )
+        # uniform, H_correction1 = estimator.uniform_correction(laplace_base)
+        # H_thread1 = estimator.start_knn_thread(uniform, method=method)
 
         # uniform,H_correction2 = estimator.uniform_correction(sim_laplace.sim(knn_samples))
         # H_thread2 = estimator.start_knn_thread(uniform,method=method)

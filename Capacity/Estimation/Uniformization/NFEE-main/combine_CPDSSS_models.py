@@ -33,8 +33,8 @@ max_T = 9
 Generate data
 """
 
-current_model_path = f"temp_data/saved_models/laplace"
-new_model_path = f"temp_data/saved_models/laplace_new"
+current_model_path = f"temp_data/saved_models/{N}N"
+new_model_path = f"temp_data/saved_models/new_models/{N}N"
 
 base_folder_X = os.path.join(current_model_path, "X")
 base_folder_XH = os.path.join(current_model_path, "XH")

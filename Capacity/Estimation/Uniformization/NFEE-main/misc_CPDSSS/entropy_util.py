@@ -266,7 +266,8 @@ def learn_model(
     )
     end_time = time.time()
     print("learning time: ", str(timedelta(seconds=int(end_time - start_time))))
-    print(f"Final Loss: {net.eval_trnloss(train_samples):.3f}")
+    if train_samples is not None:
+        print(f"Final Loss: {net.eval_trnloss(train_samples):.3f}")
 
     return estimator
 

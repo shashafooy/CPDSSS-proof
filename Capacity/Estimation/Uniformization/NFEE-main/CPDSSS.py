@@ -60,6 +60,7 @@ L = 2
 M = int(N / L)
 P = N - int(N / L)
 T_range = range(2, 8)
+T_range = range(5, 7)
 
 
 """
@@ -115,10 +116,13 @@ if not TRAIN_ONLY:
     filename = misc.update_filename(path, filename, -1, rename=False)
 # model = ent.load_model(8,'CPDSSS_hxc_2T','temp_data/saved_models/2T')
 
-
+################
+## TEMP VALUE###
+################
 prev_idx = (0, 0)
 for i in range(n_trials):
-    for k, T in enumerate(T_range):
+    # for k, T in enumerate(T_range):
+    for k, T in [(1, 5)]:
         index = (i, k)
         """
         Generate samples
@@ -147,91 +151,92 @@ for i in range(n_trials):
                 Start new model while current knn is running (main thread)
          """
 
-        """Train H(h,x_cond)"""
-        misc.print_border("1/4 calculating H(h,x_old), T: {0}, iter: {1}".format(T, i + 1))
-        sim_model.set_dim_hxc()
-        name = f"{T-1}T"
+        # """Train H(h,x_cond)"""
+        # misc.print_border("1/4 calculating H(h,x_old), T: {0}, iter: {1}".format(T, i + 1))
+        # sim_model.set_dim_hxc()
+        # name = f"{T-1}T"
 
-        if KNN_THREADING:
-            H_joint[prev_idx], H_hxc_thread, H_hxc_correction = run_CPDSSS(
-                sim_model,
-                hxc,
-                old_thread=H_joint_thread,
-                old_correction=H_joint_correction,
-                model_name=name,
-                model_path=XH_path,
-            )
-            MI[prev_idx] = H_hxc[prev_idx] + H_xxc[prev_idx] - H_joint[prev_idx] - H_cond[prev_idx]
-        else:
-            H_hxc[index] = run_CPDSSS(
-                sim_model,
-                hxc,
-                model_name=name,
-                model_path=XH_path,
-            )
+        # if KNN_THREADING:
+        #     H_joint[prev_idx], H_hxc_thread, H_hxc_correction = run_CPDSSS(
+        #         sim_model,
+        #         hxc,
+        #         old_thread=H_joint_thread,
+        #         old_correction=H_joint_correction,
+        #         model_name=name,
+        #         model_path=XH_path,
+        #     )
+        #     MI[prev_idx] = (
+        #         H_hxc[prev_idx] + H_xxc[prev_idx] - H_joint[prev_idx] - H_cond[prev_idx]
+        #     )
+        # else:
+        #     H_hxc[index] = run_CPDSSS(
+        #         sim_model,
+        #         hxc,
+        #         model_name=name,
+        #         model_path=XH_path,
+        #     )
 
-        if not TRAIN_ONLY:
-            filename = misc.update_filename(path, filename, i)
-            util.io.save(
-                (T_range, MI, H_hxc, H_xxc, H_joint, H_cond, i),
-                os.path.join(path, filename),
-            )
+        # if not TRAIN_ONLY:
+        #     filename = misc.update_filename(path, filename, i)
+        #     util.io.save(
+        #         (T_range, MI, H_hxc, H_xxc, H_joint, H_cond, i),
+        #         os.path.join(path, filename),
+        #     )
 
-        """Train H(x_cond)"""
-        misc.print_border("2/4 calculating H(x_old), T: {0}, iter: {1}".format(T, i + 1))
+        # """Train H(x_cond)"""
+        # misc.print_border("2/4 calculating H(x_old), T: {0}, iter: {1}".format(T, i + 1))
 
-        sim_model.set_dim_cond()
-        name = f"{T-1}T"
-        if KNN_THREADING:
-            H_hxc[index], H_cond_thread, H_cond_correction = run_CPDSSS(
-                sim_model,
-                X_cond,
-                old_thread=H_hxc_thread,
-                old_correction=H_hxc_correction,
-                model_name=name,
-                model_path=X_path,
-            )
-        else:
-            H_cond[index] = run_CPDSSS(
-                sim_model,
-                X_cond,
-                model_name=name,
-                model_path=X_path,
-            )
+        # sim_model.set_dim_cond()
+        # name = f"{T-1}T"
+        # if KNN_THREADING:
+        #     H_hxc[index], H_cond_thread, H_cond_correction = run_CPDSSS(
+        #         sim_model,
+        #         X_cond,
+        #         old_thread=H_hxc_thread,
+        #         old_correction=H_hxc_correction,
+        #         model_name=name,
+        #         model_path=X_path,
+        #     )
+        # else:
+        #     H_cond[index] = run_CPDSSS(
+        #         sim_model,
+        #         X_cond,
+        #         model_name=name,
+        #         model_path=X_path,
+        #     )
 
-        if not TRAIN_ONLY:
-            util.io.save(
-                (T_range, MI, H_hxc, H_xxc, H_joint, H_cond, i),
-                os.path.join(path, filename),
-            )
+        # if not TRAIN_ONLY:
+        #     util.io.save(
+        #         (T_range, MI, H_hxc, H_xxc, H_joint, H_cond, i),
+        #         os.path.join(path, filename),
+        #     )
 
-        """Train H(x_T,x_cond)"""
-        misc.print_border("3/4 calculating H(x_T, x_old), T: {0}, iter: {1}".format(T, i + 1))
-        sim_model.set_dim_xxc()
-        name = f"{T}T"
+        # """Train H(x_T,x_cond)"""
+        # misc.print_border("3/4 calculating H(x_T, x_old), T: {0}, iter: {1}".format(T, i + 1))
+        # sim_model.set_dim_xxc()
+        # name = f"{T}T"
 
-        if KNN_THREADING:
-            H_cond[index], H_xxc_thread, H_xxc_correction = run_CPDSSS(
-                sim_model,
-                X,
-                old_thread=H_cond_thread,
-                old_correction=H_cond_correction,
-                model_name=name,
-                model_path=X_path,
-            )
-        else:
-            H_xxc[index] = run_CPDSSS(
-                sim_model,
-                X,
-                model_name=name,
-                model_path=X_path,
-            )
-        if not TRAIN_ONLY:
-            util.io.save(
-                (T_range, MI, H_hxc, H_xxc, H_joint, H_cond, i),
-                os.path.join(path, filename),
-            )
-
+        # if KNN_THREADING:
+        #     H_cond[index], H_xxc_thread, H_xxc_correction = run_CPDSSS(
+        #         sim_model,
+        #         X,
+        #         old_thread=H_cond_thread,
+        #         old_correction=H_cond_correction,
+        #         model_name=name,
+        #         model_path=X_path,
+        #     )
+        # else:
+        #     H_xxc[index] = run_CPDSSS(
+        #         sim_model,
+        #         X,
+        #         model_name=name,
+        #         model_path=X_path,
+        #     )
+        # if not TRAIN_ONLY:
+        #     util.io.save(
+        #         (T_range, MI, H_hxc, H_xxc, H_joint, H_cond, i),
+        #         os.path.join(path, filename),
+        #     )
         """Train H(h,x_T,x_cond)"""
         misc.print_border("4/4 calculating H_(h,x_T,x_old), T: {0}, iter: {1}".format(T, i + 1))
         sim_model.set_dim_joint()
@@ -257,6 +262,10 @@ for i in range(n_trials):
                 model_path=XH_path,
             )
             MI[index] = H_hxc[index] + H_xxc[index] - H_joint[index] - H_cond[index]
+            ################
+            ## TEMP VALUE###
+            ################
+            H_hxc[i, 0] = H_joint[index]
 
         if not TRAIN_ONLY:
             util.io.save(
