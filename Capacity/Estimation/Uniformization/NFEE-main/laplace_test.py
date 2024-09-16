@@ -8,7 +8,7 @@ import util.io
 
 from ent_est.entropy import kl_ksg, kl, ksg
 
-TRAIN_ONLY = False
+TRAIN_ONLY = True
 
 
 # knn_samples = 200000

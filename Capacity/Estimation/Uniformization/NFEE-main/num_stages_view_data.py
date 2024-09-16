@@ -119,6 +119,7 @@ plt.title("MSE for different MAF stages")
 plt.legend(["unif KL H(x)", "unif KSG H(x)", "KL H(x)", "KSG H(x)"])
 plt.xlabel("N MAF stages")
 plt.ylabel("MSE H(x)")
+plt.xticks(list(range(1, 20, 2)))
 plt.tight_layout()
 
 
