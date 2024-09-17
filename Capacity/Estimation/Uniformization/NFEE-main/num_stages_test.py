@@ -24,7 +24,7 @@ method = "both"
 # layers = [2,3,4]
 stages = np.arange(12, 19, 2)  # theano gradient breaks for stages>=20
 stages = [6, 7, 8, 10, 11]
-stages = [4]
+stages = [1, 2, 3, 4]
 minibatch = 128
 fine_tune = False
 hidden = [100, 100]
