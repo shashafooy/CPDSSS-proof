@@ -24,7 +24,7 @@ method = "both"
 # layers = [2,3,4]
 stages = np.arange(12, 19, 2)  # theano gradient breaks for stages>=20
 stages = [6, 7, 8, 10, 11]
-stages = [15]
+stages = [4]
 minibatch = 128
 fine_tune = False
 hidden = [100, 100]
@@ -73,9 +73,11 @@ for i in range(n_trials):
             fine_tune=False,
             step=step,
         )
+        print(f"final test loss {estimator.model.eval_trnloss(laplace_base)}")
         H_unif_KL[i, ns], H_unif_KSG[i, ns] = ent.knn_entropy(
             estimator, laplace_base, method=method
         )
+        print(f"KL entropy {H_unif_KL[i,ns]}\nKSG entropy {H_unif_KSG[i,ns]}")
         # uniform, H_correction1 = estimator.uniform_correction(laplace_base)
         # H_thread1 = estimator.start_knn_thread(uniform, method=method)
 
