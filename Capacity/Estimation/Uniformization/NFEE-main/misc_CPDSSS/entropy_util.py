@@ -218,6 +218,7 @@ def learn_model(
     mini_batch=256,
     fine_tune=True,
     step=ss.Adam(),
+    show_progress=False,
 ):
     """Create a MAF model and train it with the given parameters
 
@@ -231,6 +232,7 @@ def learn_model(
         n_stages (int, optional): number of MAF stages. Defaults to 14.
         mini_batch (int, optional): Batch size for training. Defaults to 1024
         fine_tune (bool, optional): Set to True to run training twice, first with large step size, then a smaller step size. Defaults to True.
+        show_progress (bool,optional): Set to true to print training curve. Defaults to False
 
     Returns:
         entropy.UMestimator: estimator object used for training and entropy calculation
@@ -264,6 +266,7 @@ def learn_model(
         fine_tune=fine_tune,
         minibatch=mini_batch,
         step=step,
+        show_progress=show_progress,
     )
     end_time = time.time()
     print("learning time: ", str(timedelta(seconds=int(end_time - start_time))))
