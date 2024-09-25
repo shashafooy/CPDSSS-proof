@@ -40,7 +40,7 @@ H_cond = np.empty((len(n_stages))) * np.nan
 File names
 """
 
-model_path = f"temp_data/saved_models/{N}N"
+model_path = f"temp_data/saved_models/{N}N_{L}L"
 X_path = os.path.join(model_path, "X")
 XH_path = os.path.join(model_path, "XH")
 
