@@ -58,7 +58,8 @@ for i in range(n_trials):
         _ = ent.update_best_model(model, X_samp, name=name, path=X_path)
         model = ent.load_model(name=name, path=X_path)
         new_loss = model.eval_trnloss(X_samp)
-        orig_loss = ent.load_model(model, name, X_orig_path).eval_trnloss(X_samp)
+        orig_model = ent.load_model(model, name, X_orig_path)
+        orig_loss = orig_model.eval_trnloss(X_samp) if orig_model is not None else np.inf
         print(f"original loss: {orig_loss:.3f}")
         print(f"new loss: {new_loss:.3f}")
 
@@ -68,6 +69,7 @@ for i in range(n_trials):
         _ = ent.update_best_model(model, XH_samp, name=name, path=XH_path)
         model = ent.load_model(name=name, path=XH_path)
         new_loss = model.eval_trnloss(XH_samp)
-        orig_loss = ent.load_model(model, name, XH_orig_path).eval_trnloss(XH_samp)
+        orig_model = ent.load_model(model, name, XH_orig_path)
+        orig_loss = orig_model.eval_trnloss(XH_samp) if orig_model is not None else np.inf
         print(f"original loss: {orig_loss:.3f}")
         print(f"new loss: {new_loss:.3f}")
