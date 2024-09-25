@@ -70,7 +70,7 @@ class MaskedAutoregressiveFlow:
 
         # self.target_lnpx = target_logpdf(self.input) if target_logpdf is not None else 0
         self.target_lnpx = -target_entropy if target_entropy is not None else 0
-#        self.target_lnpx = 0
+        self.target_lnpx = 0
 
         for i in range(n_mades):
 
