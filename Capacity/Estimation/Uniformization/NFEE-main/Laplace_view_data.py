@@ -49,6 +49,7 @@ for filename in os.listdir(filepath):
     H_KL, _ = viewData.append_data(H_KL, N_range, _H_KL, _N_range)
     H_KSG, N_range = viewData.append_data(H_KSG, N_range, _H_KSG, _N_range)
 
+N_range = np.asarray(N_range[1:])
 viewData.clean_data(H_unif_KL)
 viewData.clean_data(H_unif_KSG)
 viewData.clean_data(H_KL)
@@ -60,6 +61,11 @@ if REMOVE_OUTLIERS:
     H_unif_KSG = viewData.remove_outlier(H_unif_KSG)
     H_KL = viewData.remove_outlier(H_KL)
     H_KSG = viewData.remove_outlier(H_KSG)
+
+H_unif_KL = H_unif_KL[:, 1:] / N_range
+H_unif_KSG = H_unif_KSG[:, 1:] / N_range
+H_KL = H_KL[:, 1:] / N_range
+H_KSG = H_KSG[:, 1:] / N_range
 
 
 H_unif_KL_mean = np.nanmean(H_unif_KL, axis=0)
@@ -75,7 +81,7 @@ H_KSG_std = np.nanstd(H_KSG, axis=0)
 H_true = np.empty(len(N_range))
 for i, N in enumerate(N_range):
     H_true[i] = Laplace(mu=0, b=2, N=N).entropy()
-
+H_true = H_true / N_range
 
 MSE_unif_KL = np.nanmean((H_unif_KL - H_true) ** 2, axis=0)
 MSE_unif_KSG = np.nanmean((H_unif_KSG - H_true) ** 2, axis=0)
@@ -101,11 +107,12 @@ plt.plot(N_range, H_unif_KL_mean, "--^")
 plt.plot(N_range, H_unif_KSG_mean, "--v")
 plt.plot(N_range, H_KL_mean, "--x")
 plt.plot(N_range, H_KSG_mean, "--o")
-plt.yscale("log")
-plt.title("Entropy of laplace distribution")
-plt.legend(["True H(x)", "Uniform KL H(x)", "Uniform KSG H(x)", "KL H(x)", "KSG H(x)"])
-plt.xlabel("N dimensions")
-plt.ylabel("H(x)")
+plt.title("Normalized Entropy of the Laplace distribution")
+plt.legend(["True", "KL + uniformization", "KSG + uniformization", "KL", "KSG"])
+plt.xlabel("d dimensions")
+plt.ylabel("H(x)/d")
+plt.xticks(N_range[::2])
+plt.tight_layout()
 
 # Absolute error
 plt.figure(1)
@@ -116,8 +123,10 @@ plt.plot(N_range, err_KSG, "--o")
 plt.yscale("log")
 plt.title("Entropy Error")
 plt.legend(["Uniform KL", "Uniform KSG", "KL", "KSG"])
-plt.xlabel("N dimensions")
+plt.xlabel("d dimensions")
 plt.ylabel("log error")
+plt.xticks(N_range[::2])
+plt.tight_layout()
 
 # MSE
 plt.figure(2)
@@ -128,8 +137,10 @@ plt.plot(N_range, MSE_KSG, "--o")
 plt.yscale("log")
 plt.title("Entropy MSE Error")
 plt.legend(["Uniform KL", "Uniform KSG", "KL", "KSG"])
-plt.xlabel("N dimensions")
+plt.xlabel("d dimensions")
 plt.ylabel("log MSE")
+plt.xticks(N_range[::2])
+plt.tight_layout()
 
 # RMSE
 plt.figure(3)
@@ -140,9 +151,12 @@ plt.plot(N_range, RMSE_KSG, "--o")
 plt.yscale("log")
 plt.title("Entropy RMSE Error")
 plt.legend(["Uniform KL", "Uniform KSG", "KL", "KSG"])
-plt.xlabel("N dimensions")
+plt.xlabel("d dimensions")
 plt.ylabel("log RMSE")
+plt.xticks(N_range[::2])
+plt.tight_layout()
 
+# STD
 plt.figure(4)
 plt.plot(N_range, H_unif_KL_std, "--^")
 plt.plot(N_range, H_unif_KSG_std, "--v")
@@ -151,8 +165,10 @@ plt.plot(N_range, H_KSG_std, "--o")
 plt.yscale("log")
 plt.title("Entropy std")
 plt.legend(["Uniform KL", "Uniform KSG", "KL", "KSG"])
-plt.xlabel("N dimensions")
+plt.xlabel("d dimensions")
 plt.ylabel("log std")
+plt.xticks(N_range[::2])
+plt.tight_layout()
 
 
 plt.show()
