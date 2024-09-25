@@ -120,18 +120,9 @@ class CPDSSS(_distribution):
         n_samples = self.h.shape[0]
         workers = min(6, mp.cpu_count() - 1)  # 6 seems to be optimal due to threading overhead
 
-        chunk_size = int(n_samples / (workers * 10))
-
-        G_results = []
-        Q_results = []
-
         self._gen_GQ_sample(self.h[0, :])
         # start = time.time()
-        chunk = [self.h[i, :] for i in range(n_samples)]
         with mp.Pool(workers) as pool:
-            # for G, Q in pool.imap(self._gen_GQ_sample, chunk, chunksize=chunk_size):
-            #     G_results.append(G)
-            #     Q_results.append(Q)
             G_results, Q_results = zip(
                 *pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples)))
             )
