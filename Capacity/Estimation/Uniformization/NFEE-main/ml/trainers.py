@@ -259,7 +259,7 @@ class SGD_Template:
                         ax.set_title(
                             f"Training progress, error: {np.abs(self.best_val_loss-self.val_target):.3f}"
                         )
-                    ax.set_ylim((0, ax.get_ylim()[1]))
+                    # ax.set_ylim((0, ax.get_ylim()[1]))
                     ax.set_xlabel("epochs")
                     ax.set_ylabel("loss")
                     ax.set_title("Model Learning Curve")

@@ -128,7 +128,7 @@ def create_model(n_inputs, rng=np.random, n_hiddens=[200, 200, 200], n_mades=14,
     n_hiddens = n_hiddens
     act_fun = "tanh"
     # pdf = sim_model.logpdf if sim_model is not None else None
-    entropy = sim_model.entropy()
+    entropy = sim_model.entropy() if sim_model is not None else None
 
     return mafs.MaskedAutoregressiveFlow(
         n_inputs=n_inputs,
