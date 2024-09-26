@@ -23,7 +23,7 @@ def compare_models(samples, name1, base_folder, name2, new_model_folder):
 Parameters for CPDSSS
 """
 N = 6
-L = 2
+L = 3
 
 min_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
