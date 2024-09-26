@@ -52,11 +52,20 @@ print(f"Current models: {current_model_path}\nNew models: {new_model_path}")
 for file in os.listdir(new_folder_X):
     T = int(re.match("^\d{1,2}", file).group())
     X_samp = X[:, : T * N]
-    XH_samp = np.concatenate((X_samp, h), axis=1)
 
     name = f"{T}T"
     # Compare with new model files
     print(f"checking loss for {T}T X")
     compare_models(X_samp, name, base_folder_X, name, new_folder_X)
+    os.remove(os.path.join(new_folder_X, name+".pkl"))
+
+for file in os.listdir(new_folder_XH):
+    T = int(re.match("^\d{1,2}", file).group())
+    X_samp = X[:, : T * N]
+    XH_samp = np.concatenate((X_samp, h), axis=1)
+
+    name = f"{T}T"
+    # Compare with new model files
     print(f"checking loss for {T}T XH")
     compare_models(XH_samp, name, base_folder_XH, name, new_folder_XH)
+    os.remove(os.path.join(new_folder_XH, name+".pkl"))
