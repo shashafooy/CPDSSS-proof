@@ -56,7 +56,7 @@ def run_CPDSSS(
 Parameters for CPDSSS
 """
 N = 6
-L = 2
+L = 3
 M = int(N / L)
 P = N - int(N / L)
 T_range = range(2, 8)
