@@ -59,8 +59,8 @@ N = 6
 L = 3
 M = int(N / L)
 P = N - int(N / L)
-T_range = range(2, 8)
-T_range = range(5, 7)
+T_range = range(2, 9)
+#T_range = range(5, 7)
 
 
 """
