@@ -15,6 +15,8 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
+d0 = 2
+d1 = N - d0
 T_range = range(1, 10)
 
 
@@ -38,7 +40,7 @@ XH_path = os.path.join(model_path, "XH")
 
 for i in range(n_trials):
     misc.print_border("Generating CPDSSS samples")
-    sim_model = CPDSSS(T_range[-1], N, L)
+    sim_model = CPDSSS(T_range[-1], N, d0=d0, d1=d1)
     # generate base samples based on max dimension
     sim_model.set_dim_joint()
     knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))

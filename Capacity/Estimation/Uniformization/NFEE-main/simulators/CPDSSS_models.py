@@ -41,21 +41,33 @@ class _distribution:
 
 
 class CPDSSS(_distribution):
-    def __init__(self, num_tx, N, L, use_gaussian_approx=False):
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(x_dim=N * num_tx + N)
         self.T = num_tx
         self.N = N
         self.L = L
-        self.NL = int(N / L)
-        self.NNL = N - self.NL
-        self.sim_G = mvn(rho=0.0, dim_x=self.N * self.NL)
-        self.sim_g = mvn(rho=0.0, dim_x=self.N)
-        self.sim_Q = mvn(rho=0.0, dim_x=self.N * self.NNL)
-        self.sim_S = mvn(rho=0.0, dim_x=self.NL * self.T)
-        self.sim_V = mvn(rho=0.0, dim_x=self.NNL * self.T)
+        if L is not None:
+            assert N / L % 1 == 0, "N/L must be an integer"
+            self.sym_N = int(N / L)
+            self.noise_N = N - self.sym_N
+            self.G_slice = range(0, N, L)
+        elif d0 is not None and d1 is not None:
+            assert d0 + d1 == N, "d0+d1 must be equal to N"
+            self.sym_N = d0
+            self.noise_N = d1
+            if N / d0 % 1 == 0:  # same as using L
+                self.G_slice = range(0, N, int(N / d0))
+            else:
+                self.G_slice = range(0, d0)
+        else:
+            raise ValueError(
+                "Invalid input. Require either L or d0,d1 as inputs. N/L must be an integer, or d0+d1=N"
+            )
+
+        self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
+        self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
 
-        self.gaussian_approx = use_gaussian_approx
         self.use_chan_in_sim()
         self._sim_chan_only = False
 
@@ -73,27 +85,23 @@ class CPDSSS(_distribution):
         """
 
         self.s = (
-            self.sim_S.sim(n_samples=n_samples).astype(dtype).reshape((n_samples, self.NL, self.T))
+            self.sim_S.sim(n_samples=n_samples)
+            .astype(dtype)
+            .reshape((n_samples, self.sym_N, self.T))
         )
 
-        v = self.sim_V.sim(n_samples=n_samples).astype(dtype).reshape((n_samples, self.NNL, self.T))
+        v = (
+            self.sim_V.sim(n_samples=n_samples)
+            .astype(dtype)
+            .reshape((n_samples, self.noise_N, self.T))
+        )
         self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
 
         if self._sim_chan_only:  # return early if we only need channel
             self.samples = self.h
             return self.h
 
-        if self.gaussian_approx:  # use approximation that G,Q are gaussian
-            g = self.sim_g.sim(n_samples=n_samples)
-            self.G = np.zeros((n_samples, self.N, self.NL))
-            # make toeplitz matrix
-            for i in range(self.NL):
-                self.G[:, :, i] = np.roll(g, shift=i * self.L, axis=1)
-
-            self.G = self.sim_G.sim(n_samples=n_samples).reshape((n_samples, self.N, self.NL))
-            Q = self.sim_Q.sim(n_samples=n_samples).reshape((n_samples, self.N, self.NNL))
-        else:  # Evaluate true G,Q according to CPDSSS
-            self.G, Q = self.sim_GQ()
+        self.G, Q = self.sim_GQ()
         # import timeit
         # timeit.timeit(lambda: self.sim_GQ(n_samples=200000),number=1)
 
@@ -143,14 +151,14 @@ class CPDSSS(_distribution):
         # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
         # A=E.T @ H
         # Slightly faster than doing E.T @ H
-        HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[0 :: self.L, :]
+        HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[self.G_slice, :]
         R = HE.T @ HE + self.eye
         p = HE[0, :].T
         # g = lin.inv(R) @ p
         g = np.linalg.solve(R, p)  # faster than inverse
         # Only take every L columns of toepltiz matrix
         # Slightly faster than doing G@E
-        G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, 0 :: self.L]
+        G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
 
         # ev, V = lin.eig(R)
         ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
@@ -158,7 +166,7 @@ class CPDSSS(_distribution):
         #  get indices of the smallest eigenvalues to find "zero" EV
         sort_indices = np.argsort(ev)
         # Sometimes get a very small imaginary value, ignore it
-        Q = np.real(V[:, sort_indices[0 : self.NNL]])
+        Q = np.real(V[:, sort_indices[0 : self.noise_N]])
 
         return G, Q
 
@@ -237,12 +245,12 @@ class CPDSSS_XS(CPDSSS):
     def sim_use_S(self):
         self.use_X = True
         self.use_S = False
-        self.x_dim = self.NL
+        self.x_dim = self.sym_N
 
     def sim_use_XS(self):
         self.use_X = True
         self.use_S = True
-        self.x_dim = self.N + self.NL
+        self.x_dim = self.N + self.sym_N
 
     def sim(self, n_samples=1000):
         X = super().sim(n_samples=n_samples)
