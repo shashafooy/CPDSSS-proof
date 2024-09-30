@@ -16,7 +16,8 @@ min_T = 0
 # N_range = [2, 4, 6]
 # L = 2
 N = 6
-L_range = [2, 3]
+L = 3
+N_range = [2, 4, 6]
 
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
@@ -38,7 +39,7 @@ H_h = []
 T_range = []
 
 # for i, N in enumerate(N_range):
-for i, L in enumerate(L_range):
+for i, N in enumerate(N_range):
 
     # util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename))
     base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
@@ -115,7 +116,7 @@ fig2, ax2 = plt.subplots()
 # fig4, ax4 = plt.subplots(2, 1)
 
 # for i, N in enumerate(N_range):
-for i, L in enumerate(L_range):
+for i, N in enumerate(N_range):
     """Plot individual and cumulative Mutual Information"""
 
     _MI_mean = MI_mean[i]
