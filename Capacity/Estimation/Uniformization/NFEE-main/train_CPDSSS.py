@@ -17,7 +17,7 @@ N = 6
 L = 3
 d0 = 2
 d1 = N - d0
-T_range = range(1, 10)
+T_range = range(1, 6)
 
 
 """
@@ -31,9 +31,9 @@ n_train_samples = 100000
 """
 File names
 """
-X_orig_path = f"temp_data/saved_models/{N}N_{L}L/X"
-XH_orig_path = f"temp_data/saved_models/{N}N_{L}L/XH"
-model_path = f"temp_data/saved_models/new_models/{N}N_{L}L"
+X_orig_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})/X"
+XH_orig_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})/XH"
+model_path = f"temp_data/saved_models/new_models/{N}N_d0d1({d0},{d1})"
 X_path = os.path.join(model_path, "X")
 XH_path = os.path.join(model_path, "XH")
 

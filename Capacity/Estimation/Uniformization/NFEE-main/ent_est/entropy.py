@@ -525,7 +525,7 @@ class UMestimator:
         #     monitor_every = min(1e5 / float(self.n_samples), 1.0)
         # else:
         #     monitor_every = min(1e6 / float(self.n_samples), 1.0)
-        monitor_every = min(3e5 / float(self.n_samples), 1.0)
+        monitor_every = min(1e5 / float(self.n_samples), 1.0)
         logger.write("training model...\n")
         learn_density(
             self.model,
