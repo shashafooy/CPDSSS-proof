@@ -126,13 +126,13 @@ for i, (d0, d1) in enumerate(d0d1):
     _MI_mean = np.insert(_MI_mean, 0, 0)  # start at 0 MI
 
     ax1.plot(temp_range, _MI_mean, label=rf"$d0={d0},d1={d1}$")
-    ax1.set_title(r"Individual $I(\mathbf{h},\mathbf{x}_T | \mathbf{x}_{1:T-1})$")
+    # ax1.set_title(r"Individual $I(\mathbf{h},\mathbf{x}_T | \mathbf{x}_{1:T-1})$")
     ax1.set_xlabel(r"$T$ Transmissions")
     ax1.set_ylabel(r"Entropy")
 
     (line,) = ax2.plot(temp_range, np.cumsum(_MI_mean), label=rf"$d0={d0},d1={d1}$")
     ax2.axhline(y=H_h[i], linestyle="dashed", color=line.get_color())
-    ax2.set_title(r"Total $I(\mathbf{h},\mathbf{X})$")
+    # ax2.set_title(r"Total $I(\mathbf{h},\mathbf{X})$")
     ax2.set_xlabel(r"$T$ Transmissions")
     ax2.set_ylabel(r"Entropy")
 
