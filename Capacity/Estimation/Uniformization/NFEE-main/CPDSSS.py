@@ -56,19 +56,17 @@ def run_CPDSSS(
 Parameters for CPDSSS
 """
 N = 6
-L = None
-M = int(N / L)
-P = N - int(N / L)
-d0 = 4
-d1 = 2
-T_range = range(6, 10)
+L = 3
+d0 = 2
+d1 = 4
+T_range = range(2, 8)
 # T_range = range(5, 7)
 
 
 """
 Number of iterations
 """
-n_trials = 100  # iterations to average
+n_trials = 1  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
 
@@ -101,14 +99,14 @@ model = None
 File names
 """
 today = date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
+base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_d0d1({d0},{d1})/"
 
 path = base_path + "coarse-fine_75k_x_dims"
 path = base_path + "N9_coarse-fine_experiment"
 path = base_path + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-model_path = f"temp_data/saved_models/{N}N_{L}L"
+model_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})"
 X_path = os.path.join(model_path, "X")
 XH_path = os.path.join(model_path, "XH")
 
