@@ -15,7 +15,7 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
-d0 = 2
+d0 = 4
 d1 = N - d0
 T_range = range(6, 7)
 
