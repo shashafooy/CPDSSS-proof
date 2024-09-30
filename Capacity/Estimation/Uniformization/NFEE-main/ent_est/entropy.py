@@ -20,7 +20,7 @@ KNN_GPU = config["GLOBAL"].getboolean("knn_GPU", False)
 
 
 if KNN_GPU:
-    from cuml.neighbors import NearestNeighbors
+    from cuml.neighbors import NearestNeighbors  # type: ignore
 
     algorithm = "auto"
 else:
