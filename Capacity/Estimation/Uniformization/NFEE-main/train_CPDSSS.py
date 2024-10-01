@@ -17,7 +17,7 @@ N = 6
 L = 3
 d0 = 4
 d1 = N - d0
-T_range = range(1, 6)
+T_range = range(1, 10)
 
 
 """
