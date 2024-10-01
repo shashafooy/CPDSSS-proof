@@ -56,10 +56,10 @@ def run_CPDSSS(
 Parameters for CPDSSS
 """
 N = 6
-L = 3
+# L = 3
 d0 = 4
 d1 = 2
-T_range = range(2, 5)
+T_range = range(2, 6)
 # T_range = range(5, 7)
 
 
@@ -124,7 +124,7 @@ for i in range(n_trials):
         Generate samples
         """
         misc.print_border("Generating CPDSSS samples")
-        sim_model = CPDSSS(T, N, L=L, d0=d0, d1=d1)
+        sim_model = CPDSSS(T, N, d0=d0, d1=d1)
         # generate base samples based on max dimension
         sim_model.set_dim_joint()
         knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
