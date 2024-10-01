@@ -18,12 +18,12 @@ L = 3
 d0 = 4
 d1 = N - d0
 T_range = range(1, 10)
-
+REUSE = False
 
 """
 Number of iterations
 """
-n_trials = 1  # iterations to average
+n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
 
@@ -54,6 +54,8 @@ for i in range(n_trials):
 
         misc.print_border(f"training H(X), T: {T}, iter: {i+1}")
         sim_model.x_dim = N * T
+
+        model = ent.load_model(name=name, path=X_path) if REUSE is not None else None
         model = ent.learn_model(sim_model, train_samples=X_samp).model
         _ = ent.update_best_model(model, X_samp, name=name, path=X_path)
         model = ent.load_model(name=name, path=X_path)
@@ -65,6 +67,8 @@ for i in range(n_trials):
 
         misc.print_border(f"training H(X,h), T: {T}, iter: {i+1}")
         sim_model.x_dim = N * T + N
+
+        model = ent.load_model(name=name, path=XH_path) if REUSE is not None else None
         model = ent.learn_model(sim_model, train_samples=XH_samp).model
         _ = ent.update_best_model(model, XH_samp, name=name, path=XH_path)
         model = ent.load_model(name=name, path=XH_path)
