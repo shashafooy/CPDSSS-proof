@@ -24,6 +24,8 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
+d0=4
+d1=2
 
 min_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
@@ -33,8 +35,8 @@ max_T = 9
 Generate data
 """
 
-current_model_path = f"temp_data/saved_models/{N}N_{L}L"
-new_model_path = f"temp_data/saved_models/new_models/{N}N_{L}L"
+current_model_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})"
+new_model_path = f"temp_data/saved_models/new_models/{N}N_d0d1({d0},{d1})"
 
 base_folder_X = os.path.join(current_model_path, "X")
 base_folder_XH = os.path.join(current_model_path, "XH")
@@ -42,7 +44,7 @@ new_folder_X = os.path.join(new_model_path, "X")
 new_folder_XH = os.path.join(new_model_path, "XH")
 
 
-sim_model = CPDSSS(max_T, N, L)
+sim_model = CPDSSS(max_T, N, d0=d0,d1=d1)
 # generate base samples based on max dimension
 sim_model.set_dim_joint()
 knn_samples = int(min(min_samples, 0.75 * n_train_samples * sim_model.x_dim))
