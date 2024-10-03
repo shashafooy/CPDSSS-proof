@@ -59,14 +59,14 @@ N = 6
 # L = 3
 d0 = 4
 d1 = 2
-T_range = range(2, 6)
+T_range = range(2, 10)
 # T_range = range(5, 7)
 
 
 """
 Number of iterations
 """
-n_trials = 1  # iterations to average
+n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
 
