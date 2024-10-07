@@ -159,6 +159,8 @@ class CPDSSS(_distribution):
         # Only take every L columns of toepltiz matrix
         # Slightly faster than doing G@E
         G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
+        # Potentially better G, fullfills G'*Q=0 and HE * G = I
+        # G = lin.inv(R) @ HE[self.G_slice,:].T
 
         # ev, V = lin.eig(R)
         ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
