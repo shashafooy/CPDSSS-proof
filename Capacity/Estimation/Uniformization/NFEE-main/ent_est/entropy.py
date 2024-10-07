@@ -607,19 +607,19 @@ class UMestimator:
         if samples is None:
             samples = self.sim_model.sim(self.n_samples)
 
-        u = self.model.calc_random_numbers(samples)
+        z = self.model.calc_random_numbers(samples)
 
         # something went wrong in training, reload initial value
-        if np.any(np.isnan(u)):
+        if np.any(np.isnan(z)):
             self.checkpointer.restore()
-            u = self.model.calc_random_numbers(samples)
+            z = self.model.calc_random_numbers(samples)
 
         # remove extreme data that isn't within 99.9999% of the norm dist
-        idx = np.all(np.abs(u) < stats.norm.ppf(1.0 - 1e-6), axis=1)
-        u = u[idx]
+        idx = np.all(np.abs(z) < stats.norm.ppf(1.0 - 1e-6), axis=1)
+        z = z[idx]
 
         # Made a bad gaussian estimate
-        if u.shape[0] < 0.01 * self.samples.shape[0]:
+        if z.shape[0] < 0.01 * self.samples.shape[0]:
             return None
 
         if SHOW_PDF_PLOTS == True:
@@ -633,15 +633,15 @@ class UMestimator:
             ax[1].plot(x, stats.norm.pdf(x), lw=5)
             ax[2].plot(x, stats.norm.pdf(x), lw=5)
 
-            ax[0].hist(stats.norm.cdf(u), bins=40, density=True), ax[0].set_title(
+            ax[0].hist(stats.norm.cdf(z), bins=40, density=True), ax[0].set_title(
                 "Transformed Uniform"
             )
-            ax[1].hist(u, bins=40, density=True), ax[1].set_title("Transformed Gaussian")
+            ax[1].hist(z, bins=40, density=True), ax[1].set_title("Transformed Gaussian")
             ax[2].hist(samples, bins=100, density=True), ax[2].set_title("Original Data")
 
         # Jacobian correction from the CDF
-        uniform = stats.norm.cdf(u)
-        correction1 = -np.mean(np.log(np.prod(stats.norm.pdf(u), axis=1)))
+        uniform = stats.norm.cdf(z)
+        correction1 = -np.mean(np.log(np.prod(stats.norm.pdf(z), axis=1)))
 
         logdet = self.model.logdet_jacobi_u(samples)
         correction2 = -np.mean(logdet[idx])

@@ -7,6 +7,7 @@ from simulators.CPDSSS_models import Laplace
 from misc_CPDSSS import viewData
 
 plt.rcParams["text.usetex"] = True
+plt.rcParams.update({"font.size": 14})
 
 
 """
