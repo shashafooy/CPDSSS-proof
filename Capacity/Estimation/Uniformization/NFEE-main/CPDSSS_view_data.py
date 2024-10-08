@@ -6,6 +6,8 @@ import numpy as np
 from misc_CPDSSS import viewData
 
 plt.rcParams["text.usetex"] = True
+plt.rcParams.update({"font.size": 14})
+
 
 """
 Load and combine all datasets
@@ -13,15 +15,19 @@ Load and combine all datasets
 max_T = 0
 min_T = 0
 
-N_range = [2, 4, 6]
 N = 6
-L = 2
+# L = 2
+# d0=N/L
+# d1=N-d0
+
+d0 = 4
+d1 = 2
 
 REMOVE_OUTLIERS = True
-COMBINE_ENTROPIES = True
+COMBINE_ENTROPIES = False
 
 # util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename))
-base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L2/"
+base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_d0d1({d0},{d1})/"
 # filepaths = [base_path + "50k_high_epoch", base_path + "50k_samples"]
 # filepath = base_path + "50k_tol_0.1_patience_10"
 # filepath = base_path + "50k_N4_L2"
@@ -145,7 +151,7 @@ Max capacity
 """
 from simulators.CPDSSS_models import CPDSSS
 
-sim_model = CPDSSS(1, N, L, False)
+sim_model = CPDSSS(1, N, d0=d0, d1=d1)
 H_h = sim_model.chan_entropy()
 
 
@@ -210,7 +216,7 @@ fig2.tight_layout()
 
 """Plot individual and cumulative Mutual Information"""
 fig3, ax3 = plt.subplots(2, 1)
-fig3.suptitle("N={}, L={}".format(N, L))
+fig3.suptitle(rf"$N=${N}, $d_0=${d0}, $d_1=${d1}")
 temp_range = range(1, max(T_range) + 1)
 temp_range = np.insert(T_range, 0, 1)
 MI_mean = np.insert(MI_mean, 0, 0)  # start at 0 MI
@@ -225,7 +231,7 @@ fig3.tight_layout()
 
 """Plot Mutual Information, but include bars showing variance"""
 fig4, ax4 = plt.subplots(2, 1)
-fig4.suptitle("N={}, L={}".format(N, L))
+fig4.suptitle(rf"$N=${N}, $d_0=${d0}, $d_1=${d1}")
 yerr = np.insert(np.nanstd(MI_tot, axis=0), 0, 0)
 ax4[0].cla(), ax4[0].errorbar(temp_range, MI_mean, yerr=yerr)
 ax4[0].set_title(r"$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$"), ax4[0].set_xlabel(r"$T$")
@@ -246,7 +252,7 @@ if len(T_range) == 1:
     ), ax5.set_xlabel("T")
 else:
     fig5, ax5 = plt.subplots(1, 2)
-    fig5.suptitle("N={}, L={}".format(N, L))
+    fig5.suptitle(rf"$N=${N}, $d_0=${d0}, $d_1=${d1}")
     T_matrix = np.tile(np.array(T_range), (MI_tot.shape[0], 1))
     ax5[0].cla(), ax5[0].scatter(T_matrix, MI_tot), ax5[0].set_title("MI increase per T"), ax5[
         0
@@ -261,7 +267,7 @@ fig5.tight_layout()
 if COMBINE_ENTROPIES:
     """scatter plot with combining similar entropies"""
     fig6, ax6 = plt.subplots(1, 2)
-    fig6.suptitle("Combined Entropies, N={}, L={}".format(N, L))
+    fig6.suptitle(rf"Combined Entropies, $N=${N}, $d_0=${d0}, $d_1=${d1}")
     T_matrix = np.tile(np.array(T_range), (MI_tot_long.shape[0], 1))
     ax6[0].cla(), ax6[0].scatter(T_matrix, MI_tot_long), ax6[0].set_title("MI increase per T"), ax6[
         0
@@ -273,7 +279,7 @@ if COMBINE_ENTROPIES:
 
     """Error bars with combining similar entropies"""
     fig4, ax4 = plt.subplots(1, 2)
-    fig4.suptitle("Combined Entropies, N={}, L={}".format(N, L))
+    fig4.suptitle(rf"Combined Entropies, $N=${N}, $d_0=${d0}, $d_1=${d1}")
     yerr = np.insert(np.nanvar(MI_tot_long, axis=0), 0, 0)
     MI_mean_long = np.insert(MI_mean_long, 0, 0)
     ax4[0].cla(), ax4[0].errorbar(temp_range, MI_mean_long, yerr=yerr), ax4[0].set_title(

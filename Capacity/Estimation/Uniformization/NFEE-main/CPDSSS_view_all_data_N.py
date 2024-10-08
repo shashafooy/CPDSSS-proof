@@ -6,6 +6,8 @@ import numpy as np
 from misc_CPDSSS import viewData
 
 plt.rcParams["text.usetex"] = True
+plt.rcParams.update({"font.size": 14})
+
 
 """
 Load and combine all datasets
