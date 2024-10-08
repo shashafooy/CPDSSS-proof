@@ -153,6 +153,7 @@ class SGD_Template:
         best_epoch = None
         fine_tune_epoch = None
         logger = open(os.devnull, "w") if logger is None else logger
+        fine_tune = 1 if fine_tune is True else 0
 
         # main training loop
         while True:
@@ -223,12 +224,12 @@ class SGD_Template:
                     logger.write("Ran out of patience\n")
 
                 # check if we will do fine tuning
-                if fine_tune:
+                if fine_tune>0:
                     logger.write("Start fine tuning\n")
                     # Reduce step size and resume training loop
                     self.reduce_step_size()
                     patience_left = patience
-                    fine_tune = False
+                    fine_tune = fine_tune - 1
                     fine_tune_epoch = epoch
 
                     continue
@@ -383,7 +384,7 @@ class SGD(SGD_Template):
     def reduce_step_size(self):
         """update the step size to use smaller step size for fine tuning during training"""
         self.step.reset_shared()
-        new_a = np.asarray(self.step.a_t.get_value() * 0.05).astype(theano.config.floatX)
+        new_a = np.asarray(self.step.a_t.get_value() * 0.1).astype(theano.config.floatX)
         self.step.a_t.set_value(new_a)
         # also increase minibatch size, but don't exceed length of trn data
         # self.minibatch = (
