@@ -60,7 +60,7 @@ for i in range(n_trials):
             sim_model.x_dim = N * T
 
             model = ent.load_model(name=name, path=X_path) if REUSE is not None else None
-            model = ent.learn_model(sim_model, train_samples=X_samp).model
+            model = ent.learn_model(sim_model, train_samples=X_samp,patience=3).model
             _ = ent.update_best_model(model, X_samp, name=name, path=X_path)
             model = ent.load_model(name=name, path=X_path)
             new_loss = model.eval_trnloss(X_samp)
@@ -74,7 +74,7 @@ for i in range(n_trials):
             sim_model.x_dim = N * T + N
 
             model = ent.load_model(name=name, path=XH_path) if REUSE is not None else None
-            model = ent.learn_model(sim_model, train_samples=XH_samp).model
+            model = ent.learn_model(sim_model, train_samples=XH_samp,patience=3).model
             _ = ent.update_best_model(model, XH_samp, name=name, path=XH_path)
             model = ent.load_model(name=name, path=XH_path)
             new_loss = model.eval_trnloss(XH_samp)
