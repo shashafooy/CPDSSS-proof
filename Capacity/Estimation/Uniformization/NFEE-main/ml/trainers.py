@@ -153,7 +153,7 @@ class SGD_Template:
         best_epoch = None
         fine_tune_epoch = None
         logger = open(os.devnull, "w") if logger is None else logger
-        fine_tune = 2 if fine_tune is True else 0
+        fine_tune = 1 if fine_tune is True else 0
 
         # main training loop
         while True:
