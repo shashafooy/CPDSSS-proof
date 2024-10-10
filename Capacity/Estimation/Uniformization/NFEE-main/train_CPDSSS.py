@@ -18,7 +18,7 @@ L = 3
 d0 = 4
 d1 = N - d0
 T_range = range(1, 10)
-T_range = [7,8]
+T_range = [7, 8]
 REUSE = True
 TRAIN_X = False
 TRAIN_XH = True
@@ -29,7 +29,7 @@ Number of iterations
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
-patience=5
+patience = 5
 
 
 """
@@ -61,7 +61,9 @@ for i in range(n_trials):
             sim_model.x_dim = N * T
 
             model = ent.load_model(name=name, path=X_path) if REUSE is not None else None
-            model = ent.learn_model(sim_model, train_samples=X_samp,patience=patience).model
+            model = ent.learn_model(
+                sim_model, train_samples=X_samp, pretrained_model=model, patience=patience
+            ).model
             _ = ent.update_best_model(model, X_samp, name=name, path=X_path)
             model = ent.load_model(name=name, path=X_path)
             new_loss = model.eval_trnloss(X_samp)
@@ -75,7 +77,9 @@ for i in range(n_trials):
             sim_model.x_dim = N * T + N
 
             model = ent.load_model(name=name, path=XH_orig_path) if REUSE is not None else None
-            model = ent.learn_model(sim_model, train_samples=XH_samp,patience=patience).model
+            model = ent.learn_model(
+                sim_model, train_samples=XH_samp, pretrained_model=model, patience=patience
+            ).model
             _ = ent.update_best_model(model, XH_samp, name=name, path=XH_path)
             model = ent.load_model(name=name, path=XH_path)
             new_loss = model.eval_trnloss(XH_samp)
