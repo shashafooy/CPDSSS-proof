@@ -26,11 +26,13 @@ N = 6
 d0 = 4
 d1 = 2
 T_range = range(2, 10)
-T_range = [9]
+T_range = [7,8]
 saved_T = []
 for item in T_range:
-    saved_T.append(item)
-    saved_T.append(item + 1)
+    if item not in saved_T:
+        saved_T.append(item)
+    if item+1 not in saved_T:
+        saved_T.append(item + 1)
 
 
 def run_CPDSSS(

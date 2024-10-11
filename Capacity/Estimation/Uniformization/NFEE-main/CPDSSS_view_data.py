@@ -23,7 +23,7 @@ N = 6
 d0 = 4
 d1 = 2
 
-REMOVE_OUTLIERS = True
+REMOVE_OUTLIERS = False
 COMBINE_ENTROPIES = False
 
 # util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename))
