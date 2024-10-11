@@ -19,7 +19,8 @@ d0 = 4
 d1 = N - d0
 T_range = range(1, 10)
 T_range = [7, 8]
-REUSE = True
+T_range = [6]
+REUSE = False
 TRAIN_X = False
 TRAIN_XH = True
 
@@ -30,6 +31,7 @@ n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
 patience = 5
+model=None
 
 
 """
@@ -48,7 +50,8 @@ for i in range(n_trials):
     # generate base samples based on max dimension
     sim_model.set_dim_joint()
     knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
-    X, _, _, h = sim_model.get_base_X_h(knn_samples)
+    knn_samples = int(0.75 * n_train_samples * (10*6))
+    X,XT,Xcond, h = sim_model.get_base_X_h(knn_samples)
 
     for k, T in enumerate(T_range):
         X_samp = X[:, : T * N]
@@ -59,8 +62,9 @@ for i in range(n_trials):
         if TRAIN_X:
             misc.print_border(f"training H(X), T: {T}, iter: {i+1}")
             sim_model.x_dim = N * T
-
-            model = ent.load_model(name=name, path=X_path) if REUSE is not None else None
+            if REUSE:
+                model = ent.load_model(name=name,path=X_path)
+                model = model if model is not None else ent.load_model(name=name,path=X_orig_path)
             model = ent.learn_model(
                 sim_model, train_samples=X_samp, pretrained_model=model, patience=patience
             ).model
@@ -71,12 +75,15 @@ for i in range(n_trials):
             orig_loss = orig_model.eval_trnloss(X_samp) if orig_model is not None else np.inf
             print(f"original loss: {orig_loss:.3f}")
             print(f"new loss: {new_loss:.3f}")
+            model = None
 
         if TRAIN_XH:
             misc.print_border(f"training H(X,h), T: {T}, iter: {i+1}")
             sim_model.x_dim = N * T + N
+            if REUSE:
+                model = ent.load_model(name=name,path=XH_path)
+                model = model if model is not None else ent.load_model(name=name,path=XH_orig_path)
 
-            model = ent.load_model(name=name, path=XH_path) if REUSE is not None else None
             model = ent.learn_model(
                 sim_model, train_samples=XH_samp, pretrained_model=model, patience=patience
             ).model
@@ -87,3 +94,4 @@ for i in range(n_trials):
             orig_loss = orig_model.eval_trnloss(XH_samp) if orig_model is not None else np.inf
             print(f"original loss: {orig_loss:.3f}")
             print(f"new loss: {new_loss:.3f}")
+            model = None
