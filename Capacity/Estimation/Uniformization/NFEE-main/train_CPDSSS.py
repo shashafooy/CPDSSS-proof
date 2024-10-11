@@ -76,7 +76,7 @@ for i in range(n_trials):
             misc.print_border(f"training H(X,h), T: {T}, iter: {i+1}")
             sim_model.x_dim = N * T + N
 
-            model = ent.load_model(name=name, path=XH_orig_path) if REUSE is not None else None
+            model = ent.load_model(name=name, path=XH_path) if REUSE is not None else None
             model = ent.learn_model(
                 sim_model, train_samples=XH_samp, pretrained_model=model, patience=patience
             ).model
