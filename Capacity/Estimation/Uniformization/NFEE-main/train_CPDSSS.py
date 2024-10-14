@@ -1,27 +1,23 @@
 import numpy as np
 import os
 
-from simulators.CPDSSS_models import CPDSSS
+from simulators.CPDSSS_models import CPDSSS_Hinv as CPDSSS
 from misc_CPDSSS import entropy_util as ent
 from misc_CPDSSS import util as misc
 
-import configparser
-
-config = configparser.ConfigParser()
-config.read("CPDSSS.ini")
 
 """
 Parameters for CPDSSS
 """
 N = 6
 L = 3
-d0 = 4
+d0 = 6
 d1 = N - d0
-T_range = range(1, 10)
-T_range = [7, 8]
-T_range = [6]
+T_range = range(1, 5)
+# T_range = [7, 8]
+# T_range = [6]
 REUSE = False
-TRAIN_X = False
+TRAIN_X = True
 TRAIN_XH = True
 
 """
@@ -31,17 +27,20 @@ n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
 patience = 5
-model=None
+model = None
 
 
 """
 File names
 """
-X_orig_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})/X"
-XH_orig_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})/XH"
-model_path = f"temp_data/saved_models/new_models/{N}N_d0d1({d0},{d1})"
-X_path = os.path.join(model_path, "X")
-XH_path = os.path.join(model_path, "XH")
+orig_model_path = f"temp_data/saved_models/Hinv/{N}N_d0d1({d0},{d1})"
+new_model_path = f"temp_data/saved_models/new_models/Hinv/{N}N_d0d1({d0},{d1})"
+
+X_orig_path = os.path.join(orig_model_path, "X")
+XH_orig_path = os.path.join(orig_model_path, "XH")
+
+X_path = os.path.join(new_model_path, "X")
+XH_path = os.path.join(new_model_path, "XH")
 
 
 for i in range(n_trials):
@@ -50,8 +49,8 @@ for i in range(n_trials):
     # generate base samples based on max dimension
     sim_model.set_dim_joint()
     knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
-    knn_samples = int(0.75 * n_train_samples * (10*6))
-    X,XT,Xcond, h = sim_model.get_base_X_h(knn_samples)
+    knn_samples = int(0.75 * n_train_samples * (10 * 6))
+    X, XT, Xcond, h = sim_model.get_base_X_h(knn_samples)
 
     for k, T in enumerate(T_range):
         X_samp = X[:, : T * N]
@@ -63,8 +62,8 @@ for i in range(n_trials):
             misc.print_border(f"training H(X), T: {T}, iter: {i+1}")
             sim_model.x_dim = N * T
             if REUSE:
-                model = ent.load_model(name=name,path=X_path)
-                model = model if model is not None else ent.load_model(name=name,path=X_orig_path)
+                model = ent.load_model(name=name, path=X_path)
+                model = model if model is not None else ent.load_model(name=name, path=X_orig_path)
             model = ent.learn_model(
                 sim_model, train_samples=X_samp, pretrained_model=model, patience=patience
             ).model
@@ -81,8 +80,8 @@ for i in range(n_trials):
             misc.print_border(f"training H(X,h), T: {T}, iter: {i+1}")
             sim_model.x_dim = N * T + N
             if REUSE:
-                model = ent.load_model(name=name,path=XH_path)
-                model = model if model is not None else ent.load_model(name=name,path=XH_orig_path)
+                model = ent.load_model(name=name, path=XH_path)
+                model = model if model is not None else ent.load_model(name=name, path=XH_orig_path)
 
             model = ent.learn_model(
                 sim_model, train_samples=XH_samp, pretrained_model=model, patience=patience

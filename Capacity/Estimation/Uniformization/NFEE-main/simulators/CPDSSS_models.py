@@ -104,8 +104,10 @@ class CPDSSS(_distribution):
         self.G, Q = self.sim_GQ()
         # import timeit
         # timeit.timeit(lambda: self.sim_GQ(n_samples=200000),number=1)
-
-        self.X = np.matmul(self.G, self.s) + np.matmul(Q, v)
+        if self.sym_N == self.N:
+            self.X = np.matmul(self.G, self.s)
+        else:
+            self.X = np.matmul(self.G, self.s) + np.matmul(Q, v)
         joint_X = self.X[:, :, 0 : self.T].reshape(
             (n_samples, self.N * self.T), order="F"
         )  # order 'F' needed to make arrays stack instead of interlaced
@@ -228,6 +230,24 @@ class CPDSSS(_distribution):
 
     def set_dim_joint(self):
         self.x_dim = self.N * self.T + self.N
+
+
+class CPDSSS_Hinv(CPDSSS):
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None):
+        super().__init__(num_tx, N, L, d0, d1)
+
+    def _gen_GQ_sample(self, h):
+
+        # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
+        # A=E.T @ H
+        # Slightly faster than doing E.T @ H
+        H = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))
+        Hinv = np.linalg.inv(H + self.eye)
+
+        G = Hinv[:, : self.sym_N]
+        Q = Hinv[:, -self.noise_N :]
+
+        return G, Q
 
 
 class CPDSSS_XS(CPDSSS):
