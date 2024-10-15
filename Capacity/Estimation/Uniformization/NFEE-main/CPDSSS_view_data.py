@@ -20,8 +20,8 @@ N = 6
 # d0=N/L
 # d1=N-d0
 
-d0 = 4
-d1 = 2
+d0 = 3
+d1 = N - d0
 
 REMOVE_OUTLIERS = False
 COMBINE_ENTROPIES = False
