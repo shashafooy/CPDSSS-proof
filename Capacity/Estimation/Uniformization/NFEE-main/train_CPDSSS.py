@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from simulators.CPDSSS_models import CPDSSS_Hinv as CPDSSS
+from simulators.CPDSSS_models import CPDSSS as CPDSSS
 from misc_CPDSSS import entropy_util as ent
 from misc_CPDSSS import util as misc
 
@@ -11,13 +11,13 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
-d0 = 6
+d0 = 2
 d1 = N - d0
-T_range = range(1, 5)
+T_range = range(1, 10)
 # T_range = [7, 8]
 # T_range = [6]
 REUSE = False
-TRAIN_X = True
+TRAIN_X = False
 TRAIN_XH = True
 
 """
@@ -33,8 +33,8 @@ model = None
 """
 File names
 """
-orig_model_path = f"temp_data/saved_models/Hinv/{N}N_d0d1({d0},{d1})"
-new_model_path = f"temp_data/saved_models/new_models/Hinv/{N}N_d0d1({d0},{d1})"
+orig_model_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})"
+new_model_path = f"temp_data/saved_models/new_models/{N}N_d0d1({d0},{d1})"
 
 X_orig_path = os.path.join(orig_model_path, "X")
 XH_orig_path = os.path.join(orig_model_path, "XH")

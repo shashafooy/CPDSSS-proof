@@ -27,6 +27,7 @@ d0 = 4
 d1 = 2
 T_range = range(2, 10)
 T_range = [6,7,8,9]
+T_range = range(1,6)
 saved_T = []
 for item in T_range:
     if item not in saved_T:
