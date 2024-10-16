@@ -11,9 +11,9 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
-d0 = 4
+d0 = 2
 d1 = N - d0
-T_range = range(1, 6)
+T_range = range(1, 10)
 # T_range = [7, 8]
 # T_range = [6]
 REUSE = False
