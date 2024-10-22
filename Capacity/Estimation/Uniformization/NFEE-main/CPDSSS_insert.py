@@ -116,6 +116,7 @@ for i in range(n_trials):
 
             H_HX = run_CPDSSS(sim_model, joint, model_name=name, model_path=XH_path)
 
+
             H_joint[i, k] = H_HX
             H_hxc[i, k + 1] = H_HX
 
