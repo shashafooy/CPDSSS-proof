@@ -20,7 +20,7 @@ N = 6
 # d0=N/L
 # d1=N-d0
 
-d0 = 3
+d0 = 2
 d1 = N - d0
 
 REMOVE_OUTLIERS = False
@@ -97,7 +97,7 @@ H_cond_var = np.nanvar(H_cond_tot, axis=0)
 
 T_range = old_range
 # Potentially more accurate taking into accound each mean value
-MI_mean_sum = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
+MI_mean = H_gxc_mean + H_xxc_mean - H_joint_mean - H_cond_mean
 
 
 """
@@ -215,17 +215,22 @@ plt_H_diff_scatter(ax2[1, 1], H_xxc_tot)
 fig2.tight_layout()
 
 """Plot individual and cumulative Mutual Information"""
-fig3, ax3 = plt.subplots(2, 1)
+fig3, ax3 = plt.subplots(1, 1)
 fig3.suptitle(rf"$N=${N}, $d_0=${d0}, $d_1=${d1}")
 temp_range = range(1, max(T_range) + 1)
 temp_range = np.insert(T_range, 0, 1)
 MI_mean = np.insert(MI_mean, 0, 0)  # start at 0 MI
-ax3[0].cla(), ax3[0].plot(temp_range, MI_mean)
-ax3[0].set_title(r"$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$"), ax3[0].set_xlabel(r"$T$")
-ax3[1].cla(), ax3[1].plot(temp_range, np.cumsum(MI_mean), label=r"$I(\mathbf{g},\mathbf{X})$")
-ax3[1].axhline(y=H_h, linestyle="dashed", label=r"$H(\mathbf{g})$")
-ax3[1].set_title(r"$I(\mathbf{g},\mathbf{X})$"), ax3[1].set_xlabel(r"T")
-ax3[1].legend()
+ax3.cla()
+ax3.plot(temp_range, MI_mean)
+ax3.set_title(r"$I(\mathbf{g},\mathbf{x}_T | \mathbf{x}_{1:T-1})$")
+ax3.set_xlabel(r"$T$")
+fig3, ax3 = plt.subplots(1, 1)
+ax3.cla()
+ax3.plot(temp_range, np.cumsum(MI_mean), label=r"$I(\mathbf{g},\mathbf{X})$")
+ax3.axhline(y=H_h, linestyle="dashed", label=r"$H(\mathbf{g})$")
+ax3.set_title(r"$I(\mathbf{g},\mathbf{X})$")
+ax3.set_xlabel(r"T")
+ax3.legend()
 
 fig3.tight_layout()
 
