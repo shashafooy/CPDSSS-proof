@@ -24,7 +24,7 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
-d0=4
+d0=3
 d1=N-d0
 
 min_samples = 2000000  # samples to generate per entropy calc

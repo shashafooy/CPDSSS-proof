@@ -11,11 +11,12 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
-d0 = 6
+d0 = 3
 d1 = N - d0
 T_range = range(1, 6)
 # T_range = [7, 8]
 # T_range = [6]
+T_range = [7,8,9]
 REUSE = False
 TRAIN_X = True
 TRAIN_XH = True
