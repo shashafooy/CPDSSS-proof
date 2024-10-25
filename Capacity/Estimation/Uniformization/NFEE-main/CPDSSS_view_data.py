@@ -20,7 +20,7 @@ N = 6
 # d0=N/L
 # d1=N-d0
 
-d0 = 2
+d0 = 4
 d1 = N - d0
 
 REMOVE_OUTLIERS = False
@@ -28,15 +28,9 @@ COMBINE_ENTROPIES = False
 
 # util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename))
 base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_d0d1({d0},{d1})/"
-# filepaths = [base_path + "50k_high_epoch", base_path + "50k_samples"]
-# filepath = base_path + "50k_tol_0.1_patience_10"
-# filepath = base_path + "50k_N4_L2"
-# filepath = base_path + "50k_N4_L2"
-# filepath = base_path + 'NlogN_10k_scaling'
-# filepath = base_path + 'NlogN_10k_K=3,T=8'
-# filepath = base_path + 'knn=200k_T=2-7'
-# filepath = base_path + 'coarse-fine_75k_x_dims'
+
 filepath = base_path + "pretrained_model"
+filepath = base_path + "high_epoch"
 # filepath = base_path + "N9_coarse-fine_experiment"
 
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_tol_0.1_patience_10'
