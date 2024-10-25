@@ -15,7 +15,7 @@ config = configparser.ConfigParser()
 config.read("CPDSSS.ini")
 KNN_THREADING = not config["GLOBAL"].getboolean("knn_GPU", False)  # Use threading if GPU not used
 
-RUN_X = False
+RUN_X = True
 RUN_HX = True
 
 """
@@ -23,11 +23,12 @@ Parameters for CPDSSS
 """
 N = 6
 # L = 3
-d0 = 4
-d1 = 2
+d0 = 3
+d1 = N-d0
 T_range = range(2, 10)
 T_range = [6,7,8,9]
 T_range = range(1,6)
+T_range = [7,8]
 saved_T = []
 for item in T_range:
     if item not in saved_T:
