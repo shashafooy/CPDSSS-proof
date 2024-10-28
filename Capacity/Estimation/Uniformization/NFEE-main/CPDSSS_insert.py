@@ -27,12 +27,14 @@ d0 = 3
 d1 = N-d0
 T_range = range(2, 10)
 T_range = [6,7,8,9]
+
+max_T = 9
 # T_range = range(1,6)
 saved_T = []
 for item in T_range:
     if item not in saved_T:
         saved_T.append(item)
-    if item+1 not in saved_T:
+    if item+1 not in saved_T and item+1 < max_T:
         saved_T.append(item + 1)
 
 
@@ -118,7 +120,8 @@ for i in range(n_trials):
 
 
             H_joint[i, k] = H_HX
-            H_hxc[i, k + 1] = H_HX
+            if T < max_T:
+                H_hxc[i, k + 1] = H_HX
 
             filename = misc.update_filename(path, filename, i)
             util.io.save(
@@ -135,7 +138,8 @@ for i in range(n_trials):
             H_X = run_CPDSSS(sim_model, X, model_name=name, model_path=X_path)
 
             H_xxc[i, k] = H_X
-            H_cond[i, k + 1] = H_X
+            if T < max_T:
+                H_cond[i, k + 1] = H_X
 
             filename = misc.update_filename(path, filename, i)
             util.io.save(
