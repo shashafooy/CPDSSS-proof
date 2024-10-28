@@ -20,7 +20,7 @@ N = 6
 # d0=N/L
 # d1=N-d0
 
-d0 = 4
+d0 = 3
 d1 = N - d0
 
 REMOVE_OUTLIERS = False
@@ -30,7 +30,8 @@ COMBINE_ENTROPIES = False
 base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_d0d1({d0},{d1})/"
 
 filepath = base_path + "pretrained_model"
-filepath = base_path + "high_epoch"
+# filepath = base_path + "high_epoch"
+# filepath = base_path + "Smooth_MI"
 # filepath = base_path + "N9_coarse-fine_experiment"
 
 # filepath= 'temp_data/CPDSSS_data/N2_L2/50k_tol_0.1_patience_10'
