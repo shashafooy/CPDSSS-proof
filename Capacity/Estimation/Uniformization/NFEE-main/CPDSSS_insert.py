@@ -15,7 +15,7 @@ config = configparser.ConfigParser()
 config.read("CPDSSS.ini")
 KNN_THREADING = not config["GLOBAL"].getboolean("knn_GPU", False)  # Use threading if GPU not used
 
-RUN_X = False
+RUN_X = True
 RUN_HX = True
 
 """
@@ -27,7 +27,7 @@ d0 = 4
 d1 = 2
 T_range = range(2, 10)
 T_range = [6,7,8,9]
-T_range = range(1,6)
+# T_range = range(1,6)
 saved_T = []
 for item in T_range:
     if item not in saved_T:
@@ -132,7 +132,7 @@ for i in range(n_trials):
             sim_model.set_dim_xxc()
             name = f"{T}T"
 
-            H_X = run_CPDSSS(sim_model, X, model_name=name, model_path=XH_path)
+            H_X = run_CPDSSS(sim_model, X, model_name=name, model_path=X_path)
 
             H_xxc[i, k] = H_X
             H_cond[i, k + 1] = H_X
