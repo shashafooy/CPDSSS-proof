@@ -17,8 +17,6 @@ n_trials = 100
 N_range = range(1, 20)
 method = "both"
 patience = 5
-val_tol = 0.1
-# method='both'
 
 H_unif_KL = np.empty((n_trials, len(N_range))) * np.nan
 H_unif_KSG = np.empty((n_trials, len(N_range))) * np.nan
@@ -36,6 +34,7 @@ filename = misc.update_filename(path=path, old_name=filename, rename=False)
 # util.io.save((N_range,H_unif_KL,H_KL_laplace,MSE_uniform,MSE_KL,iter),os.path.join(path,filename))
 
 model_path = "temp_data/saved_models/laplace"
+new_model_path = "temp_data/saved_models/new_models/laplace"
 
 
 for i in range(n_trials):
@@ -74,7 +73,7 @@ for i in range(n_trials):
                 H_KL_laplace[i, ni] = kl(laplace_base)
                 print(f"error: {np.abs(true_H_laplace - H_KL_laplace[i,ni])}")
 
-            else:
+            else:  # Both methods
                 H_unif_KL[i, ni], H_unif_KSG[i, ni], estimator = ent.calc_entropy(
                     sim_model=sim_laplace,
                     base_samples=laplace_base,
