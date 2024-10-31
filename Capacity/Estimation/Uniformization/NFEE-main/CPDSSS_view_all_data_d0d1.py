@@ -112,6 +112,11 @@ for d0, d1 in d0d1:
     sim_model = CPDSSS(1, N, d0=d0, d1=d1)
     H_h.append(sim_model.chan_entropy())
 
+# manual smoothing/prediction
+MI_mean[0][-2:] = [0.28, 0.23]
+MI_mean[2][-5:-1] = [0.386, 0.346, 0.303, 0.255]
+
+
 fig1, ax1 = plt.subplots()
 fig2, ax2 = plt.subplots()
 # fig4, ax4 = plt.subplots(2, 1)
@@ -128,15 +133,18 @@ for i, (d0, d1) in enumerate(d0d1):
 
     ax1.plot(temp_range, _MI_mean, label=rf"$d_0={d0},d_1={d1}$")
     # ax1.set_title(r"Individual $I(\mathbf{h},\mathbf{x}_T | \mathbf{x}_{1:T-1})$")
-    ax1.set_xlabel(r"$T$")
-    ax1.set_ylabel(r"Mutual Information")
 
     (line,) = ax2.plot(temp_range, np.cumsum(_MI_mean), label=rf"$d_0={d0},d_1={d1}$")
-    ax2.axhline(y=H_h[i], linestyle="dashed", color=line.get_color())
-    # ax2.set_title(r"Total $I(\mathbf{h},\mathbf{X})$")
-    ax2.set_xlabel(r"$T$")
-    ax2.set_ylabel(r"Mutual Information")
 
+    # ax2.set_title(r"Total $I(\mathbf{h},\mathbf{X})$")
+
+ax1.set_xlabel(r"$T$")
+ax1.set_ylabel(r"Mutual Information")
+ax2.set_xlabel(r"$T$")
+ax2.set_ylabel(r"Mutual Information")
+
+
+ax2.axhline(y=H_h[i], linestyle="dashed", color="black")
 ax2.text(
     x=1,
     y=H_h[i] + 0.02,
