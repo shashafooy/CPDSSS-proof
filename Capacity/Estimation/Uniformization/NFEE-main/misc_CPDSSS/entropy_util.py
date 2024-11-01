@@ -168,7 +168,7 @@ def calc_entropy(
     end_time = time.time()
     print(f"knn time: {str(timedelta(seconds = int(end_time - start_time)))}")
     if method == "both":
-        print(f"KL H={H[0]:.3f}\nKSG H={H[1]:.3f}")
+        print(f"tKL H={H[0]:.3f}\ntKSG H={H[1]:.3f}")
     else:
         print(f"H={H:.3f}")
 

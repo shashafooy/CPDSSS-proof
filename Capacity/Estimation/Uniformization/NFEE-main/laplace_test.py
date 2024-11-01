@@ -84,6 +84,7 @@ for i in range(n_trials):
                     model=model,
                 )
                 H_KL_laplace[i, ni], H_KSG_laplace[i, ni] = kl_ksg(laplace_base)
+                print(f"True H: {sim_laplace.entropy()}")
                 print(f"KL error: {np.abs(true_H_laplace - H_KL_laplace[i,ni])}")
                 print(f"KSG error: {np.abs(true_H_laplace - H_KSG_laplace[i,ni])}")
                 print(f"tKL error: {np.abs(true_H_laplace - H_unif_KL[i,ni])}")
