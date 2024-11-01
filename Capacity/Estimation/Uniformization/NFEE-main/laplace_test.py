@@ -8,7 +8,7 @@ import util.io
 
 from ent_est.entropy import kl_ksg, kl, ksg
 
-TRAIN_ONLY = True
+TRAIN_ONLY = False
 
 
 # knn_samples = 200000
@@ -27,7 +27,7 @@ iter = 0
 MSE_uniform = np.inf
 MSE_KL = np.inf
 
-path = "temp_data/laplace_test"
+path = "temp_data/laplace_test/high_epoch"
 today = date.today().strftime("%b_%d")
 filename = "laplace_data({})".format(today)
 filename = misc.update_filename(path=path, old_name=filename, rename=False)

@@ -27,7 +27,7 @@ Generate data
 """
 
 current_model_path = f"temp_data/saved_models/laplace"
-new_model_path = f"temp_data/saved_models/laplace_old/laplace"
+new_model_path = f"temp_data/saved_models/new_models/laplace"
 
 n_samples = int(2e6)
 sim_model = Laplace(0,2,19)
