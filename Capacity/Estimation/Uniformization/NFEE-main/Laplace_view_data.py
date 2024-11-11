@@ -19,7 +19,7 @@ min_T = 0
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 
-filepath = "temp_data/laplace_test"
+filepath = "temp_data/laplace_test/high_epoch"
 
 
 N = 2

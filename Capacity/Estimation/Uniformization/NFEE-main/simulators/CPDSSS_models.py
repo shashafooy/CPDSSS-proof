@@ -18,8 +18,9 @@ dtype = theano.config.floatX
 class _distribution:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, x_dim=0):
+    def __init__(self, x_dim=0, rng=np.random):
         self.x_dim = x_dim
+        self.rng = rng.default_rng()
 
     @abc.abstractmethod
     def sim(self):
@@ -301,6 +302,36 @@ class CPDSSS_XG:
         joint_X = self.base_model.X[:, :, 0:T].reshape((n_samples, N * T), order="F")
         g_term = self.base_model.G[:, :, 0]
         return np.concatenate((joint_X, g_term), axis=1)
+
+
+class Gaussian(_distribution):
+    def __init__(self, mu, sigma2, N=1):
+        super().__init__(x_dim=N)
+        # make mu,sigma vectors if input is a scalar
+        if N > 1 and np.isscalar(mu):
+            mu = np.full((N,), mu)
+            sigma2 = sigma2 * np.eye(N)
+        self.mu = np.asarray(mu, dtype=dtype)
+        self.sigma = np.asarray(sigma2, dtype=dtype)
+
+    def sim(self, n_samples=1000):
+        return self.rng.multivariate_normal(mean=self.mu, cov=self.sigma, size=n_samples).astype(
+            dtype
+        )
+
+    def entropy(self):
+        return 0.5 * np.log(lin.det(self.sigma)) + self.x_dim / 2 * (1 + np.log(2 * np.pi))
+
+
+class Limited_Gaussian(Gaussian):
+    def __init__(self, mu, sigma2, limit, N=1):
+        super().__init__(mu, sigma2, N)
+        self.limit = limit
+
+    def sim(self, n_samples=1000):
+        samples = super().sim(n_samples)
+        mask = np.linalg.norm(samples, axis=1) <= self.limit
+        return samples[mask, :]
 
 
 class Exponential(_distribution):
