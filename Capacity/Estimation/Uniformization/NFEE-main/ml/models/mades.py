@@ -761,6 +761,7 @@ class ConditionalGaussianMade:
         Wx, Ws, bs, Wm, bm, Wp, bp = create_weights_conditional(
             n_inputs, n_outputs, n_hiddens, None, rng
         )
+        self.masks = Ms + [Mmp]
         self.parms = [Wx] + Ws + bs + [Wm, bm, Wp, bp]
         self.output_order = degrees[0]
 

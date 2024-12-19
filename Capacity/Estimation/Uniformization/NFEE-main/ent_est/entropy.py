@@ -413,7 +413,7 @@ def learn_density(
 
     Args:
         model (_type_): model to train
-        xs (_type_): samples to train on
+        xs (list): list of samples to train on
         ws (_type_, optional): weights. Defaults to None.
         regularizer (_type_, optional): _description_. Defaults to None.
         val_frac (float, optional): _description_. Defaults to 0.05.
@@ -429,24 +429,25 @@ def learn_density(
     Returns:
         _type_: Trained model
     """
+    xs = xs if isinstance(xs, list) else [xs]
+    xs = [np.asarray(_xs, np.float32) for _xs in xs]
 
-    xs = np.asarray(xs, np.float32)
-
-    n_data = xs.shape[0]
+    n_data = xs[0].shape[0]
 
     # shuffle data, so that training and validation sets come from the same distribution
     idx = rng.permutation(n_data)
-    xs = xs[idx]
+    xs = [_xs[idx] for _xs in xs]
 
     # split data into training and validation sets
     n_trn = int(n_data - val_frac * n_data)
-    xs_trn, xs_val = xs[:n_trn], xs[n_trn:]
+    xs_trn = [_xs[:n_trn] for _xs in xs]
+    xs_val = [_xs[n_trn:] for _xs in xs]
 
     trainer = trainers.SGD(
         model=model,
-        trn_data=[xs_trn],
+        trn_data=xs_trn,
         trn_loss=model.trn_loss if regularizer is None else model.trn_loss + regularizer,
-        val_data=[xs_val],
+        val_data=xs_val,
         val_loss=model.trn_loss,
         step=step,
         val_target=target,
@@ -466,7 +467,7 @@ def learn_density(
 
 class UMestimator:
 
-    def __init__(self, sim_model, model, samples=None):
+    def __init__(self, sim_model, model, samples=[None]):
         """Estimator class to hold the given neural net model and associated functions to train and evaluate entropy
 
         Args:
@@ -477,9 +478,8 @@ class UMestimator:
 
         self.sim_model = sim_model
         self.model = model
-        self.samples = samples
+        self.samples = samples if isinstance(samples, list) else [samples]
         self.n_samples = None
-        self.xdim = None
         self.target = sim_model.entropy()
         self.checkpointer = trainers.ModelCheckpointer(model)
 
@@ -513,12 +513,11 @@ class UMestimator:
 
         step.reset_shared()  # shared variables can retain values between method calls
 
-        if self.samples is None:
+        if self.samples[0] is None:
             xs = self.sim_model.sim(n_samples)
             self.samples = xs
 
-        self.n_samples = self.samples.shape[0]
-        self.x_dim = self.samples.shape[1]
+        self.n_samples = self.samples[0].shape[0]
 
         # Scale so validation occurs at most every 10**5 / minibatch during training
         # if fine_tune:
@@ -581,7 +580,7 @@ class UMestimator:
         """
 
         if reuse_samples:
-            samples = self.samples
+            samples = self.samples[0]
         else:
             samples = self.sim_model.sim(self.n_samples)
 
@@ -619,7 +618,7 @@ class UMestimator:
         z = z[idx]
 
         # Made a bad gaussian estimate
-        if z.shape[0] < 0.01 * self.samples.shape[0]:
+        if z.shape[0] < 0.01 * self.samples[0].shape[0]:
             return None
 
         if SHOW_PDF_PLOTS == True:

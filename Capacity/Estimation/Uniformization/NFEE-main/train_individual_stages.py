@@ -88,7 +88,7 @@ for k in range(n_trials):
     model = ent.load_model(name=name, path=indep_stage_path, sim_model=sim_laplace)
     if model is None:
         fine_tune = True
-        model = ent.create_model(n_inputs, n_mades=n_stages[-1], sim_model=sim_laplace)
+        model = ent.create_MAF_model(n_inputs, n_mades=n_stages[-1], sim_model=sim_laplace)
 
     all_parms = model.parms
     trn_loss = model.trn_loss

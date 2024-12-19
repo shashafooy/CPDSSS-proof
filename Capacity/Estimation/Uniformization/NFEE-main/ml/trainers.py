@@ -44,6 +44,8 @@ class SGD_Template:
 
         # compile theano function for a single training update
         self.trn_inputs = [model.input] if trn_target is None else [model.input, trn_target]
+        if len(trn_data) == 2 and trn_target is None:
+            self.trn_inputs = [model.y, model.input]
         self.make_update = None  # to be implemented by a subclass
 
         """Do not use batch_norm_stats due to memory consumption if dataset is too large"""
@@ -73,6 +75,8 @@ class SGD_Template:
 
             # compile theano function for validation
             self.val_inputs = [model.input] if val_target is None else [model.input, val_target]
+            if len(val_data) == 2 and trn_target is None:
+                self.val_inputs = [model.y, model.input]
             self.validate = None  # to be implemented by a subclass
 
             # create checkpointer to store best model
@@ -224,7 +228,7 @@ class SGD_Template:
                     logger.write("Ran out of patience\n")
 
                 # check if we will do fine tuning
-                if fine_tune>0:
+                if fine_tune > 0:
                     logger.write("Start fine tuning\n")
                     # Reduce step size and resume training loop
                     self.reduce_step_size()

@@ -54,7 +54,7 @@ def load_model(model=None, name="model_name", path="temp_data/saved_models", sim
         return None
 
     model = (
-        create_model(n_inputs, n_hiddens=n_hiddens, n_mades=n_mades, sim_model=sim_model)
+        create_MAF_model(n_inputs, n_hiddens=n_hiddens, n_mades=n_mades, sim_model=sim_model)
         if model is None
         else model
     )
@@ -112,7 +112,9 @@ def update_best_model(
         return best_trn_loss
 
 
-def create_model(n_inputs, rng=np.random, n_hiddens=[200, 200, 200], n_mades=14, sim_model=None):
+def create_MAF_model(
+    n_inputs, rng=np.random, n_hiddens=[200, 200, 200], n_mades=14, sim_model=None
+):
     """Generate a multi stage Masked Autoregressive Flow (MAF) model
     George Papamakarios, Theo Pavlakou, and Iain Murray. “Masked Autoregressive Flow for Density Estimation”
 
@@ -139,6 +141,29 @@ def create_model(n_inputs, rng=np.random, n_hiddens=[200, 200, 200], n_mades=14,
         mode="random",
         rng=rng,
         target_entropy=entropy,
+    )
+
+
+def create_cond_MAF_model(n_inputs, n_cond_inputs, n_hiddens=[200, 200, 200], n_mades=14):
+    """Generate a MAF model for a conditional distribution p(x|y)
+
+    Args:
+        n_inputs (_type_): The number of inputs of the random variable x in p(x|y)
+        n_cond_inputs (_type_): The number of conditional random variable y in p(x|y)
+        n_hiddens (list, optional): list containing the number of nodes per hidden layer. Defaults to [200, 200, 200].
+        n_mades (int, optional): The number of MADE stages for MAF. Defaults to 14.
+
+    Returns:
+        _type_: _description_
+    """
+    return mafs.ConditionalMaskedAutoregressiveFlow(
+        n_cond_inputs=n_cond_inputs,
+        n_inputs=n_inputs,
+        n_hiddens=n_hiddens,
+        act_fun="tanh",
+        n_mades=n_mades,
+        output_order="random",
+        mode="random",
     )
 
 
@@ -210,7 +235,7 @@ def learn_model(
     sim_model,
     pretrained_model=None,
     n_samples=100,
-    train_samples=None,
+    train_samples=[None],
     val_tol=0.0005,
     patience=5,
     n_hiddens=[200, 200, 200],
@@ -237,6 +262,8 @@ def learn_model(
     Returns:
         entropy.UMestimator: estimator object used for training and entropy calculation
     """
+    train_samples = train_samples if isinstance(train_samples, list) else [train_samples]
+
     if pretrained_model is not None and fine_tune:
         mini_batch = mini_batch * 4
         # step = ss.Adam(a=5e-5)
@@ -244,7 +271,7 @@ def learn_model(
         fine_tune = False
 
     net = (
-        create_model(
+        create_MAF_model(
             sim_model.x_dim,
             n_hiddens=n_hiddens,
             n_mades=n_stages,
@@ -254,11 +281,13 @@ def learn_model(
         else pretrained_model
     )
     estimator = entropy.UMestimator(sim_model, net, train_samples)
-    if train_samples is not None:
+    if train_samples[0] is not None:
         print(f"Starting Loss: {net.eval_trnloss(train_samples):.3f}")
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
-    n_samples = n_samples * sim_model.x_dim if train_samples is None else train_samples.shape[0]
+    n_samples = (
+        n_samples * sim_model.x_dim if train_samples[0] is None else train_samples[0].shape[0]
+    )
     estimator.learn_transformation(
         n_samples=n_samples,
         val_tol=val_tol,
@@ -270,7 +299,7 @@ def learn_model(
     )
     end_time = time.time()
     print("learning time: ", str(timedelta(seconds=int(end_time - start_time))))
-    if train_samples is not None:
+    if train_samples[0] is not None:
         print(f"Final Loss: {net.eval_trnloss(train_samples):.3f}")
 
     return estimator

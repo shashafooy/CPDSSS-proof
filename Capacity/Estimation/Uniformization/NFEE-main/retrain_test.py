@@ -55,7 +55,7 @@ for i in range(n_trials):
 
     n_train = int(n_train_samples * sim_laplace.x_dim)
     laplace_base = sim_laplace.sim(n_samples=n_train)
-    base_net = ent.create_model(sim_laplace.x_dim, rng=np.random)
+    base_net = ent.create_MAF_model(sim_laplace.x_dim, rng=np.random)
     checkpointer = ModelCheckpointer(base_net)
     checkpointer.checkpoint()
     # Use same rng seed for each minibatch

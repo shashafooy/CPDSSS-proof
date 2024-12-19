@@ -211,12 +211,6 @@ class MaskedAutoregressiveFlow:
             n_size.append(x[i : i + max_samp, :].shape[0])
         # combine means
         return sum(np.asarray(stg_loss) * np.asarray(n_size)) / (sum(n_size))
-        if len(stg_loss) > 1:
-            stg_loss = np.concatenate(stg_loss)
-        else:
-            stg_loss = stg_loss[0]
-
-        return stg_loss
 
     def grad_log_p(self, x):
         """
@@ -326,13 +320,13 @@ class MaskedAutoregressiveFlow:
 
 class ConditionalMaskedAutoregressiveFlow:
     """
-    Implements a Conditional Masked Autoregressive Flow.
+    Implements a Conditional Masked Autoregressive Flow. p(output | input) or p(y | input)
     """
 
     def __init__(
         self,
+        n_cond_inputs,
         n_inputs,
-        n_outputs,
         n_hiddens,
         act_fun,
         n_mades,
@@ -358,8 +352,8 @@ class ConditionalMaskedAutoregressiveFlow:
         """
 
         # save input arguments
-        self.n_inputs = n_inputs
-        self.n_outputs = n_outputs
+        self.n_inputs = n_cond_inputs
+        self.n_outputs = n_inputs
         self.n_hiddens = n_hiddens
         self.act_fun = act_fun
         self.n_mades = n_mades
@@ -368,21 +362,36 @@ class ConditionalMaskedAutoregressiveFlow:
 
         self.input = tt.matrix("x", dtype=dtype) if input is None else input
         self.y = tt.matrix("y", dtype=dtype) if output is None else output
+        self.stage_idx = tt.iscalar("stage_index")
         self.parms = []
+        self.masks = []
 
         self.mades = []
         self.bns = []
+        self.stage_loss = []
+        self.stage_out = []
         self.u = self.y
         self.logdet_dudy = 0.0
+
+        self.max_samp = 1000000
 
         for i in range(n_mades):
 
             # create a new made
             made = mades.ConditionalGaussianMade(
-                n_inputs, n_outputs, n_hiddens, act_fun, output_order, mode, self.input, self.u, rng
+                n_cond_inputs,
+                n_inputs,
+                n_hiddens,
+                act_fun,
+                output_order,
+                mode,
+                self.input,
+                self.u,
+                rng,
             )
             self.mades.append(made)
             self.parms += made.parms
+            self.masks += made.masks
             output_order = output_order if output_order == "random" else made.output_order[::-1]
 
             # inverse autoregressive transform
@@ -391,19 +400,32 @@ class ConditionalMaskedAutoregressiveFlow:
 
             # batch normalization
             if batch_norm:
-                bn = layers.BatchNorm(self.u, n_outputs)
+                bn = layers.BatchNorm(self.u, n_inputs)
                 self.u = bn.y
                 self.parms += bn.parms
                 self.logdet_dudy += tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
                 self.bns.append(bn)
+            L = (
+                -0.5 * n_inputs * np.log(2 * np.pi)
+                - 0.5 * tt.sum(self.u**2, axis=1)
+                + self.logdet_dudy
+            )
+            self.stage_loss.append(-tt.mean(L))
+            # L = -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u ** 2, axis=1) + 0.5 * tt.sum(made.logp,axis=1) + tt.sum(bn.log_gamma) - 0.5 * tt.sum(tt.log(bn.v))
+            # self.stage_loss.append(-tt.mean(L))
+            self.stage_loss[-1].name = f"stage_{i+1}_loss"
+
+            self.stage_out.append(self.u)
+            self.stage_out[-1].name = f"stage_{i+1}_u"
+
+        self.stage_loss_tensor = tt.stack(self.stage_loss, axis=0)
+        self.stage_out_tensor = tt.stack(self.stage_out, axis=0)
 
         self.output_order = self.mades[0].output_order
 
         # log likelihoods
         self.L = (
-            -0.5 * n_outputs * np.log(2 * np.pi)
-            - 0.5 * tt.sum(self.u**2, axis=1)
-            + self.logdet_dudy
+            -0.5 * n_inputs * np.log(2 * np.pi) - 0.5 * tt.sum(self.u**2, axis=1) + self.logdet_dudy
         )
         self.L.name = "L"
 
@@ -416,6 +438,8 @@ class ConditionalMaskedAutoregressiveFlow:
         self.eval_grad_f = None
         self.eval_score_f = None
         self.eval_us_f = None
+        self._eval_trn_loss = None
+        self._eval_stage_loss = None
 
     def reset_theano_functions(self):
         """
@@ -426,6 +450,8 @@ class ConditionalMaskedAutoregressiveFlow:
         self.eval_grad_f = None
         self.eval_score_f = None
         self.eval_us_f = None
+        self._eval_trn_loss = None
+        self._eval_stage_loss = None
 
         for made in self.mades:
             made.reset_theano_functions()
@@ -455,6 +481,51 @@ class ConditionalMaskedAutoregressiveFlow:
         lprob = lprob[0] if one_datapoint else lprob
 
         return lprob if log else np.exp(lprob)
+
+    def eval_trnloss(self, xy):
+        """
+        Evaluate training loss with given input data.
+
+        Args:
+            xy (_type_): a pair p(y|x) where x rows are conditional inputs and y rows are the random variable
+        """
+        if self._eval_trn_loss is None:
+            self._eval_trn_loss = theano.function(
+                inputs=[self.input, self.y], outputs=self.trn_loss
+            )
+        x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
+        trn_loss = []
+        n_size = []
+        max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
+        for i in range(0, x.shape[0], max_samp):
+            data_range = range(i, min(i + max_samp, x.shape[0]))
+            trn_loss.append(self._eval_trn_loss(x[data_range, :], y[data_range, :]))
+            n_size.append(len(data_range))
+        # combine means
+        return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
+
+    def eval_stage_loss(self, xy, index):
+        """
+        Evaluate training loss with given input data.
+
+        Args:
+            xy (_type_): a pair p(y|x) where x rows are conditional inputs and y rows are the random variable
+        """
+        if self._eval_trn_loss is None:
+            self._eval_trn_loss = theano.function(
+                inputs=[self.input, self.y, self.stage_idx],
+                outputs=self.stage_loss_tensor[self.stage_idx],
+            )
+        x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
+        trn_loss = []
+        n_size = []
+        max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
+        for i in range(0, x.shape[0], max_samp):
+            data_range = range(i, min(i + max_samp, x.shape[0]))
+            trn_loss.append(self._eval_trn_loss(x[data_range, :], y[data_range, :], index))
+            n_size.append(len(data_range))
+        # combine means
+        return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
 
     def grad_log_p(self, xy):
         """
@@ -539,7 +610,16 @@ class ConditionalMaskedAutoregressiveFlow:
             self.eval_us_f = theano.function(inputs=[self.input, self.y], outputs=self.u)
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
-        u = self.eval_us_f(x, y)
+
+        u = []
+        max_samp = int(self.max_samp / x.shape[1])
+        for i in range(0, x.shape[0], max_samp):
+            d_range = range(i, min(i + max_samp, x.shape[0]))
+            u.append(self.eval_us_f(x[d_range, :], y[d_range, :]))
+
+        # Concatenate the results into a single array
+        u = np.concatenate(u) if len(u) > 1 else u[0]
+        return u
 
         return u[0] if one_datapoint else u
 
@@ -558,10 +638,24 @@ class ConditionalMaskedAutoregressiveFlow:
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
 
-        logdet_jacobi = self.eval_jacobian_u(x, y)
-        logdet_jacobi = logdet_jacobi[0] if one_datapoint else logdet_jacobi
+        # logdet_jacobi = self.eval_jacobian_u(x, y)
+        # logdet_jacobi = logdet_jacobi[0] if one_datapoint else logdet_jacobi
+
+        logdet_jacobi = []
+        max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
+        for i in range(0, x.shape[0], max_samp):
+            d_range = range(i, min(i + max_samp, x.shape[0]))
+            logdet_jacobi.append(self.eval_jacobian_u(x[d_range, :], y[d_range, :]))
+        # Concatenate the results into a single array
+        logdet_jacobi = (
+            np.concatenate(logdet_jacobi) if len(logdet_jacobi) > 1 else logdet_jacobi[0]
+        )
 
         return logdet_jacobi
+
+    def release_shared_data(self):
+        for bn in self.bns:
+            bn.release_shared_data()
 
 
 class MaskedAutoregressiveFlow_on_MADE:

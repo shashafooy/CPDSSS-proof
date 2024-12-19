@@ -8,7 +8,7 @@ from misc_CPDSSS import entropy_util as ent
 
 
 def compare_models(samples, name1, base_folder, name2, new_model_folder):
-    model = ent.create_model(samples.shape[1])
+    model = ent.create_MAF_model(samples.shape[1])
     current_loss = ent.load_model(model, name1, base_folder).eval_trnloss(samples)
     new_loss = ent.load_model(model, name2, new_model_folder).eval_trnloss(samples)
     print(f"{name1} current loss: {current_loss:.3f}, new loss: {new_loss:.3f}")
@@ -24,8 +24,8 @@ Parameters for CPDSSS
 """
 N = 6
 L = 3
-d0=3
-d1=N-d0
+d0 = 3
+d1 = N - d0
 
 min_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
@@ -44,7 +44,7 @@ new_folder_X = os.path.join(new_model_path, "X")
 new_folder_XH = os.path.join(new_model_path, "XH")
 
 
-sim_model = CPDSSS(max_T, N, d0=d0,d1=d1)
+sim_model = CPDSSS(max_T, N, d0=d0, d1=d1)
 # generate base samples based on max dimension
 sim_model.set_dim_joint()
 knn_samples = int(min(min_samples, 0.75 * n_train_samples * sim_model.x_dim))
@@ -60,7 +60,7 @@ if os.path.exists(new_folder_X):
         # Compare with new model files
         print(f"checking loss for {T}T X")
         compare_models(X_samp, name, base_folder_X, name, new_folder_X)
-        os.remove(os.path.join(new_folder_X, name+".pkl"))
+        os.remove(os.path.join(new_folder_X, name + ".pkl"))
 if os.path.exists(new_folder_XH):
     for file in os.listdir(new_folder_XH):
         T = int(re.match("^\d{1,2}", file).group())
@@ -71,4 +71,4 @@ if os.path.exists(new_folder_XH):
         # Compare with new model files
         print(f"checking loss for {T}T XH")
         compare_models(XH_samp, name, base_folder_XH, name, new_folder_XH)
-        os.remove(os.path.join(new_folder_XH, name+".pkl"))
+        os.remove(os.path.join(new_folder_XH, name + ".pkl"))
