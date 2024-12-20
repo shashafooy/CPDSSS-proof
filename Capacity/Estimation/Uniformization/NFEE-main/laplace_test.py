@@ -48,7 +48,7 @@ for i in range(n_trials):
 
         if TRAIN_ONLY:
             print(f"training laplace N= {N}")
-            estimator = ent.learn_model(sim_model=sim_laplace, train_samples=laplace_base)
+            estimator = ent.learn_MAF_model(sim_model=sim_laplace, train_samples=laplace_base)
             trn_loss = ent.update_best_model(
                 estimator.model, laplace_base, name=model_name, path=model_path
             )

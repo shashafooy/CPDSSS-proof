@@ -406,7 +406,7 @@ def learn_density(
     val_tol=None,
     target=None,
     show_progress=False,
-    fine_tune=False,
+    coarse_fine_tune=False,
 ):
     """Train model to learn the density p(x).
 
@@ -459,7 +459,7 @@ def learn_density(
         logger=logger,
         val_Tol=val_tol,
         show_progress=show_progress,
-        fine_tune=fine_tune,
+        coarse_fine_tune=coarse_fine_tune,
     )
 
     return model
@@ -494,7 +494,7 @@ class UMestimator:
         val_tol=None,
         show_progress=False,
         minibatch=256,
-        fine_tune=True,
+        coarse_fine_tune=True,
         step=ss.Adam(),
     ):
         """Learn the transformation to push a gaussian towards target distribution
@@ -536,7 +536,7 @@ class UMestimator:
             val_tol=val_tol,
             minibatch=minibatch,
             show_progress=show_progress,
-            fine_tune=fine_tune,
+            coarse_fine_tune=coarse_fine_tune,
             step=step,
         )
         logger.write("training done\n")

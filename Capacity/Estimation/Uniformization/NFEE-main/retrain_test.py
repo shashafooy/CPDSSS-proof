@@ -71,7 +71,7 @@ for i in range(n_trials):
             show_progress=True,
             minibatch=batch_size,
             val_tol=val_tol,
-            fine_tune=False,
+            coarse_fine_tune=False,
             step=ss.Adam(a=step_sizes[j]),
         )
         end_time = time.time()

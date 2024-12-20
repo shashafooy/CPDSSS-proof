@@ -78,7 +78,7 @@ else:
         model = ent.load_model(name=name, path=model_path)
         if model is None:
             sim_model.set_dim_joint()
-            estimator = ent.learn_model(sim_model, train_samples=joint, n_stages=n_stage)
+            estimator = ent.learn_MAF_model(sim_model, train_samples=joint, n_stages=n_stage)
             model = estimator.model
             ent.update_best_model(model, joint, name=name, path=model_path)
         u = model.calc_random_numbers(joint)

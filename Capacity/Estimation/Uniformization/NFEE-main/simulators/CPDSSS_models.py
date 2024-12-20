@@ -76,6 +76,14 @@ class CPDSSS(_distribution):
         self.eye = 0.0001 * np.eye(self.N).astype(dtype)
 
     def sim(self, n_samples=1000):
+        """wrapper allowing inherited class to reuse while _sim() retains the core functionality
+
+        Args:
+            n_samples (int, optional): number of samples to generate. Defaults to 1000.
+        """
+        return self._sim(n_samples)
+
+    def _sim(self, n_samples=1000):
         """Generate samples X and (optional) G for CPDSSS
 
         Args:
@@ -213,24 +221,54 @@ class CPDSSS(_distribution):
         Returns:
             numpy: X, X_T, X_cond, G
         """
-        self.use_chan_in_sim(h_flag=True)
-        vals = self.sim(n_samples=n_samples)
+        # self.use_chan_in_sim(h_flag=True)
+        self._use_chan = True
+        vals = self._sim(n_samples=n_samples)
         X = vals[:, 0 : self.N * self.T]
         X_T = X[:, -self.N :]
         X_cond = X[:, 0 : -self.N]
         return X, X_T, X_cond, self.h
 
     def set_dim_hxc(self):
+        self._use_chan = True
         self.x_dim = self.N * (self.T - 1) + self.N
 
     def set_dim_xxc(self):
+        self._use_chan = False
         self.x_dim = self.N * self.T
 
     def set_dim_cond(self):
+        self._use_chan = False
         self.x_dim = self.N * (self.T - 1)
 
     def set_dim_joint(self):
+        self._use_chan = True
         self.x_dim = self.N * self.T + self.N
+
+
+class CPDSSS_Cond(CPDSSS):
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None):
+        super().__init__(num_tx, N, L, d0, d1)
+        self.x_dim = N
+        self.cond_dim = None
+        self.sim_val = None
+        self._X = None
+
+    def sim(self, n_samples=1000, reuse=False):
+        assert self.cond_dim is not None
+        if not reuse or self._X is None:
+            self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples)
+        if self.cond_dim == self.N * self.T:  # X,H are conditionals
+            cond = np.concatenate((self._Xcond, self._h), axis=1)
+        else:  # X is the conditional
+            cond = self._Xcond
+        return [self._XT, cond]
+
+    def set_Xcond(self):
+        self.cond_dim = self.N * (self.T - 1)
+
+    def set_XHcond(self):
+        self.cond_dim = self.N * self.T
 
 
 class CPDSSS_Hinv(CPDSSS):

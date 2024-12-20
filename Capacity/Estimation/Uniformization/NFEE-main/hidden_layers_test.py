@@ -73,14 +73,13 @@ for i in range(n_trials):
                 )
             )
 
-            estimator = ent.learn_model(
+            estimator = ent.learn_MAF_model(
                 sim_laplace,
                 n_samples=n_train_samples,
                 val_tol=val_tol,
                 n_hiddens=hidden_layers,
                 n_stages=num_stages,
                 mini_batch=mini_batch,
-                fine_tune=fine_tune,
                 step=step,
             )
             uniform, correction1 = estimator.uniform_correction(laplace_base)

@@ -103,7 +103,7 @@ class SGD_Template:
         show_progress=False,
         val_in_same_plot=True,
         val_Tol=None,
-        fine_tune=False,
+        coarse_fine_tune=False,
     ):
         """
         Trains the model.
@@ -157,7 +157,7 @@ class SGD_Template:
         best_epoch = None
         fine_tune_epoch = None
         logger = open(os.devnull, "w") if logger is None else logger
-        fine_tune = 2 if fine_tune is True else 0
+        coarse_fine_tune = 2 if coarse_fine_tune is True else 0
 
         # main training loop
         while True:
@@ -228,12 +228,12 @@ class SGD_Template:
                     logger.write("Ran out of patience\n")
 
                 # check if we will do fine tuning
-                if fine_tune > 0:
+                if coarse_fine_tune > 0:
                     logger.write("Start fine tuning\n")
                     # Reduce step size and resume training loop
                     self.reduce_step_size()
                     patience_left = patience
-                    fine_tune = fine_tune - 1
+                    coarse_fine_tune = coarse_fine_tune - 1
                     fine_tune_epoch = epoch
 
                     continue

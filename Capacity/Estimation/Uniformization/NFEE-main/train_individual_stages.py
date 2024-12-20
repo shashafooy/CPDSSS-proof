@@ -76,8 +76,13 @@ for k in range(n_trials):
             if USE_PRETRAINED
             else None
         )
-        estimator = ent.learn_model(
-            sim_laplace, model, n_train_samples, laplace_base, fine_tune=True, n_stages=n_stages[-1]
+        estimator = ent.learn_MAF_model(
+            sim_laplace,
+            model,
+            n_train_samples,
+            laplace_base,
+            coarse_fine_tune=True,
+            n_stages=n_stages[-1],
         )
         H_all_stages[k] = estimator.model.eval_trnloss(laplace_base)
         _ = ent.update_best_model(estimator.model, laplace_base, name=name, path=model_path)
@@ -99,8 +104,8 @@ for k in range(n_trials):
         model.parms = model.mades[i].parms + model.bns[i].parms
         model._eval_trn_loss = None
 
-        estimator = ent.learn_model(
-            sim_laplace, pretrained_model=model, train_samples=laplace_base, fine_tune=False
+        estimator = ent.learn_MAF_model(
+            sim_laplace, model=model, train_samples=laplace_base, coarse_fine_tune=False
         )
 
         H_indep[k, i] = model.eval_trnloss(laplace_base)

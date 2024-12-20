@@ -54,7 +54,7 @@ for i in range(n_trials):
     for ns, num_nodes in enumerate(hidden_nodes):
 
         misc.print_border("Calculate H(x) laplace, num nodes={} iter: {}".format(num_nodes, i + 1))
-        estimator = ent.learn_model(
+        estimator = ent.learn_MAF_model(
             sim_laplace, n_train_samples, val_tol, patience, n_hiddens=[num_nodes] * n_layers
         )
 

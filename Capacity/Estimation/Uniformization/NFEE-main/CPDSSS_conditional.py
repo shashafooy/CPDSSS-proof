@@ -3,7 +3,7 @@ import numpy as np
 import util.io
 import os
 
-from simulators.CPDSSS_models import CPDSSS
+from simulators.CPDSSS_models import CPDSSS_Cond
 from misc_CPDSSS import entropy_util as ent
 from misc_CPDSSS import util as misc
 
@@ -24,7 +24,7 @@ def run_CPDSSS(
 ):
     model = ent.load_model(name=model_name, path=model_path) if REUSE_MODEL else None
     if TRAIN_ONLY:
-        estimator = ent.learn_model(sim_model, pretrained_model=model, train_samples=base_samples)
+        estimator = ent.learn_model(sim_model, model=model, train_samples=base_samples)
         H = 0
     else:
         H, estimator = ent.calc_entropy(sim_model, base_samples=base_samples, model=model)
@@ -84,12 +84,19 @@ File names
 # if not TRAIN_ONLY:
 #     filename = misc.update_filename(path, filename, -1, rename=False)
 
-sim_model = CPDSSS(2, N, 2)
-X, XT, Xcond, h = sim_model.get_base_X_h(n_train_samples)
+T = 2
+sim_model = CPDSSS_Cond(T, N, 2)
 
-sim_model.set_dim_xxc()
-model = ent.create_cond_MAF_model(N, sim_model.x_dim - N, n_mades=5)
-ent.learn_model(sim_model, pretrained_model=model, train_samples=[XT, X[:, :N]])
+sim_model.set_Xcond()
+xxcond = sim_model.sim(100)
+estimator = ent.learn_cond_MAF_model(sim_model, train_samples=xxcond)
+H_Xcond = estimator.model.eval_trnloss(xxcond)
+
+sim_model.set_XHcond()
+xhcond = sim_model.sim()
+estimator = ent.learn_cond_MAF_model(sim_model, train_samples=xxcond)
+H_XHcond = estimator.model.eval_trnloss(xhcond)
+
 
 for i in range(n_trials):
     for k, T in enumerate(T_range):

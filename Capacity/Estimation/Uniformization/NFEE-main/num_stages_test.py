@@ -64,13 +64,12 @@ for i in range(n_trials):
             # H_unif_KL[old_idx2],H_unif_KSG[old_idx2] = H_thread2.get_result() + H_correction2
 
         misc.print_border("Calculate H(x) laplace, stages={} iter: {}".format(n_stages, i + 1))
-        estimator = ent.learn_model(
+        estimator = ent.learn_MAF_model(
             sim_laplace,
             n_samples=n_train_samples,
             n_hiddens=hidden,
             n_stages=n_stages,
             mini_batch=minibatch,
-            fine_tune=False,
             step=step,
         )
         print(f"final test loss {estimator.model.eval_trnloss(laplace_base)}")

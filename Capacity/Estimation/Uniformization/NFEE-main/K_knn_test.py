@@ -56,7 +56,7 @@ for i in range(n_trials):
     # H_KSG_laplace[i] = ksg(laplace_base)
 
     misc.print_border("Calculate H(x) laplace, iter: {}".format(i + 1))
-    estimator = ent.learn_model(
+    estimator = ent.learn_MAF_model(
         sim_model=sim_laplace, n_samples=n_train_samples, val_tol=val_tol, patience=patience
     )
 
@@ -67,7 +67,7 @@ for i in range(n_trials):
     # Run a 2nd training iteration while waiting for kl_ksg thread
     misc.print_border("Calculate H(x) laplace, iter: {}".format(i + 1))
     laplace_base = sim_laplace.sim(n_samples=knn_samples)
-    estimator = ent.learn_model(
+    estimator = ent.learn_MAF_model(
         sim_model=sim_laplace, n_samples=n_train_samples, val_tol=val_tol, patience=patience
     )
 

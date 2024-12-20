@@ -24,7 +24,7 @@ def run_CPDSSS(
 ):
     model = ent.load_model(name=model_name, path=model_path) if REUSE_MODEL else None
     if TRAIN_ONLY:
-        estimator = ent.learn_model(sim_model, pretrained_model=model, train_samples=base_samples)
+        estimator = ent.learn_MAF_model(sim_model, model=model, train_samples=base_samples)
         H = 0
     else:
         H, estimator = ent.calc_entropy(sim_model, base_samples=base_samples, model=model)

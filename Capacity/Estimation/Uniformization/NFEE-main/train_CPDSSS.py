@@ -65,8 +65,8 @@ for i in range(n_trials):
             if REUSE:
                 model = ent.load_model(name=name, path=X_path)
                 model = model if model is not None else ent.load_model(name=name, path=X_orig_path)
-            model = ent.learn_model(
-                sim_model, train_samples=X_samp, pretrained_model=model, patience=patience
+            model = ent.learn_MAF_model(
+                sim_model, train_samples=X_samp, model=model, patience=patience
             ).model
             _ = ent.update_best_model(model, X_samp, name=name, path=X_path)
             model = ent.load_model(name=name, path=X_path)
@@ -84,8 +84,8 @@ for i in range(n_trials):
                 model = ent.load_model(name=name, path=XH_path)
                 model = model if model is not None else ent.load_model(name=name, path=XH_orig_path)
 
-            model = ent.learn_model(
-                sim_model, train_samples=XH_samp, pretrained_model=model, patience=patience
+            model = ent.learn_MAF_model(
+                sim_model, train_samples=XH_samp, model=model, patience=patience
             ).model
             _ = ent.update_best_model(model, XH_samp, name=name, path=XH_path)
             model = ent.load_model(name=name, path=XH_path)

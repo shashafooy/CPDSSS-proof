@@ -185,7 +185,7 @@ def calc_entropy(
     Returns:
         _type_: entropy estimate
     """
-    estimator = learn_model(
+    estimator = learn_MAF_model(
         sim_model, model, n_train, train_samples=base_samples if reuse else None
     )
     start_time = time.time()
@@ -231,7 +231,7 @@ def calc_entropy_thread(
     return thread, correction, estimator
 
 
-def learn_model(
+def learn_MAF_model(
     sim_model,
     pretrained_model=None,
     n_samples=100,
@@ -241,7 +241,75 @@ def learn_model(
     n_hiddens=[200, 200, 200],
     n_stages=14,
     mini_batch=256,
-    fine_tune=True,
+    step=ss.Adam(),
+    show_progress=False,
+):
+    coarse_fine_tune = True
+    if pretrained_model is None:
+
+        pretrained_model = create_MAF_model(
+            sim_model.x_dim, n_hiddens=n_hiddens, n_mades=n_stages, sim_model=sim_model
+        )
+        coarse_fine_tune = False
+
+    return learn_model(
+        sim_model,
+        pretrained_model,
+        n_samples=n_samples,
+        train_samples=train_samples,
+        val_tol=val_tol,
+        patience=patience,
+        mini_batch=mini_batch,
+        step=step,
+        show_progress=show_progress,
+        coarse_fine_tune=coarse_fine_tune,
+    )
+
+
+def learn_cond_MAF_model(
+    sim_model,
+    pretrained_model=None,
+    n_samples=100,
+    train_samples=[None],
+    val_tol=0.0005,
+    patience=5,
+    n_hiddens=[200, 200, 200],
+    n_stages=14,
+    mini_batch=256,
+    step=ss.Adam(),
+    show_progress=False,
+):
+    coarse_fine_tune = False
+    if pretrained_model is None:
+
+        pretrained_model = create_cond_MAF_model(
+            sim_model.x_dim, sim_model.cond_dim, n_hiddens=n_hiddens, n_mades=n_stages
+        )
+        coarse_fine_tune = True
+
+    return learn_model(
+        sim_model,
+        pretrained_model,
+        n_samples=n_samples,
+        train_samples=train_samples,
+        val_tol=val_tol,
+        patience=patience,
+        mini_batch=mini_batch,
+        step=step,
+        show_progress=show_progress,
+        coarse_fine_tune=coarse_fine_tune,
+    )
+
+
+def learn_model(
+    sim_model,
+    model,
+    n_samples=100,
+    train_samples=[None],
+    val_tol=0.0005,
+    patience=5,
+    mini_batch=256,
+    coarse_fine_tune=True,
     step=ss.Adam(),
     show_progress=False,
 ):
@@ -264,25 +332,15 @@ def learn_model(
     """
     train_samples = train_samples if isinstance(train_samples, list) else [train_samples]
 
-    if pretrained_model is not None and fine_tune:
+    if not coarse_fine_tune:
         mini_batch = mini_batch * 4
         # step = ss.Adam(a=5e-5)
         step = ss.Adam(a=1e-5)
-        fine_tune = False
+        coarse_fine_tune = False
 
-    net = (
-        create_MAF_model(
-            sim_model.x_dim,
-            n_hiddens=n_hiddens,
-            n_mades=n_stages,
-            sim_model=sim_model,
-        )
-        if pretrained_model is None
-        else pretrained_model
-    )
-    estimator = entropy.UMestimator(sim_model, net, train_samples)
+    estimator = entropy.UMestimator(sim_model, model, train_samples)
     if train_samples[0] is not None:
-        print(f"Starting Loss: {net.eval_trnloss(train_samples):.3f}")
+        print(f"Starting Loss: {model.eval_trnloss(train_samples):.3f}")
     start_time = time.time()
     # estimator.learn_transformation(n_samples = int(n_samples*sim_model.x_dim*np.log(sim_model.x_dim) / 4),val_tol=val_tol,patience=patience)
     n_samples = (
@@ -292,7 +350,7 @@ def learn_model(
         n_samples=n_samples,
         val_tol=val_tol,
         patience=patience,
-        fine_tune=fine_tune,
+        coarse_fine_tune=coarse_fine_tune,
         minibatch=mini_batch,
         step=step,
         show_progress=show_progress,
@@ -300,7 +358,7 @@ def learn_model(
     end_time = time.time()
     print("learning time: ", str(timedelta(seconds=int(end_time - start_time))))
     if train_samples[0] is not None:
-        print(f"Final Loss: {net.eval_trnloss(train_samples):.3f}")
+        print(f"Final Loss: {model.eval_trnloss(train_samples):.3f}")
 
     return estimator
 
