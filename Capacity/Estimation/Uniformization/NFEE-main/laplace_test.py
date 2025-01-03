@@ -56,7 +56,7 @@ for i in range(n_trials):
             print(f"theoretical entropy: {sim_laplace.entropy()}")
         else:
             misc.print_border("Calculate H(x) laplace, N={}, iter: {}".format(N, i + 1))
-            model = ent.load_model(name=model_name, path=model_path, sim_model=sim_laplace)
+            model = ent.load_MAF_model(name=model_name, path=model_path, sim_model=sim_laplace)
             if method == "umtksg":
                 H_unif_KSG[i, ni], estimator = ent.calc_entropy(
                     sim_model=sim_laplace,

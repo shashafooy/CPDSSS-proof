@@ -72,7 +72,7 @@ for k in range(n_trials):
     misc.print_border(f"Iter {k}, Train all stages together")
     if TRAIN_ONE_SHOT:
         model = (
-            ent.load_model(name=name, path=model_path, sim_model=sim_laplace)
+            ent.load_MAF_model(name=name, path=model_path, sim_model=sim_laplace)
             if USE_PRETRAINED
             else None
         )
@@ -90,7 +90,7 @@ for k in range(n_trials):
 
     n_inputs = sim_laplace.x_dim
     # load models
-    model = ent.load_model(name=name, path=indep_stage_path, sim_model=sim_laplace)
+    model = ent.load_MAF_model(name=name, path=indep_stage_path, sim_model=sim_laplace)
     if model is None:
         fine_tune = True
         model = ent.create_MAF_model(n_inputs, n_mades=n_stages[-1], sim_model=sim_laplace)

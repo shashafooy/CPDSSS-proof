@@ -22,7 +22,7 @@ def run_CPDSSS(
     model_name="",
     model_path="",
 ):
-    model = ent.load_model(name=model_name, path=model_path) if REUSE_MODEL else None
+    model = ent.load_MAF_model(name=model_name, path=model_path) if REUSE_MODEL else None
     if TRAIN_ONLY:
         estimator = ent.learn_MAF_model(sim_model, model=model, train_samples=base_samples)
         H = 0

@@ -320,12 +320,12 @@ class MaskedAutoregressiveFlow:
 
 class ConditionalMaskedAutoregressiveFlow:
     """
-    Implements a Conditional Masked Autoregressive Flow. p(output | input) or p(y | input)
+    Implements a Conditional Masked Autoregressive Flow. p(input | givens) or p(y | x)
     """
 
     def __init__(
         self,
-        n_cond_inputs,
+        n_givens,
         n_inputs,
         n_hiddens,
         act_fun,
@@ -333,8 +333,8 @@ class ConditionalMaskedAutoregressiveFlow:
         batch_norm=True,
         output_order="sequential",
         mode="sequential",
+        givens=None,
         input=None,
-        output=None,
         rng=np.random,
     ):
         """
@@ -352,16 +352,16 @@ class ConditionalMaskedAutoregressiveFlow:
         """
 
         # save input arguments
-        self.n_inputs = n_cond_inputs
-        self.n_outputs = n_inputs
+        self.n_givens = n_givens
+        self.n_inputs = n_inputs
         self.n_hiddens = n_hiddens
         self.act_fun = act_fun
         self.n_mades = n_mades
         self.batch_norm = batch_norm
         self.mode = mode
 
-        self.input = tt.matrix("x", dtype=dtype) if input is None else input
-        self.y = tt.matrix("y", dtype=dtype) if output is None else output
+        self.givens = tt.matrix("x", dtype=dtype) if givens is None else givens
+        self.input = tt.matrix("y", dtype=dtype) if input is None else input
         self.stage_idx = tt.iscalar("stage_index")
         self.parms = []
         self.masks = []
@@ -370,7 +370,7 @@ class ConditionalMaskedAutoregressiveFlow:
         self.bns = []
         self.stage_loss = []
         self.stage_out = []
-        self.u = self.y
+        self.u = self.input
         self.logdet_dudy = 0.0
 
         self.max_samp = 1000000
@@ -379,13 +379,13 @@ class ConditionalMaskedAutoregressiveFlow:
 
             # create a new made
             made = mades.ConditionalGaussianMade(
-                n_cond_inputs,
+                n_givens,
                 n_inputs,
                 n_hiddens,
                 act_fun,
                 output_order,
                 mode,
-                self.input,
+                self.givens,
                 self.u,
                 rng,
             )
@@ -470,7 +470,7 @@ class ConditionalMaskedAutoregressiveFlow:
         # compile theano function, if haven't already done so
         if self.eval_lprob_f is None:
             self.eval_lprob_f = theano.function(
-                inputs=[self.input, self.y],
+                inputs=[self.givens, self.input],
                 outputs=self.L,
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
@@ -491,15 +491,17 @@ class ConditionalMaskedAutoregressiveFlow:
         """
         if self._eval_trn_loss is None:
             self._eval_trn_loss = theano.function(
-                inputs=[self.input, self.y], outputs=self.trn_loss
+                inputs=[self.input, self.givens], outputs=self.trn_loss
             )
-        x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
+        input, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
         trn_loss = []
         n_size = []
-        max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
-        for i in range(0, x.shape[0], max_samp):
-            data_range = range(i, min(i + max_samp, x.shape[0]))
-            trn_loss.append(self._eval_trn_loss(x[data_range, :], y[data_range, :]))
+        max_samp = int(
+            self.max_samp / (input.shape[1] + givens.shape[1])
+        )  # approximately 1M total points
+        for i in range(0, input.shape[0], max_samp):
+            data_range = range(i, min(i + max_samp, input.shape[0]))
+            trn_loss.append(self._eval_trn_loss(input[data_range, :], givens[data_range, :]))
             n_size.append(len(data_range))
         # combine means
         return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
@@ -513,7 +515,7 @@ class ConditionalMaskedAutoregressiveFlow:
         """
         if self._eval_trn_loss is None:
             self._eval_trn_loss = theano.function(
-                inputs=[self.input, self.y, self.stage_idx],
+                inputs=[self.givens, self.input, self.stage_idx],
                 outputs=self.stage_loss_tensor[self.stage_idx],
             )
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
@@ -537,8 +539,8 @@ class ConditionalMaskedAutoregressiveFlow:
         # compile theano function, if haven't already done so
         if getattr(self, "eval_grad_f", None) is None:
             self.eval_grad_f = theano.function(
-                inputs=[self.input, self.y],
-                outputs=tt.grad(tt.sum(self.L), self.y),
+                inputs=[self.givens, self.input],
+                outputs=tt.grad(tt.sum(self.L), self.input),
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
 
@@ -559,8 +561,8 @@ class ConditionalMaskedAutoregressiveFlow:
         # compile theano function, if haven't already done so
         if self.eval_score_f is None:
             self.eval_score_f = theano.function(
-                inputs=[self.input, self.y],
-                outputs=tt.grad(tt.sum(self.L), self.input),
+                inputs=[self.givens, self.input],
+                outputs=tt.grad(tt.sum(self.L), self.givens),
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
 
@@ -583,7 +585,7 @@ class ConditionalMaskedAutoregressiveFlow:
         if n_samples is None:
             return self.gen(x, 1, u if u is None else u[np.newaxis, :], rng)[0]
 
-        y = rng.randn(n_samples, self.n_outputs).astype(dtype) if u is None else u
+        y = rng.randn(n_samples, self.n_inputs).astype(dtype) if u is None else u
 
         if getattr(self, "batch_norm", False):
 
@@ -607,7 +609,7 @@ class ConditionalMaskedAutoregressiveFlow:
 
         # compile theano function, if haven't already done so
         if self.eval_us_f is None:
-            self.eval_us_f = theano.function(inputs=[self.input, self.y], outputs=self.u)
+            self.eval_us_f = theano.function(inputs=[self.givens, self.input], outputs=self.u)
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
 
@@ -633,7 +635,7 @@ class ConditionalMaskedAutoregressiveFlow:
         # compile theano function, if haven't already done so
         if getattr(self, "eval_jacobi_u", None) is None:
             self.eval_jacobian_u = theano.function(
-                inputs=[self.input, self.y], outputs=self.logdet_dudy
+                inputs=[self.givens, self.input], outputs=self.logdet_dudy
             )
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)

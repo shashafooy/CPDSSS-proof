@@ -722,18 +722,19 @@ class ConditionalGaussianMade:
     """
     Implements a Made, where each conditional probability is modelled by a single gaussian component. The made has
     inputs which is always conditioned on, and whose probability it doesn't model.
+    p(input | givens)
     """
 
     def __init__(
         self,
+        n_givens,
         n_inputs,
-        n_outputs,
         n_hiddens,
         act_fun,
         output_order="sequential",
         mode="sequential",
+        givens=None,
         input=None,
-        output=None,
         rng=np.random,
     ):
         """
@@ -749,17 +750,17 @@ class ConditionalGaussianMade:
         """
 
         # save input arguments
+        self.n_givens = n_givens
         self.n_inputs = n_inputs
-        self.n_outputs = n_outputs
         self.n_hiddens = n_hiddens
         self.act_fun = act_fun
         self.mode = mode
 
         # create network's parameters
-        degrees = create_degrees(n_outputs, n_hiddens, output_order, mode, rng)
+        degrees = create_degrees(n_inputs, n_hiddens, output_order, mode, rng)
         Ms, Mmp = create_masks(degrees)
         Wx, Ws, bs, Wm, bm, Wp, bp = create_weights_conditional(
-            n_inputs, n_outputs, n_hiddens, None, rng
+            n_givens, n_inputs, n_hiddens, None, rng
         )
         self.masks = Ms + [Mmp]
         self.parms = [Wx] + Ws + bs + [Wm, bm, Wp, bp]
@@ -769,11 +770,11 @@ class ConditionalGaussianMade:
         f = util.ml.select_theano_act_function(act_fun, dtype)
 
         # input matrices
-        self.input = tt.matrix("x", dtype=dtype) if input is None else input
-        self.y = tt.matrix("y", dtype=dtype) if output is None else output
+        self.givens = tt.matrix("x", dtype=dtype) if givens is None else givens
+        self.input = tt.matrix("y", dtype=dtype) if input is None else input
 
         # feedforward propagation
-        h = f(tt.dot(self.input, Wx) + tt.dot(self.y, Ms[0] * Ws[0]) + bs[0])
+        h = f(tt.dot(self.givens, Wx) + tt.dot(self.input, Ms[0] * Ws[0]) + bs[0])
         h.name = "h1"
         for l, (M, W, b) in enumerate(zip(Ms[1:], Ws[1:], bs[1:])):
             h = f(tt.dot(h, M * W) + b)
@@ -788,10 +789,10 @@ class ConditionalGaussianMade:
         self.logp.name = "logp"
 
         # random numbers driving made
-        self.u = tt.exp(0.5 * self.logp) * (self.y - self.m)
+        self.u = tt.exp(0.5 * self.logp) * (self.input - self.m)
 
         # log likelihoods
-        self.L = -0.5 * (n_outputs * np.log(2 * np.pi) + tt.sum(self.u**2 - self.logp, axis=1))
+        self.L = -0.5 * (n_inputs * np.log(2 * np.pi) + tt.sum(self.u**2 - self.logp, axis=1))
         self.L.name = "L"
 
         # train objective
@@ -826,7 +827,7 @@ class ConditionalGaussianMade:
 
         # compile theano function, if haven't already done so
         if self.eval_lprob_f is None:
-            self.eval_lprob_f = theano.function(inputs=[self.input, self.y], outputs=self.L)
+            self.eval_lprob_f = theano.function(inputs=[self.givens, self.input], outputs=self.L)
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
 
@@ -845,7 +846,7 @@ class ConditionalGaussianMade:
         # compile theano function, if haven't already done so
         if self.eval_comps_f is None:
             self.eval_comps_f = theano.function(
-                inputs=[self.input, self.y], outputs=[self.m, self.logp]
+                inputs=[self.givens, self.input], outputs=[self.m, self.logp]
             )
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
@@ -866,7 +867,7 @@ class ConditionalGaussianMade:
         # compile theano function, if haven't already done so
         if getattr(self, "eval_grad_f", None) is None:
             self.eval_grad_f = theano.function(
-                inputs=[self.input, self.y], outputs=tt.grad(tt.sum(self.L), self.y)
+                inputs=[self.givens, self.input], outputs=tt.grad(tt.sum(self.L), self.input)
             )
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
@@ -886,7 +887,7 @@ class ConditionalGaussianMade:
         # compile theano function, if haven't already done so
         if self.eval_score_f is None:
             self.eval_score_f = theano.function(
-                inputs=[self.input, self.y], outputs=tt.grad(tt.sum(self.L), self.input)
+                inputs=[self.givens, self.input], outputs=tt.grad(tt.sum(self.L), self.givens)
             )
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
@@ -908,12 +909,12 @@ class ConditionalGaussianMade:
         if n_samples is None:
             return self.gen(x, 1, u if u is None else u[np.newaxis, :], rng)[0]
 
-        y = np.zeros([n_samples, self.n_outputs], dtype=dtype)
-        u = rng.randn(n_samples, self.n_outputs).astype(dtype) if u is None else u
+        y = np.zeros([n_samples, self.n_inputs], dtype=dtype)
+        u = rng.randn(n_samples, self.n_inputs).astype(dtype) if u is None else u
 
         xy = (np.tile(x, [n_samples, 1]), y)
 
-        for i in range(1, self.n_outputs + 1):
+        for i in range(1, self.n_inputs + 1):
             m, logp = self.eval_comps(xy)
             idx = np.argwhere(self.output_order == i)[0, 0]
             y[:, idx] = m[:, idx] + np.exp(np.minimum(-0.5 * logp[:, idx], 10.0)) * u[:, idx]
@@ -929,7 +930,7 @@ class ConditionalGaussianMade:
 
         # compile theano function, if haven't already done so
         if self.eval_us_f is None:
-            self.eval_us_f = theano.function(inputs=[self.input, self.y], outputs=self.u)
+            self.eval_us_f = theano.function(inputs=[self.givens, self.input], outputs=self.u)
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
         u = self.eval_us_f(x, y)

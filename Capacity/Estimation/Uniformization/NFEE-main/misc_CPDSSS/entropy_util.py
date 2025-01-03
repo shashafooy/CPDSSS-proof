@@ -42,7 +42,7 @@ def save_model(model, name, path="temp_data/saved_models"):
     # util.io.save((model),os.path.join(path,name))
 
 
-def load_model(model=None, name="model_name", path="temp_data/saved_models", sim_model=None):
+def load_MAF_model(model=None, name="model_name", path="temp_data/saved_models", sim_model=None):
 
     # model = util.io.load(os.path.join(path,name))
     # return model
@@ -55,6 +55,44 @@ def load_model(model=None, name="model_name", path="temp_data/saved_models", sim
 
     model = (
         create_MAF_model(n_inputs, n_hiddens=n_hiddens, n_mades=n_mades, sim_model=sim_model)
+        if model is None
+        else model
+    )
+
+    assert len(params) == len(
+        model.parms
+    ), "number of parameters is not the same, likely due to different number of stages"
+    assert (
+        params[0].shape[0] == model.parms[0].get_value().shape[0]
+    ), f"invalid model input dimension. Expected {model.parms[0].get_value().shape[0]}, got {params[0].shape[0]}"
+    assert (
+        params[0].shape[1] == model.parms[0].get_value().shape[1]
+    ), f"invalid model, number of nodes per hidden layer. Expected {model.parms[0].get_value().shape[1]}, got {params[0].shape[1]}"
+
+    for i, p in enumerate(params):
+        model.parms[i].set_value(p.astype(dtype))
+
+    for i, m in enumerate(masks):
+        model.masks[i].set_value(m.astype(dtype))
+
+    return model
+
+
+def load_Cond_MAF_model(model=None, name="model_name", path="temp_data/saved_models"):
+
+    # model = util.io.load(os.path.join(path,name))
+    # return model
+    # model = create_model(target_model.n_inputs, n_hiddens = target_model.n_hiddens, n_mades = target_model.n_mades)
+    try:
+        params, masks, n_inputs, n_givens, n_hiddens, n_mades = util.io.load(
+            os.path.join(path, name)
+        )
+    except FileNotFoundError:
+        print(f"model {name} not found at {path}")
+        return None
+
+    model = (
+        create_cond_MAF_model(n_inputs, n_givens, n_hiddens=n_hiddens, n_mades=n_mades)
         if model is None
         else model
     )
@@ -98,7 +136,7 @@ def update_best_model(
     checkpointer.checkpoint()
 
     # if best_trn_loss == np.Inf:
-    old_model = load_model(model, name, path)
+    old_model = load_MAF_model(model, name, path)
 
     if old_model is not None:
         best_trn_loss = old_model.eval_trnloss(samples)
@@ -157,7 +195,7 @@ def create_cond_MAF_model(n_inputs, n_cond_inputs, n_hiddens=[200, 200, 200], n_
         _type_: _description_
     """
     return mafs.ConditionalMaskedAutoregressiveFlow(
-        n_cond_inputs=n_cond_inputs,
+        n_givens=n_cond_inputs,
         n_inputs=n_inputs,
         n_hiddens=n_hiddens,
         act_fun="tanh",
