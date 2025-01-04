@@ -2,7 +2,7 @@ from datetime import date, timedelta
 import time
 import os
 import numpy as np
-import misc_CPDSSS.entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
@@ -49,7 +49,7 @@ for i in range(n_trials):
 
     n_train = int(n_train_samples * sim_laplace.x_dim)
     laplace_base = sim_laplace.sim(n_samples=n_train)
-    base_net = ent.create_MAF_model(sim_laplace.x_dim, rng=np.random)
+    base_net = ent.create_model(sim_laplace.x_dim, rng=np.random)
     checkpointer = ModelCheckpointer(base_net)
     checkpointer.checkpoint()
     # Use same rng seed for each minibatch

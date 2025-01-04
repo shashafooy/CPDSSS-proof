@@ -1,7 +1,7 @@
 from datetime import date
 import os
 import numpy as np
-import misc_CPDSSS.entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 import simulators.CPDSSS_models as mod
 import util.io
 

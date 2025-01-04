@@ -44,9 +44,11 @@ class _distribution:
 class CPDSSS(_distribution):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(x_dim=N * num_tx + N)
+
         self.T = num_tx
         self.N = N
         self.L = L
+        self.input_dim = self.T * self.N
         if L is not None:
             assert N / L % 1 == 0, "N/L must be an integer"
             self.sym_N = int(N / L)
@@ -197,6 +199,7 @@ class CPDSSS(_distribution):
             self.x_dim = self.N * self.T + self.N
         else:
             self.x_dim = self.N * self.T
+        self.input_dim = self.x_dim
 
     def only_sim_chan(self, sim_h=True):
         """Set flag to only return G when using sim()
@@ -211,6 +214,7 @@ class CPDSSS(_distribution):
             self.x_dim = self.N * self.T + self.N
         else:
             self.x_dim = self.N * self.T
+        self.input_dim = self.x_dim
 
     def get_base_X_h(self, n_samples=1000):
         """Generate values for G and X
@@ -232,43 +236,49 @@ class CPDSSS(_distribution):
     def set_dim_hxc(self):
         self._use_chan = True
         self.x_dim = self.N * (self.T - 1) + self.N
+        self.input_dim = self.x_dim
 
     def set_dim_xxc(self):
         self._use_chan = False
         self.x_dim = self.N * self.T
+        self.input_dim = self.x_dim
 
     def set_dim_cond(self):
         self._use_chan = False
         self.x_dim = self.N * (self.T - 1)
+        self.input_dim = self.x_dim
 
     def set_dim_joint(self):
         self._use_chan = True
         self.x_dim = self.N * self.T + self.N
+        self.input_dim = self.x_dim
 
 
 class CPDSSS_Cond(CPDSSS):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(num_tx, N, L, d0, d1)
         self.x_dim = N
-        self.cond_dim = None
+        self.input_dim = [N, None]
         self.sim_val = None
         self._X = None
 
     def sim(self, n_samples=1000, reuse=False):
-        assert self.cond_dim is not None
+        assert self.input_dim[1] is not None
         if not reuse or self._X is None:
             self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples)
-        if self.cond_dim == self.N * self.T:  # X,H are conditionals
+        if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
             cond = np.concatenate((self._Xcond, self._h), axis=1)
         else:  # X is the conditional
             cond = self._Xcond
         return [self._XT, cond]
 
     def set_Xcond(self):
-        self.cond_dim = self.N * (self.T - 1)
+        self.input_dim[1] = self.N * (self.T - 1)
+        self.x_dim = self.input_dim[1] + self.N
 
     def set_XHcond(self):
-        self.cond_dim = self.N * self.T
+        self.input_dim[1] = self.N * self.T
+        self.x_dim = self.input_dim[1] + self.N
 
 
 class CPDSSS_Hinv(CPDSSS):

@@ -1,7 +1,7 @@
 from datetime import date
 import os
 import numpy as np
-import misc_CPDSSS.entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
@@ -73,7 +73,7 @@ for i in range(n_trials):
                 )
             )
 
-            estimator = ent.learn_MAF_model(
+            estimator = ent.learn_model(
                 sim_laplace,
                 n_samples=n_train_samples,
                 val_tol=val_tol,

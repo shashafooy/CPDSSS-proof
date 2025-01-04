@@ -462,7 +462,7 @@ class ConditionalMaskedAutoregressiveFlow:
     def eval(self, xy, log=True):
         """
         Evaluate log probabilities for given input-output pairs.
-        :param xy: a pair (x, y) where x rows are inputs and y rows are outputs
+        :param xy: a pair (x, y) where y rows are inputs and x rows are outputs
         :param log: whether to return probabilities in the log domain
         :return: log probabilities: log p(y|x)
         """
@@ -470,7 +470,7 @@ class ConditionalMaskedAutoregressiveFlow:
         # compile theano function, if haven't already done so
         if self.eval_lprob_f is None:
             self.eval_lprob_f = theano.function(
-                inputs=[self.givens, self.input],
+                inputs=[self.input, self.givens],
                 outputs=self.L,
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
@@ -487,7 +487,7 @@ class ConditionalMaskedAutoregressiveFlow:
         Evaluate training loss with given input data.
 
         Args:
-            xy (_type_): a pair p(y|x) where x rows are conditional inputs and y rows are the random variable
+            xy (_type_): a pair p(x|y) where y rows are conditional inputs and x rows are the random variable
         """
         if self._eval_trn_loss is None:
             self._eval_trn_loss = theano.function(
@@ -511,11 +511,11 @@ class ConditionalMaskedAutoregressiveFlow:
         Evaluate training loss with given input data.
 
         Args:
-            xy (_type_): a pair p(y|x) where x rows are conditional inputs and y rows are the random variable
+            xy (_type_): a pair p(x|y) where y rows are conditional inputs and x rows are the random variable
         """
         if self._eval_trn_loss is None:
             self._eval_trn_loss = theano.function(
-                inputs=[self.givens, self.input, self.stage_idx],
+                inputs=[self.input, self.givens, self.stage_idx],
                 outputs=self.stage_loss_tensor[self.stage_idx],
             )
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
@@ -532,14 +532,14 @@ class ConditionalMaskedAutoregressiveFlow:
     def grad_log_p(self, xy):
         """
         Evaluate the gradient of the log probability wrt the output, for given input-output pairs.
-        :param xy: a pair (x, y) where x rows are inputs and y rows are outputs
-        :return: gradient d/dy log p(y|x)
+        :param xy: a pair (x, y) where y rows are inputs and x rows are outputs
+        :return: gradient d/dx log p(x|y)
         """
 
         # compile theano function, if haven't already done so
         if getattr(self, "eval_grad_f", None) is None:
             self.eval_grad_f = theano.function(
-                inputs=[self.givens, self.input],
+                inputs=[self.input, self.givens],
                 outputs=tt.grad(tt.sum(self.L), self.input),
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
@@ -554,14 +554,14 @@ class ConditionalMaskedAutoregressiveFlow:
     def score(self, xy):
         """
         Evaluate the gradient of the log probability wrt the input, for given input-output pairs.
-        :param xy: a pair (x, y) where x rows are inputs and y rows are outputs
-        :return: gradient d/dx log p(y|x)
+        :param xy: a pair (x, y) where y rows are inputs and x rows are outputs
+        :return: gradient d/dx log p(x|y)
         """
 
         # compile theano function, if haven't already done so
         if self.eval_score_f is None:
             self.eval_score_f = theano.function(
-                inputs=[self.givens, self.input],
+                inputs=[self.input, self.givens],
                 outputs=tt.grad(tt.sum(self.L), self.givens),
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
@@ -603,13 +603,13 @@ class ConditionalMaskedAutoregressiveFlow:
     def calc_random_numbers(self, xy):
         """
         Given a dataset, calculate the random numbers used internally to generate the dataset.
-        :param xy: a pair (x, y) of numpy arrays, where x rows are inputs and y rows are outputs
+        :param xy: a pair (x, y) of numpy arrays, where y rows are inputs and x rows are outputs p(x|y)
         :return: numpy array, rows are corresponding random numbers
         """
 
         # compile theano function, if haven't already done so
         if self.eval_us_f is None:
-            self.eval_us_f = theano.function(inputs=[self.givens, self.input], outputs=self.u)
+            self.eval_us_f = theano.function(inputs=[self.input, self.givens], outputs=self.u)
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
 
@@ -635,7 +635,7 @@ class ConditionalMaskedAutoregressiveFlow:
         # compile theano function, if haven't already done so
         if getattr(self, "eval_jacobi_u", None) is None:
             self.eval_jacobian_u = theano.function(
-                inputs=[self.givens, self.input], outputs=self.logdet_dudy
+                inputs=[self.input, self.givens], outputs=self.logdet_dudy
             )
 
         x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)

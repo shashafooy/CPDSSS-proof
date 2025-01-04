@@ -4,7 +4,7 @@ import util.io
 import os
 
 from simulators.CPDSSS_models import CPDSSS
-from misc_CPDSSS import entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 from misc_CPDSSS import util as misc
 
 from datetime import date
@@ -57,7 +57,7 @@ joint = np.concatenate((X, h), axis=1)
 
 prev_idx = (0, 0)
 
-model = ent.load_MAF_model(name=f"{T}T", path=X_path)
+model = ent.load_model(name=f"{T}T", path=X_path)
 
 for i in n_stages:
     H_xxc[i] = model.eval_stageloss(X, i)

@@ -4,7 +4,7 @@ import util.io
 import os
 
 from simulators.CPDSSS_models import CPDSSS
-from misc_CPDSSS import entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 from misc_CPDSSS import util as misc
 
 from datetime import date
@@ -22,9 +22,9 @@ def run_CPDSSS(
     model_name="",
     model_path="",
 ):
-    model = ent.load_MAF_model(name=model_name, path=model_path) if REUSE_MODEL else None
+    model = ent.load_model(name=model_name, path=model_path) if REUSE_MODEL else None
     if TRAIN_ONLY:
-        estimator = ent.learn_MAF_model(sim_model, model=model, train_samples=base_samples)
+        estimator = ent.learn_model(sim_model, model=model, train_samples=base_samples)
         H = 0
     else:
         H, estimator = ent.calc_entropy(sim_model, base_samples=base_samples, model=model)

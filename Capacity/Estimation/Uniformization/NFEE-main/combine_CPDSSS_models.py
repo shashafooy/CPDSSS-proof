@@ -4,18 +4,18 @@ import os
 import re
 
 from simulators.CPDSSS_models import CPDSSS, Laplace
-from misc_CPDSSS import entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 
 
 def compare_models(samples, name1, base_folder, name2, new_model_folder):
-    model = ent.create_MAF_model(samples.shape[1])
-    current_loss = ent.load_MAF_model(model, name1, base_folder).eval_trnloss(samples)
-    new_loss = ent.load_MAF_model(model, name2, new_model_folder).eval_trnloss(samples)
+    model = ent.create_model(samples.shape[1])
+    current_loss = ent.load_model(model, name1, base_folder).eval_trnloss(samples)
+    new_loss = ent.load_model(model, name2, new_model_folder).eval_trnloss(samples)
     print(f"{name1} current loss: {current_loss:.3f}, new loss: {new_loss:.3f}")
     if new_loss < current_loss:
         ent.save_model(model, name1, base_folder)
     else:
-        model = ent.load_MAF_model(model, name1, base_folder)
+        model = ent.load_model(model, name1, base_folder)
         ent.save_model(model, name2, new_model_folder)
 
 

@@ -1,7 +1,7 @@
 from datetime import date
 import os
 import numpy as np
-import misc_CPDSSS.entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
@@ -64,7 +64,7 @@ for i in range(n_trials):
             # H_unif_KL[old_idx2],H_unif_KSG[old_idx2] = H_thread2.get_result() + H_correction2
 
         misc.print_border("Calculate H(x) laplace, stages={} iter: {}".format(n_stages, i + 1))
-        estimator = ent.learn_MAF_model(
+        estimator = ent.learn_model(
             sim_laplace,
             n_samples=n_train_samples,
             n_hiddens=hidden,

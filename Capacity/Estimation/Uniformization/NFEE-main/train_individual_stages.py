@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 from ent_est import entropy
-import misc_CPDSSS.entropy_util as ent
+from misc_CPDSSS.entropy_util import MAF as ent
 import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
@@ -72,11 +72,11 @@ for k in range(n_trials):
     misc.print_border(f"Iter {k}, Train all stages together")
     if TRAIN_ONE_SHOT:
         model = (
-            ent.load_MAF_model(name=name, path=model_path, sim_model=sim_laplace)
+            ent.load_model(name=name, path=model_path, sim_model=sim_laplace)
             if USE_PRETRAINED
             else None
         )
-        estimator = ent.learn_MAF_model(
+        estimator = ent.learn_model(
             sim_laplace,
             model,
             n_train_samples,
@@ -90,10 +90,10 @@ for k in range(n_trials):
 
     n_inputs = sim_laplace.x_dim
     # load models
-    model = ent.load_MAF_model(name=name, path=indep_stage_path, sim_model=sim_laplace)
+    model = ent.load_model(name=name, path=indep_stage_path, sim_model=sim_laplace)
     if model is None:
         fine_tune = True
-        model = ent.create_MAF_model(n_inputs, n_mades=n_stages[-1], sim_model=sim_laplace)
+        model = ent.create_model(n_inputs, n_mades=n_stages[-1], sim_model=sim_laplace)
 
     all_parms = model.parms
     trn_loss = model.trn_loss
@@ -104,7 +104,7 @@ for k in range(n_trials):
         model.parms = model.mades[i].parms + model.bns[i].parms
         model._eval_trn_loss = None
 
-        estimator = ent.learn_MAF_model(
+        estimator = ent.learn_model(
             sim_laplace, model=model, train_samples=laplace_base, coarse_fine_tune=False
         )
 
