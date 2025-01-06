@@ -29,8 +29,8 @@ T_range = range(2, 10)
 Number of iterations
 """
 n_trials = 100  # iterations to average
-min_knn_samples = 2000  # samples to generate per entropy calc
-n_train_samples = 100
+min_knn_samples = 2000000  # samples to generate per entropy calc
+n_train_samples = 100000
 
 
 """
