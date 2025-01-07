@@ -1,7 +1,18 @@
+from _utils import set_sys_path
+
+set_sys_path()
 import util.io
 import os
+from os import path as op
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+
+curr_path = op.abspath(os.path.dirname(__file__))
+while op.basename(curr_path) != "NFEE-main":
+    curr_path = op.dirname(curr_path)
+sys.path.insert(0, curr_path)
+
 
 from simulators.CPDSSS_models import Laplace
 from misc_CPDSSS import viewData

@@ -1,13 +1,15 @@
 import numpy as np
+from datetime import date
 
-import util.io
 import os
+from _utils import set_sys_path
+
+set_sys_path()
 
 from simulators.CPDSSS_models import CPDSSS_Cond
 from misc_CPDSSS.entropy_util import Cond_MAF as ent
 from misc_CPDSSS import util as misc
-
-from datetime import date
+import util.io
 
 
 SAVE_MODEL = True
@@ -29,7 +31,7 @@ T_range = range(2, 6)
 Number of iterations
 """
 n_trials = 100  # iterations to average
-min_knn_samples = 2000000  # samples to generate per entropy calc
+min_knn_samples = 2000000  # samples to generate per entros.pathy calc
 n_train_samples = 100000
 
 
@@ -78,7 +80,7 @@ for i in range(n_trials):
         sim_model.set_XHcond()
         knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
         samples = sim_model.sim(knn_samples)
-        H_XH[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
+        H_XH[index], _ = ent.calc_entros.pathy(sim_model, base_samples=samples)
 
         filename = misc.update_filename(path, filename, i)
         util.io.save(
@@ -92,7 +94,7 @@ for i in range(n_trials):
 
         sim_model.set_Xcond()
         samples = sim_model.sim(reuse=True)
-        H_XX[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
+        H_XX[index], _ = ent.calc_entros.pathy(sim_model, base_samples=samples)
         MI[index] = H_XX[index] - H_XH[index]
 
         util.io.save(

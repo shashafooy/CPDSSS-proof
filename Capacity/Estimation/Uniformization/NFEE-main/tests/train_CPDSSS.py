@@ -1,5 +1,8 @@
 import numpy as np
 import os
+from _utils import set_sys_path
+
+set_sys_path()
 
 from simulators.CPDSSS_models import CPDSSS as CPDSSS
 from misc_CPDSSS.entropy_util import MAF as ent

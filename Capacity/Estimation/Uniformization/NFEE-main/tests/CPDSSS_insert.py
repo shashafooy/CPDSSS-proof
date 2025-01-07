@@ -1,11 +1,15 @@
 import numpy as np
 
-import util.io
 import os
+from _utils import set_sys_path
+
+set_sys_path()
 
 from simulators.CPDSSS_models import CPDSSS
 from misc_CPDSSS.entropy_util import MAF as ent
 from misc_CPDSSS import util as misc
+import util.io
+
 
 from datetime import date
 
