@@ -17,11 +17,11 @@ REUSE_MODEL = True
 """
 Parameters for CPDSSS
 """
-N = 6
+N = 12
 # L = 3
-d0 = 3
-d1 = 3
-T_range = range(2, 10)
+d0 = int(N / 2)
+d1 = int(N / 2)
+T_range = range(2, 6)
 # T_range = range(5, 7)
 
 
