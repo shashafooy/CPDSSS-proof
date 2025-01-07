@@ -1,12 +1,18 @@
 from datetime import date, timedelta
 import time
 import os
+
+from _utils import set_sys_path
+
+set_sys_path()
+
 import numpy as np
 from misc_CPDSSS.entropy_util import MAF as ent
 import misc_CPDSSS.util as misc
 import simulators.CPDSSS_models as mod
 import util.io
 import matplotlib.pyplot as plt
+
 
 from ent_est import entropy
 from ml.trainers import ModelCheckpointer

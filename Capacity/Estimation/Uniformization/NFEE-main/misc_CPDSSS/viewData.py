@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import util.io
 
 
 def align_and_concatenate(old_data, new_data, old_range=(0), new_range=(0)):
@@ -135,3 +137,39 @@ def clean_data(data):
         data (_type_): data array
     """
     data[np.isinf(data)] = np.nan
+
+
+def read_data(filepath, remove_outliers=True, outlier_std=3):
+    init = False
+    for filename in os.listdir(filepath):
+        filename = os.path.splitext(filename)[0]  # remove extention
+        file_items = util.io.load(os.path.join(filepath, filename))
+        _T_range = file_items[0]
+
+        if not init:
+            init = True
+            arrays = []
+            for item in file_items[1:-1]:
+                arrays.append(np.empty((0, np.size(_T_range))))
+            T_range = _T_range
+
+        for i, item in enumerate(file_items[1:-1]):
+            arrays[i], new_range = align_and_concatenate(arrays[i], item, T_range, _T_range)
+        T_range = new_range
+
+    if remove_outliers:
+        for item in arrays:
+            remove_outlier(item, num_std=outlier_std)
+
+    return T_range, arrays
+
+
+class Data:
+    def __init__(self, data):
+        self.data = data
+        self.refresh()
+
+    def refresh(self):
+        self.mean = np.nanmean(self.data, axis=0)
+        self.var = np.nanvar(self.data, axis=0)
+        self.std = np.nanstd(self.data, axis=0)

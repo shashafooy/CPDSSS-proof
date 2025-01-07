@@ -1,5 +1,9 @@
 from datetime import date
 import os
+from _utils import set_sys_path
+
+set_sys_path()
+
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt

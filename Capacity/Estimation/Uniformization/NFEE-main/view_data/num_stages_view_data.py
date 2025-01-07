@@ -1,3 +1,6 @@
+from _utils import set_sys_path
+
+set_sys_path()
 import util.io
 import os
 import matplotlib.pyplot as plt

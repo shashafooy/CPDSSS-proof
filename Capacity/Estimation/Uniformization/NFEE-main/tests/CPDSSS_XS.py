@@ -1,11 +1,14 @@
 import numpy as np
 from scipy import stats
 
-import util.io
 import os
+from _utils import set_sys_path
+
+set_sys_path()
 
 from ent_est import entropy
 from ent_est.entropy import tkl
+import util.io
 
 from simulators.complex import mvn
 from simulators.CPDSSS_models import CPDSSS_XS

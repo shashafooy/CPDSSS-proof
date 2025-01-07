@@ -1,5 +1,9 @@
 from datetime import date
 import os
+from _utils import set_sys_path
+
+set_sys_path()
+
 import numpy as np
 from misc_CPDSSS.entropy_util import MAF as ent
 import misc_CPDSSS.util as misc
