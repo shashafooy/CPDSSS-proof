@@ -19,7 +19,7 @@ REUSE_MODEL = True
 """
 Parameters for CPDSSS
 """
-N = 12
+N = 16
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
@@ -72,15 +72,15 @@ for i in range(n_trials):
         misc.print_border("Generating CPDSSS samples")
         sim_model = CPDSSS_Cond(T, N, d0=d0, d1=d1)
         # generate base samples based on max dimension
+        sim_model.set_XHcond()
+        knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
+        samples, _ = misc.time_exec(sim_model.sim(knn_samples))
 
         """Train H(xT | h, x1:T-1)"""
         misc.print_border(f"1/4 calculating H(xT | h, x1:T-1), T: {T}, iter: {i+1}")
         name = f"{T-1}T"
 
-        sim_model.set_XHcond()
-        knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
-        samples = sim_model.sim(knn_samples)
-        H_XH[index], _ = ent.calc_entros.pathy(sim_model, base_samples=samples)
+        H_XH[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
 
         filename = misc.update_filename(path, filename, i)
         util.io.save(
@@ -94,7 +94,7 @@ for i in range(n_trials):
 
         sim_model.set_Xcond()
         samples = sim_model.sim(reuse=True)
-        H_XX[index], _ = ent.calc_entros.pathy(sim_model, base_samples=samples)
+        H_XX[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
         MI[index] = H_XX[index] - H_XH[index]
 
         util.io.save(
