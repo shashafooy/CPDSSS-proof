@@ -15,6 +15,12 @@ def align_and_concatenate(old_data, new_data, old_range=(0), new_range=(0)):
     Returns:
         (Float,tuple): Concatenated_data,combined_range
     """
+    if not isinstance(new_data, np.ndarray):
+        old_list = list(old_range)
+        new_list = list(new_range)
+        union_list = sorted(set(old_list).union(set(new_list)))
+
+        return new_data, union_list
     # Determine the number of dimensions (excluding the 'iter' dimension)
     num_dims = old_data.ndim - 1
 
@@ -119,6 +125,8 @@ def remove_outlier(data, num_std=3):
     Returns:
         _type_: data with outliers removed
     """
+    if not isinstance(data, np.ndarray):
+        return data
     num_outlier = 1
     while num_outlier > 0:
         std = np.nanstd(data, axis=0)
@@ -136,6 +144,8 @@ def clean_data(data):
     Args:
         data (_type_): data array
     """
+    if not isinstance(data, np.ndarray):
+        return data
     data[np.isinf(data)] = np.nan
 
 
@@ -149,17 +159,23 @@ def read_data(filepath, remove_outliers=True, outlier_std=3):
         if not init:
             init = True
             arrays = []
-            for item in file_items[1:-1]:
-                arrays.append(np.empty((0, np.size(_T_range))))
+
+            # create empty arrays with the same shape minus first dimension. First dimension in the sample index
+            for item in file_items[1:]:
+                if isinstance(item, np.ndarray):
+                    arrays.append(np.empty((0, item.shape[1:])))
+                else:
+                    arrays.append(item)
             T_range = _T_range
 
-        for i, item in enumerate(file_items[1:-1]):
+        for i, item in enumerate(file_items[1:]):
             arrays[i], new_range = align_and_concatenate(arrays[i], item, T_range, _T_range)
         T_range = new_range
 
-    if remove_outliers:
-        for item in arrays:
+    for item in arrays:
+        if remove_outliers:
             remove_outlier(item, num_std=outlier_std)
+        clean_data(item)
 
     return T_range, arrays
 
@@ -167,9 +183,10 @@ def read_data(filepath, remove_outliers=True, outlier_std=3):
 class Data:
     def __init__(self, data):
         self.data = data
-        self.refresh()
+        self.refresh_stats()
 
-    def refresh(self):
+    def refresh_stats(self):
         self.mean = np.nanmean(self.data, axis=0)
         self.var = np.nanvar(self.data, axis=0)
         self.std = np.nanstd(self.data, axis=0)
+        self.MSE = np.nanmean(self.data**2, axis=0)

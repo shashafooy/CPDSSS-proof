@@ -58,47 +58,33 @@ if REMOVE_OUTLIERS:
     H_sim = viewData.remove_outlier(H_sim)
     H_reuse = viewData.remove_outlier(H_reuse)
 
+batch_size, data = viewData.read_data(filepath)
 
 # remove 4096
+N = data[0]
 batch_size = batch_size[:-1]
-error = error[:, :-1]
-duration = duration[:, :-1]
-H_sim = H_sim[:, :-1]
-H_reuse = H_reuse[:, :-1]
+error = viewData.Data(data[1][:, :-1])
+duration = viewData.Data(data[2][:, :-1])
+H_sim = viewData.Data(data[3][:, :-1])
+H_reuse = viewData.Data(data[4][:, :-1])
 
 
 H_true = Laplace(mu=0, b=2, N=N).entropy()
-H_sim_err = np.abs(H_sim - H_true)
-H_reuse_err = np.abs(H_reuse - H_true)
-
-
-mean_err = np.nanmean(error, axis=0)
-mean_H_sim_err = np.nanmean(H_sim_err, axis=0)
-mean_H_reuse_err = np.nanmean(H_reuse_err, axis=0)
-mean_duration = np.round(np.nanmean(duration, axis=0))
-
-var_err = np.nanvar(error, axis=0)
-var_duration = np.nanvar(duration, axis=0)
-var_H_sim_err = np.nanvar(H_sim_err, axis=0)
-var_H_reuse_err = np.nanvar(H_reuse_err, axis=0)
-
-MSE_train = np.nanmean(error**2, axis=0)
-MSE_H_sim = np.nanmean(H_sim_err**2, axis=0)
-MSE_H_reuse = np.nanmean(H_reuse_err**2, axis=0)
-
+H_sim_err = viewData.Data(np.abs(H_sim.data - H_true))
+H_reuse_err = viewData.Data(np.abs(H_reuse.data - H_true))
 
 # PLOTS
 
 
 for i in range(len(batch_size)):
-    min_sec = str(timedelta(seconds=mean_duration[i]))
+    min_sec = str(timedelta(seconds=duration.mean[i]))
     print(f"Batch: {batch_size[i]}, Mean training duration: {min_sec}")
 
 
 plt.figure(1)
 # plt.axhline(y=H_true,linestyle='--')
-plt.plot(batch_size, mean_err, marker="o", label="training")
-plt.plot(batch_size, mean_H_sim_err, marker="o", label="uniform entropy")
+plt.plot(batch_size, error.mean, marker="o", label="training")
+plt.plot(batch_size, H_sim_err.mean, marker="o", label="uniform entropy")
 # plt.plot(batch_size, mean_H_reuse_err, marker='o', linestyle='None', label='mean_H_reuse_err')
 plt.xscale("log")
 plt.xticks(batch_size, labels=[str(a) for a in batch_size])
@@ -111,8 +97,8 @@ plt.tight_layout()
 
 plt.figure(2)
 # plt.axhline(y=H_true,linestyle='--')
-plt.plot(batch_size, MSE_train, marker="o", label="training")
-plt.plot(batch_size, MSE_H_sim, marker="o", label="uniform entropy")
+plt.plot(batch_size, error.MSE, marker="o", label="training")
+plt.plot(batch_size, H_sim_err.MSE, marker="o", label="uniform entropy")
 # plt.plot(batch_size, MSE_H_reuse, marker='o', linestyle='None', label='reuse data')
 plt.yscale("log")
 plt.xscale("log")

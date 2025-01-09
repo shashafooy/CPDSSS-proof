@@ -95,7 +95,7 @@ if COMBINE_ENTROPIES:
     MI_long.data[: MI.data.shape[0], [0, MI_long.data.shape[1] - 1]] = MI.data[
         :, [0, MI_long.data.shape[1] - 1]
     ]
-    MI_long.refresh()
+    MI_long.refresh_stats()
 
 
 """
