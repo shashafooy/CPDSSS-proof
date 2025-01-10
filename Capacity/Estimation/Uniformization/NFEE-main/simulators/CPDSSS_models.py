@@ -10,6 +10,7 @@ import theano.tensor as tt
 import theano
 
 dtype = theano.config.floatX
+USE_GPU = True
 
 
 # from memory_profiler import profile
@@ -54,14 +55,20 @@ class CPDSSS(_distribution):
             self.sym_N = int(N / L)
             self.noise_N = N - self.sym_N
             self.G_slice = range(0, N, L)
+            if USE_GPU:
+                self.tt_G_slice = theano.shared(np.arange(0, N, L, dtype=np.int32))
         elif d0 is not None and d1 is not None:
             assert d0 + d1 == N, "d0+d1 must be equal to N"
             self.sym_N = d0
             self.noise_N = d1
             if N / d0 % 1 == 0:  # same as using L
                 self.G_slice = range(0, N, int(N / d0))
+                if USE_GPU:
+                    self.tt_G_slice = theano.shared(np.arange(0, N, int(N / d0), dtype=np.int32))
             else:
                 self.G_slice = range(0, d0)
+                if USE_GPU:
+                    self.tt_G_slice = theano.shared(np.arange(0, d0, dtype=np.int32))
         else:
             raise ValueError(
                 "Invalid input. Require either L or d0,d1 as inputs. N/L must be an integer, or d0+d1=N"
@@ -76,6 +83,9 @@ class CPDSSS(_distribution):
 
         self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
         self.eye = 0.0001 * np.eye(self.N).astype(dtype)
+        self.tt_eye = 0.0001 * tt.eye(self.N, dtype=dtype)
+
+        self.tt_GQ_func = None
 
     def sim(self, n_samples=1000):
         """wrapper allowing inherited class to reuse while _sim() retains the core functionality
@@ -139,25 +149,37 @@ class CPDSSS(_distribution):
         import time
 
         n_samples = self.h.shape[0]
-        workers = min(6, mp.cpu_count() - 1)  # 6 seems to be optimal due to threading overhead
+        workers = min(8, mp.cpu_count() - 1)  # 6 seems to be optimal due to threading overhead
 
-        self._gen_GQ_sample(self.h[0, :])
-        # start = time.time()
-        with mp.Pool(workers) as pool:
-            G_results, Q_results = zip(
-                *pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples)))
-            )
+        if USE_GPU:
+            if self.tt_GQ_func is None:
+                self.tt_GQ_func = self._gen_tt_GQ_func()
 
-        # print(time.time() - start)
+            start = time.time()
 
-        # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+            # G1, Q1 = self._gen_GQ_sample(self.h[100, :])
 
-        # print(f"pool time: {time.time() - start_time}")
+            G, Q = self.tt_GQ_func(self.h)
+            print(f"one shot GPU {time.time() - start:.4f}")
 
-        G = np.array(G_results)
-        Q = np.array(Q_results)
+            return G, Q
+        else:
 
-        return G, Q
+            start = time.time()
+            with mp.Pool(workers) as pool:
+                G_results, Q_results = zip(
+                    *pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples)))
+                )
+
+            # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+
+            # print(f"pool time: {time.time() - start_time}")
+
+            G = np.array(G_results)
+            Q = np.array(Q_results)
+            print(f"CPU thread workers = {workers}, time = {time.time() - start:.4f}")
+
+            return G, Q
 
     def _gen_GQ_sample(self, h):
 
@@ -184,6 +206,76 @@ class CPDSSS(_distribution):
         Q = np.real(V[:, sort_indices[0 : self.noise_N]])
 
         return G, Q
+
+    def _gen_tt_GQ_func(self):
+        # Define symbolic input
+        h = tt.matrix("h")
+
+        # Create toeplitz matrix and decimate across its rows
+        HE = theano.scan(fn=self.tt_toeplitz_row_slice, sequences=[h], non_sequences=[])[0]
+
+        # Compute R, p, and g
+        R = tt.batched_dot(HE.transpose(0, 2, 1), HE) + self.tt_eye
+        p = HE[:, 0, :]
+
+        # Solve g = inv(R) * p
+        # Make toeplitz matrix and decimate across its columns
+        def make_g(R, p):
+            g = tt.slinalg.solve(R, p)
+            # g = tt.dot(tt.nlinalg.matrix_inverse(R), p)
+            return self.tt_toeplitz_col_slice(g)
+
+        G = theano.scan(fn=make_g, sequences=[R, p], non_sequences=[])[0]
+
+        # return theano.function(inputs=[h], outputs=G)
+
+        # Compute eigenvalues and eigenvectors of R
+        def compute_ev(r):
+            ev, V = tt.nlinalg.eigh(r)
+            # ev, V = tt.nlinalg.eig(r)
+            return ev, V
+
+        ev_b, V_b = theano.scan(fn=compute_ev, sequences=[R])[0]
+
+        # Get the eigenvectors associated with the smallest eigenvalues
+        def make_Q(ev, V):
+            sort_indices = tt.argsort(ev)
+            sort_indices = sort_indices[: self.noise_N]
+            return V[:, sort_indices]
+
+        Q = theano.scan(fn=make_Q, sequences=[ev_b, V_b])[0]
+
+        # Define Theano function
+        return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
+
+    def tt_toeplitz_col_slice(self, col, row=None):
+        """Generate a toeplitz matrix and slice it such that toeplitz[:,G_slice]"""
+
+        row = col[::-1]  # reverse column vector
+        # Construct indices for the Toeplitz matrix
+        col_idx = tt.arange(col.shape[0]).dimshuffle(0, "x")  # shape (1, len(row))
+        row_idx = self.tt_G_slice.dimshuffle("x", 0)  # shape: (len(G_slice),1)
+        indices = col_idx - row_idx
+        # indices = tt.arange(col.shape[0])[:, None] - tt.arange(row.shape[0])[None, :]
+
+        # Use T.switch to fill values based on indices
+        toeplitz_matrix = tt.switch(indices >= 0, col[indices], row[-indices - 1])
+
+        return toeplitz_matrix
+
+    def tt_toeplitz_row_slice(self, col):
+        """Generate a toeplitz matrix and slice it such that toeplitz[G_slice,:]"""
+        row = col[::-1]  # reverse column vector
+        # Construct indices for the Toeplitz matrix
+        col_idx = self.tt_G_slice.dimshuffle(0, "x")  # shape: (len(G_slice),1)
+        row_idx = tt.arange(row.shape[0]).dimshuffle("x", 0)  # shape (1, len(row))
+        indices = col_idx - row_idx
+        # indices = tt.arange(col.shape[0])[:, None] - tt.arange(row.shape[0])[None, :]
+
+        # Use T.switch to fill values based on indices
+        toeplitz_matrix = tt.switch(indices >= 0, col[indices], row[-indices - 1])
+
+        return toeplitz_matrix
 
     def chan_entropy(self):
         return 0.5 * np.log(np.linalg.det(2 * math.pi * np.exp(1) * np.diag(self.fading)))
