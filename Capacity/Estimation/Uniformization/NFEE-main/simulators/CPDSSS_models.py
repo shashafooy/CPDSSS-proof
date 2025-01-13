@@ -82,8 +82,14 @@ class CPDSSS(_distribution):
         self._sim_chan_only = False
 
         self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
-        self.eye = 0.0001 * np.eye(self.N).astype(dtype)
-        self.tt_eye = 0.0001 * tt.eye(self.N, dtype=dtype)
+
+        # For larger N, the regularization factor may need to increase so H^T*H is not singular
+        if self.N > 10:
+            self.eye = 0.0005 * np.eye(self.N).astype(dtype)
+            self.tt_eye = 0.0005 * tt.eye(self.N, dtype=dtype)
+        else:
+            self.eye = 0.0001 * np.eye(self.N).astype(dtype)
+            self.tt_eye = 0.0001 * tt.eye(self.N, dtype=dtype)
 
         self.tt_GQ_func = None
 
@@ -129,7 +135,7 @@ class CPDSSS(_distribution):
             self.X = np.matmul(self.G, self.s)
         else:
             self.X = np.matmul(self.G, self.s) + np.matmul(Q, v)
-        joint_X = self.X[:, :, 0 : self.T].reshape(
+        joint_X = self.X[:, :, : self.T].reshape(
             (n_samples, self.N * self.T), order="F"
         )  # order 'F' needed to make arrays stack instead of interlaced
 
@@ -344,6 +350,9 @@ class CPDSSS(_distribution):
         self._use_chan = True
         self.x_dim = self.N * self.T + self.N
         self.input_dim = self.x_dim
+
+    def set_T(self,T):
+
 
 
 class CPDSSS_Cond(CPDSSS):
