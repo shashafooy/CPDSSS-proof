@@ -9,6 +9,9 @@ from joblib import Parallel, delayed
 import theano.tensor as tt
 import theano
 import time
+import sys
+
+import util.misc
 
 dtype = theano.config.floatX
 USE_GPU = True
@@ -185,7 +188,8 @@ class CPDSSS(_distribution):
                 Q = []
                 # For large N, inv(H^T*H + delta*eye(N)) can be singular.
                 # Regenerate h if this is the case and run again.
-                for section in sections:
+                util.misc.printProgressBar(0, split_N, "G,Q generation")
+                for i, section in enumerate(sections):
                     singular = True
                     while singular:
                         try:
@@ -193,10 +197,14 @@ class CPDSSS(_distribution):
                             G.append(new_G)
                             Q.append(new_Q)
                             singular = False
+                            util.misc.printProgressBar(i + 1, split_N, "G,Q generation ")
+                        except KeyboardInterrupt:
+                            sys.exit()
                         except:
                             self.h[-section] = (
                                 self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
                             ).astype(dtype)
+                            util.misc.printProgressBar(i, split_N, "Singular, rerun")
 
                 # Combine list of arrays and store into G,Q.
                 G = np.concatenate(G, axis=0)
