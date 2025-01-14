@@ -8,6 +8,7 @@ import math
 from joblib import Parallel, delayed
 import theano.tensor as tt
 import theano
+import time
 
 dtype = theano.config.floatX
 USE_GPU = True
@@ -46,10 +47,9 @@ class CPDSSS(_distribution):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(x_dim=N * num_tx + N)
 
-        self.T = num_tx
         self.N = N
         self.L = L
-        self.input_dim = self.T * self.N
+
         if L is not None:
             assert N / L % 1 == 0, "N/L must be an integer"
             self.sym_N = int(N / L)
@@ -74,6 +74,8 @@ class CPDSSS(_distribution):
                 "Invalid input. Require either L or d0,d1 as inputs. N/L must be an integer, or d0+d1=N"
             )
 
+        self.set_T(num_tx)
+
         self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
@@ -82,6 +84,12 @@ class CPDSSS(_distribution):
         self._sim_chan_only = False
 
         self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
+
+        self.X = None
+        self.s = None
+        self.h = np.empty((0, N))
+        self.G = np.empty((0, N, self.sym_N))
+        self.Q = np.empty((0, N, self.noise_N))
 
         # For larger N, the regularization factor may need to increase so H^T*H is not singular
         if self.N > 10:
@@ -93,15 +101,15 @@ class CPDSSS(_distribution):
 
         self.tt_GQ_func = None
 
-    def sim(self, n_samples=1000):
+    def sim(self, n_samples=1000, reuse_GQ=False):
         """wrapper allowing inherited class to reuse while _sim() retains the core functionality
 
         Args:
             n_samples (int, optional): number of samples to generate. Defaults to 1000.
         """
-        return self._sim(n_samples)
+        return self._sim(n_samples, reuse_GQ)
 
-    def _sim(self, n_samples=1000):
+    def _sim(self, n_samples=1000, reuse_GQ=False):
         """Generate samples X and (optional) G for CPDSSS
 
         Args:
@@ -122,19 +130,26 @@ class CPDSSS(_distribution):
             .astype(dtype)
             .reshape((n_samples, self.noise_N, self.T))
         )
-        self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
+
+        # channel is reused, append new samples if needed
+        new_samples = n_samples - self.h.shape[0] if reuse_GQ else n_samples
+        new_h = (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading)).astype(dtype)
+        self.h = np.concatenate((self.h, new_h), axis=0, dtype=dtype) if reuse_GQ else new_h
+        # self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
 
         if self._sim_chan_only:  # return early if we only need channel
             self.samples = self.h
             return self.h
 
-        self.G, Q = self.sim_GQ()
+        self.sim_GQ(reuse_GQ)
         # import timeit
         # timeit.timeit(lambda: self.sim_GQ(n_samples=200000),number=1)
         if self.sym_N == self.N:
-            self.X = np.matmul(self.G, self.s)
+            self.X = np.matmul(self.G[:n_samples, :, :], self.s)
         else:
-            self.X = np.matmul(self.G, self.s) + np.matmul(Q, v)
+            self.X = np.matmul(self.G[:n_samples, :, :], self.s) + np.matmul(
+                self.Q[:n_samples, :, :], v
+            )
         joint_X = self.X[:, :, : self.T].reshape(
             (n_samples, self.N * self.T), order="F"
         )  # order 'F' needed to make arrays stack instead of interlaced
@@ -150,42 +165,77 @@ class CPDSSS(_distribution):
         # xCond_term = X[:,:,0:self.T-1].reshape((n_samples,self.N*(self.T-1)),order='F')#order 'F' needed to make arrays stack instead of interlaced
 
     # @profile
-    def sim_GQ(self):
-        import multiprocessing as mp
-        import time
-
+    def sim_GQ(self, reuse):
         n_samples = self.h.shape[0]
-        workers = min(8, mp.cpu_count() - 1)  # 6 seems to be optimal due to threading overhead
+        # if stored G samples is less than number of h samples, generate more G,Q
+        if not reuse or self.G.shape[0] < n_samples:
+            new_samples = n_samples - self.G.shape[0] if reuse else n_samples
+            if USE_GPU:
+                if self.tt_GQ_func is None:
+                    self.tt_GQ_func = self._gen_tt_GQ_func()
 
-        if USE_GPU:
-            if self.tt_GQ_func is None:
-                self.tt_GQ_func = self._gen_tt_GQ_func()
+                start = time.time()
 
-            start = time.time()
+                # G1, Q1 = self._gen_GQ_sample(self.h[100, :])
+                split_N = np.floor(new_samples / 100000)
 
-            # G1, Q1 = self._gen_GQ_sample(self.h[100, :])
+                sections = np.array_split(range(new_samples, 0, -1), split_N)
 
-            G, Q = self.tt_GQ_func(self.h)
-            print(f"one shot GPU {time.time() - start:.4f}")
+                G = []
+                Q = []
+                # For large N, inv(H^T*H + delta*eye(N)) can be singular.
+                # Regenerate h if this is the case and run again.
+                for section in sections:
+                    singular = True
+                    while singular:
+                        try:
+                            new_G, new_Q = self.tt_GQ_func(self.h[-section, :])
+                            G.append(new_G)
+                            Q.append(new_Q)
+                            singular = False
+                        except:
+                            self.h[-section] = (
+                                self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
+                            ).astype(dtype)
 
-            return G, Q
-        else:
+                # Combine list of arrays and store into G,Q.
+                G = np.concatenate(G, axis=0)
+                Q = np.concatenate(Q, axis=0)
 
-            start = time.time()
-            with mp.Pool(workers) as pool:
-                G_results, Q_results = zip(
-                    *pool.map(self._gen_GQ_sample, (self.h[i, :] for i in range(n_samples)))
+                self.G = np.concatenate((self.G, G), axis=0) if reuse else G
+                self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
+                print(f"G,Q GPU time {time.time() - start:.4f}")
+
+                # return G, Q
+            else:
+                import multiprocessing as mp
+
+                workers = min(
+                    6, mp.cpu_count() - 1
+                )  # 6 seems to be optimal due to threading overhead
+
+                start = time.time()
+                with mp.Pool(workers) as pool:
+                    G_results, Q_results = zip(
+                        *pool.map(
+                            self._gen_GQ_sample, (self.h[-i, :] for i in range(new_samples, 0, -1))
+                        )
+                    )
+
+                # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+
+                # print(f"pool time: {time.time() - start_time}")
+
+                self.G = (
+                    np.concatenate((self.G, np.array(G_results)), axis=0) if reuse else G_results
+                )
+                self.Q = (
+                    np.concatenate((self.Q, np.array(Q_results)), axis=0) if reuse else Q_results
                 )
 
-            # results = Parallel(n_jobs=-1, backend="threading")(delayed(self._gen_GQ_sample)(self.h[i,:]) for i in range(n_samples))
+                print(f"CPU thread workers = {workers}, time = {time.time() - start:.4f}")
 
-            # print(f"pool time: {time.time() - start_time}")
-
-            G = np.array(G_results)
-            Q = np.array(Q_results)
-            print(f"CPU thread workers = {workers}, time = {time.time() - start:.4f}")
-
-            return G, Q
+                # return G, Q
 
     def _gen_GQ_sample(self, h):
 
@@ -218,7 +268,20 @@ class CPDSSS(_distribution):
         h = tt.matrix("h")
 
         # Create toeplitz matrix and decimate across its rows
-        HE = theano.scan(fn=self.tt_toeplitz_row_slice, sequences=[h], non_sequences=[])[0]
+        def gen_HE(col):
+            """Generate a toeplitz matrix and slice it such that toeplitz[G_slice,:]"""
+            row = col[::-1]  # reverse column vector
+            # Construct indices for the Toeplitz matrix
+            col_idx = self.tt_G_slice.dimshuffle(0, "x")  # shape: (len(G_slice),1)
+            row_idx = tt.arange(row.shape[0]).dimshuffle("x", 0)  # shape (1, len(row))
+            indices = col_idx - row_idx
+
+            # Use T.switch to fill values based on indices
+            toeplitz_matrix = tt.switch(indices >= 0, col[indices], row[-indices - 1])
+
+            return toeplitz_matrix
+
+        HE = theano.scan(fn=gen_HE, sequences=[h], non_sequences=[])[0]
 
         # Compute R, p, and g
         R = tt.batched_dot(HE.transpose(0, 2, 1), HE) + self.tt_eye
@@ -226,12 +289,22 @@ class CPDSSS(_distribution):
 
         # Solve g = inv(R) * p
         # Make toeplitz matrix and decimate across its columns
-        def make_g(R, p):
-            g = tt.slinalg.solve(R, p)
-            # g = tt.dot(tt.nlinalg.matrix_inverse(R), p)
-            return self.tt_toeplitz_col_slice(g)
+        def make_G(R, p):
+            col = tt.slinalg.solve(R, p)  # g vector R*g = p
 
-        G = theano.scan(fn=make_g, sequences=[R, p], non_sequences=[])[0]
+            """Generate a toeplitz matrix HE and slice it such that HE[:,G_slice]"""
+            row = col[::-1]  # reverse column vector
+            # Construct indices for the Toeplitz matrix
+            col_idx = tt.arange(col.shape[0]).dimshuffle(0, "x")  # shape (1, len(row))
+            row_idx = self.tt_G_slice.dimshuffle("x", 0)  # shape: (len(G_slice),1)
+            indices = col_idx - row_idx
+
+            # Use T.switch to fill values based on indices
+            toeplitz_matrix = tt.switch(indices >= 0, col[indices], row[-indices - 1])
+
+            return toeplitz_matrix
+
+        G = theano.scan(fn=make_G, sequences=[R, p], non_sequences=[])[0]
 
         # return theano.function(inputs=[h], outputs=G)
 
@@ -253,35 +326,6 @@ class CPDSSS(_distribution):
 
         # Define Theano function
         return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
-
-    def tt_toeplitz_col_slice(self, col, row=None):
-        """Generate a toeplitz matrix and slice it such that toeplitz[:,G_slice]"""
-
-        row = col[::-1]  # reverse column vector
-        # Construct indices for the Toeplitz matrix
-        col_idx = tt.arange(col.shape[0]).dimshuffle(0, "x")  # shape (1, len(row))
-        row_idx = self.tt_G_slice.dimshuffle("x", 0)  # shape: (len(G_slice),1)
-        indices = col_idx - row_idx
-        # indices = tt.arange(col.shape[0])[:, None] - tt.arange(row.shape[0])[None, :]
-
-        # Use T.switch to fill values based on indices
-        toeplitz_matrix = tt.switch(indices >= 0, col[indices], row[-indices - 1])
-
-        return toeplitz_matrix
-
-    def tt_toeplitz_row_slice(self, col):
-        """Generate a toeplitz matrix and slice it such that toeplitz[G_slice,:]"""
-        row = col[::-1]  # reverse column vector
-        # Construct indices for the Toeplitz matrix
-        col_idx = self.tt_G_slice.dimshuffle(0, "x")  # shape: (len(G_slice),1)
-        row_idx = tt.arange(row.shape[0]).dimshuffle("x", 0)  # shape (1, len(row))
-        indices = col_idx - row_idx
-        # indices = tt.arange(col.shape[0])[:, None] - tt.arange(row.shape[0])[None, :]
-
-        # Use T.switch to fill values based on indices
-        toeplitz_matrix = tt.switch(indices >= 0, col[indices], row[-indices - 1])
-
-        return toeplitz_matrix
 
     def chan_entropy(self):
         return 0.5 * np.log(np.linalg.det(2 * math.pi * np.exp(1) * np.diag(self.fading)))
@@ -314,7 +358,7 @@ class CPDSSS(_distribution):
             self.x_dim = self.N * self.T
         self.input_dim = self.x_dim
 
-    def get_base_X_h(self, n_samples=1000):
+    def get_base_X_h(self, n_samples=1000, reuse_GQ=False):
         """Generate values for G and X
 
         Args:
@@ -325,7 +369,7 @@ class CPDSSS(_distribution):
         """
         # self.use_chan_in_sim(h_flag=True)
         self._use_chan = True
-        vals = self._sim(n_samples=n_samples)
+        vals = self._sim(n_samples, reuse_GQ)
         X = vals[:, 0 : self.N * self.T]
         X_T = X[:, -self.N :]
         X_cond = X[:, 0 : -self.N]
@@ -351,22 +395,28 @@ class CPDSSS(_distribution):
         self.x_dim = self.N * self.T + self.N
         self.input_dim = self.x_dim
 
-    def set_T(self,T):
+    def set_T(self, T):
+        ### TODO: update class to change how many transmissions are outputted when calling sim().
+        # Potentially look at re-using samples from sim
+        self.T = T
 
+        self.x_dim = self.N * self.T + self.N
+        self.input_dim = self.T * self.N
+        self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
+        self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
 
 
 class CPDSSS_Cond(CPDSSS):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(num_tx, N, L, d0, d1)
         self.x_dim = N
-        self.input_dim = [N, None]
         self.sim_val = None
         self._X = None
 
-    def sim(self, n_samples=1000, reuse=False):
+    def sim(self, n_samples=1000, reuse_GQ=False):
         assert self.input_dim[1] is not None
-        if not reuse or self._X is None:
-            self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples)
+        # if not reuse_GQ or self._X is None:
+        self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples, reuse_GQ)
         if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
             cond = np.concatenate((self._Xcond, self._h), axis=1)
         else:  # X is the conditional
@@ -380,6 +430,16 @@ class CPDSSS_Cond(CPDSSS):
     def set_XHcond(self):
         self.input_dim[1] = self.N * self.T
         self.x_dim = self.input_dim[1] + self.N
+
+    def set_T(self, T):
+        ### TODO: update class to change how many transmissions are outputted when calling sim().
+        # Potentially look at re-using samples from sim
+        self.T = T
+
+        self.x_dim = self.N * self.T + self.N
+        self.input_dim = [self.N, None]
+        self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
+        self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
 
 
 class CPDSSS_Hinv(CPDSSS):
@@ -435,21 +495,20 @@ class CPDSSS_XS(CPDSSS):
         return ret_val
 
 
-class CPDSSS_XG:
+class CPDSSS_XG(CPDSSS):
     """
     Used to generate the joint samples between X and G for CPDSSS
     """
 
     def __init__(self, num_tx, N, L):
-        self.base_model = CPDSSS(num_tx=num_tx, N=N, L=L)
+        super().__init__(num_tx, N, L)
+        # self.base_model = CPDSSS(num_tx=num_tx, N=N, L=L)
 
     def sim(self, n_samples=1000):
-        self.base_model.gen_XG(n_samples=n_samples)
-        T = self.base_model.T
-        N = self.base_model.N
+        self.gen_XG(n_samples=n_samples)
         # order 'F' needed to make arrays stack instead of interlaced
-        joint_X = self.base_model.X[:, :, 0:T].reshape((n_samples, N * T), order="F")
-        g_term = self.base_model.G[:, :, 0]
+        joint_X = self.X[:, :, 0 : self.T].reshape((n_samples, self.N * self.T), order="F")
+        g_term = self.G[:, :, 0]
         return np.concatenate((joint_X, g_term), axis=1)
 
 

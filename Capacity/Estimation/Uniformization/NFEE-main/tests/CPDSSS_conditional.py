@@ -16,6 +16,8 @@ SAVE_MODEL = True
 TRAIN_ONLY = False
 REUSE_MODEL = True
 
+SAVE_FILE = True
+
 """
 Parameters for CPDSSS
 """
@@ -60,44 +62,48 @@ XH_path = os.path.join(model_path, "XH")
 
 
 # fix filename if file already exists
-
-filename = misc.update_filename(path, filename, -1, rename=False)
+if SAVE_FILE:
+    filename = misc.update_filename(path, filename, -1, rename=False)
 
 for i in range(n_trials):
+    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1)
     for k, T in enumerate(T_range):
         index = (i, k)
         """
         Generate samples
         """
         misc.print_border("Generating CPDSSS samples")
-        sim_model = CPDSSS_Cond(T, N, d0=d0, d1=d1)
+        # sim_model = CPDSSS_Cond(T, N, d0=d0, d1=d1)
+        sim_model.set_T(T)
         # generate base samples based on max dimension
         sim_model.set_XHcond()
         knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
-        samples = sim_model.sim(knn_samples)
+        samples = sim_model.sim(knn_samples, reuse_GQ=True)
 
         """Train H(xT | h, x1:T-1)"""
-        misc.print_border(f"1/4 calculating H(xT | h, x1:T-1), T: {T}, iter: {i+1}")
+        misc.print_border(f"1/2 calculating H(xT | h, x1:T-1), T: {T}, iter: {i+1}")
         name = f"{T-1}T"
 
         H_XH[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
 
-        filename = misc.update_filename(path, filename, i)
-        util.io.save(
-            (T_range, MI, H_XH, H_XX, i),
-            os.path.join(path, filename),
-        )
+        if SAVE_FILE:
+            filename = misc.update_filename(path, filename, i)
+            util.io.save(
+                (T_range, MI, H_XH, H_XX, i),
+                os.path.join(path, filename),
+            )
 
         """Train H(xT |x1:T-1)"""
-        misc.print_border(f"1/4 calculating H(xT | x1:T-1), T: {T}, iter: {i+1}")
+        misc.print_border(f"2/2 calculating H(xT | x1:T-1), T: {T}, iter: {i+1}")
         name = f"{T-1}T"
 
         sim_model.set_Xcond()
-        samples = sim_model.sim(reuse=True)
+        samples = sim_model.sim(knn_samples, reuse_GQ=True)
         H_XX[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
         MI[index] = H_XX[index] - H_XH[index]
 
-        util.io.save(
-            (T_range, MI, H_XH, H_XX, i),
-            os.path.join(path, filename),
-        )
+        if SAVE_FILE:
+            util.io.save(
+                (T_range, MI, H_XH, H_XX, i),
+                os.path.join(path, filename),
+            )
