@@ -21,7 +21,7 @@ min_T = 0
 # N_range = [2, 4, 6]
 # L = 2
 N = 6
-L = 3
+L = 2
 N_range = [2, 4, 6]
 
 REMOVE_OUTLIERS = True
@@ -39,18 +39,19 @@ T_range = []
 
 # for i, N in enumerate(N_range):
 for i, N in enumerate(N_range):
-
+    d0 = int(N / 2)
+    d1 = d0
     # util.io.save((T_range, MI_cum,H_gxc_cum,H_xxc_cum,H_joint_cum,H_cond_cum,completed_iter), os.path.join(filepath,filename))
-    base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_L{L}/"
+    base_path = f"temp_data/CPDSSS_data/MI(h,X)/N{N}_d0d1({d0},{d1})/"
     filepath = base_path + "pretrained_model"
 
     _T_range, data = viewData.read_data(filepath, REMOVE_OUTLIERS)
     T_range.append(_T_range)
-    MI.append(viewData.Data(data[1]))
-    H_hxc.append(viewData.Data(data[2]))
-    H_xxc.append(viewData.Data(data[3]))
-    H_joint.append(viewData.Data(data[4]))
-    H_cond.append(viewData.Data(data[5]))
+    MI.append(viewData.Data(data[0]))
+    H_hxc.append(viewData.Data(data[1]))
+    H_xxc.append(viewData.Data(data[2]))
+    H_joint.append(viewData.Data(data[3]))
+    H_cond.append(viewData.Data(data[4]))
 
     MI[-1].mean = H_hxc[-1].mean + H_xxc[-1].mean - H_joint[-1].mean - H_cond[-1].mean
 

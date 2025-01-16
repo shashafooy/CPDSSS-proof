@@ -636,7 +636,7 @@ class UMestimator:
                 "Transformed Uniform"
             )
             ax[1].hist(z, bins=40, density=True), ax[1].set_title("Transformed Gaussian")
-            ax[2].hist(samples, bins=100, density=True), ax[2].set_title("Original Data")
+            ax[2].hist(samples[1], bins=100, density=True), ax[2].set_title("Original Data")
 
         # Jacobian correction from the CDF
         uniform = stats.norm.cdf(z)

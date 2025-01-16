@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import os
 import util.io
@@ -153,6 +154,8 @@ def read_data(filepath, remove_outliers=True, outlier_std=3):
     init = False
     for filename in os.listdir(filepath):
         filename = os.path.splitext(filename)[0]  # remove extention
+        if re.search(r"-1_iter", filename):
+            continue
         file_items = util.io.load(os.path.join(filepath, filename))
         _T_range = file_items[0]
 
@@ -163,7 +166,7 @@ def read_data(filepath, remove_outliers=True, outlier_std=3):
             # create empty arrays with the same shape minus first dimension. First dimension in the sample index
             for item in file_items[1:]:
                 if isinstance(item, np.ndarray):
-                    arrays.append(np.empty((0, item.shape[1:])))
+                    arrays.append(np.empty((0, *item.shape[1:])))
                 else:
                     arrays.append(item)
             T_range = _T_range
