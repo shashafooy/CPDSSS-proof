@@ -168,7 +168,7 @@ class MaskedAutoregressiveFlow:
                 outputs=self.L,
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
-
+        x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
         lprob = self.eval_lprob_f(x[np.newaxis, :])[0] if x.ndim == 1 else self.eval_lprob_f(x)
 
@@ -186,6 +186,7 @@ class MaskedAutoregressiveFlow:
 
         trn_loss = []
         n_size = []
+        x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
         max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
         for i in range(0, x.shape[0], max_samp):
@@ -204,6 +205,7 @@ class MaskedAutoregressiveFlow:
 
         stg_loss = []
         n_size = []
+        x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
         max_samp = int(self.max_samp / x.shape[1])
         for i in range(0, x.shape[0], max_samp):
@@ -226,7 +228,7 @@ class MaskedAutoregressiveFlow:
                 outputs=tt.grad(tt.sum(self.L), self.input),
                 givens=[(bn.m, bn.bm) for bn in self.bns] + [(bn.v, bn.bv) for bn in self.bns],
             )
-
+        x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
         grad = self.eval_grad_f(x[np.newaxis, :])[0] if x.ndim == 1 else self.eval_grad_f(x)
 
@@ -274,7 +276,7 @@ class MaskedAutoregressiveFlow:
             self.eval_us_f = theano.function(
                 inputs=[self.input, self.stage_idx], outputs=self.out_tensor[self.stage_idx]
             )
-
+        x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
         if stage_idx < 0:
             stage_idx = len(self.out) + stage_idx
@@ -297,7 +299,7 @@ class MaskedAutoregressiveFlow:
 
         if getattr(self, "eval_jacobian_u", None) is None:
             self.eval_jacobian_u = theano.function(inputs=[self.input], outputs=self.logdet_dudx)
-
+        x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
         if x.ndim == 1:
             logdet_jacobi = self.eval_jacobian_u(x[np.newaxis, :])[0]
