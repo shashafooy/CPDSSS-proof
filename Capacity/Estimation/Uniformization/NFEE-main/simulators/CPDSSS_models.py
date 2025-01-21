@@ -24,6 +24,7 @@ class _distribution:
 
     def __init__(self, x_dim=0, rng=np.random):
         self.x_dim = x_dim
+        self.input_dim = x_dim
         self.rng = rng.default_rng()
 
     @abc.abstractmethod
@@ -536,6 +537,8 @@ class CPDSSS_XG(CPDSSS):
 
 class Gaussian(_distribution):
     def __init__(self, mu, sigma2, N=1):
+        if not np.isscalar(mu):
+            N = mu.shape[0]
         super().__init__(x_dim=N)
         # make mu,sigma vectors if input is a scalar
         if np.isscalar(mu):
