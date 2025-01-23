@@ -503,7 +503,7 @@ class ConditionalMaskedAutoregressiveFlow:
         for section in np.array_split(range(inputs.shape[0]), N_split):
             # for i in range(0, input.shape[0], max_samp):
             # data_range = range(i, min(i + max_samp, input.shape[0]))
-            trn_loss.append(self._eval_trn_loss(input[section, :], givens[section, :]))
+            trn_loss.append(self._eval_trn_loss(inputs[section, :], givens[section, :]))
             n_size.append(len(section))
         # combine means
         return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
