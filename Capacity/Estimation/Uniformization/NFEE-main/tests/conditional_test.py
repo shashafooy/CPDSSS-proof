@@ -24,13 +24,43 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 100000
+n_train_samples = 1000
 
 N = 6
 inputs = 2
 givens = N - inputs
 
 model = None
+n_samples = N * n_train_samples
+
+mu = np.zeros((N))
+row = np.ones((N)) * np.exp(-np.arange(N) / 2)
+sigma = np.tile(row, (N, 1))
+np.fill_diagonal(sigma, 1)
+sigma = 2 * np.eye(N)
+A = np.random.normal(0, 1, (n_samples, N, N))
+x = np.random.normal(0, 1, (n_samples, N, 1))
+n = np.random.multivariate_normal(mu, sigma, n_samples)
+y = np.squeeze(np.matmul(A, x)) + n
+sim_model = simMod.Gaussian(mu, sigma)
+sim_model.input_dim = [N, N]
+H, estimator = ent.calc_entropy(sim_model, base_samples=[y, np.squeeze(x)], method="both")
+H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma))
+
+# sigma = np.array([np.roll(row, i) for i in range(N)])
+for i in range(1, N):
+    sigma[i, :i] = row[i]
+
+sim_model = simMod.Gaussian(mu, sigma)
+samples = sim_model.sim(n_train_samples * N)
+
+samples = [
+    samples[:, :inputs],
+    samples[:, inputs:],
+]  # first 2 dim conditioned on last N-2 dimensions
+sim_model.input_dim = [inputs, givens]
+
+H, estimator = ent.calc_entropy(sim_model, base_samples=samples)
 
 
 mu = np.zeros((N))
@@ -57,7 +87,7 @@ marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + 
 cond_H = joint_H - marginal_H
 
 print("sigma always decreasing for more N")
-print(f"estimated H: {H:.4f}")
+print(f"estimated H: {H}")
 print(f"true H: {cond_H:.4f}")
 
 """Toeplitz sigma"""
@@ -81,7 +111,7 @@ marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + 
 cond_H = joint_H - marginal_H
 
 print("sigma toeplitz, further away values have less weight")
-print(f"estimated H: {H:.4f}")
+print(f"estimated H: {H}")
 print(f"true H: {cond_H:.4f}")
 
 

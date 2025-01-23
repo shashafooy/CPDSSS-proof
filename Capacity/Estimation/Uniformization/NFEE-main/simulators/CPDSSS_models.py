@@ -166,91 +166,44 @@ class CPDSSS(_distribution):
     def sim_GQ(self, reuse):
         n_samples = self.h.shape[0]
         # if stored G samples is less than number of h samples, generate more G,Q
-        if not reuse or self.G.shape[0] < n_samples:
-            new_samples = n_samples - self.G.shape[0] if reuse else n_samples
-            G = np.empty((0, self.N, self.sym_N), dtype=dtype)
-            Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
+        if reuse and self.G.shape[0] >= n_samples:
+            return
 
-            split_N = np.floor(new_samples / 100000)
-            split_N = max(split_N, 25)  # Calculate at most 4% of G,Q at a time
-            sections = np.array_split(range(new_samples, 0, -1), split_N)
+        new_samples = n_samples - self.G.shape[0] if reuse else n_samples
+        G = np.empty((0, self.N, self.sym_N), dtype=dtype)
+        Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
 
-            # if USE_GPU:
-            #     if self.tt_GQ_func is None:
-            #         self.tt_GQ_func = self._gen_tt_GQ_func()
-            # else:
-            #     import multiprocessing as mp
-            # # 6 seems to be optimal due to threading overhead
-            # workers = min(6, mp.cpu_count() - 1)
-            # pool = mp.Pool(workers)
+        split_N = np.floor(new_samples / 100000)
+        split_N = max(split_N, 25)  # Calculate at most 4% of G,Q at a time
+        sections = np.array_split(range(new_samples, 0, -1), split_N)
 
-            if self.tt_GQ_func is None:
-                self.tt_GQ_func = self._gen_tt_GQ_func()
+        if self.tt_GQ_func is None:
+            self.tt_GQ_func = self._gen_tt_GQ_func()
 
-            # For large N, inv(H^T*H + delta*eye(N)) can be singular.
-            # Regenerate h if this is the case and run again.
-            util.misc.printProgressBar(0, split_N, "G,Q generation")
-            start = time.time()
-            for i, section in enumerate(sections):
-                singular = True
-                while singular:
-                    try:
-                        # if USE_GPU:
-                        new_G, new_Q = self.tt_GQ_func(self.h[-section, :])
-                        # else:
-                        #     # with mp.Pool(workers) as pool:
-                        #     new_G, new_Q = zip(
-                        #         *pool.map(self._gen_GQ_sample, (self.h[-j, :] for j in section))
-                        #     )
-                        #     new_G = np.array(new_G)
-                        #     new_Q = np.array(new_Q)
-                        G = np.concatenate((G, new_G), axis=0)
-                        Q = np.concatenate((Q, new_Q), axis=0)
-                        singular = False
-                        util.misc.printProgressBar(i + 1, split_N, "G,Q generation ")
-                    except KeyboardInterrupt:
-                        sys.exit()
-                    except:
-                        self.h[-section] = (
-                            self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
-                        ).astype(dtype)
-                        util.misc.printProgressBar(i, split_N, "Singular, rerun")
+        # For large N, inv(H^T*H + delta*eye(N)) can be singular.
+        # Regenerate h if this is the case and run again.
+        util.misc.printProgressBar(0, split_N, "G,Q generation")
+        start = time.time()
+        for i, section in enumerate(sections):
+            singular = True
+            while singular:
+                try:
+                    new_G, new_Q = self.tt_GQ_func(self.h[-section, :])
+                    G = np.concatenate((G, new_G), axis=0)
+                    Q = np.concatenate((Q, new_Q), axis=0)
+                    singular = False
+                    util.misc.printProgressBar(i + 1, split_N, "G,Q generation ")
+                except KeyboardInterrupt:
+                    sys.exit()
+                except:  # regenerate h if inv(H'H) is singular
+                    self.h[-section] = (
+                        self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
+                    ).astype(dtype)
+                    util.misc.printProgressBar(i, split_N, "Singular, rerun")
 
-            # if not USE_GPU:
-            #     pool.close()
-            #     pool.join()
-            # Add G to previous G array, or overwrite if not reusing
-            self.G = np.concatenate((self.G, G), axis=0) if reuse else G
-            self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
-            print(f"G,Q time {time.time() - start:.4f}")
-
-            #     # return G, Q
-            # else:
-            #     # For large N, inv(H^T*H + delta*eye(N)) can be singular.
-            #     # Regenerate h if this is the case and run again.
-            #     util.misc.printProgressBar(0, split_N, "G,Q generation")
-            #         for i, section in enumerate(sections):
-            #             singular = True
-            #             while singular:
-            #                 try:
-
-            #                     G = np.concatenate((G, np.array(new_G)), axis=0)
-            #                     Q = np.concatenate((Q, np.array(new_Q)), axis=0)
-            #                     singular = False
-            #                     util.misc.printProgressBar(i + 1, split_N, "G,Q generation ")
-            #                 except KeyboardInterrupt:
-            #                     sys.exit()
-            #                 except:
-            #                     self.h[-section] = (
-            #                         self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
-            #                     ).astype(dtype)
-            #                     util.misc.printProgressBar(i, split_N, "Singular, rerun")
-
-            #     self.G = np.concatenate((self.G, G), axis=0) if reuse else G
-            #     self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
-            #     print(f"CPU thread workers = {workers}, time = {time.time() - start:.4f}")
-
-            # return G, Q
+        self.G = np.concatenate((self.G, G), axis=0) if reuse else G
+        self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
+        print(f"G,Q time {time.time() - start:.4f}")
 
     def _gen_GQ_sample(self, h):
 
