@@ -157,10 +157,11 @@ class _MAF_helper(ABC):
 
         for i in range(3):
             gc.collect()
-        if method == "both":
-            return H[0], H[1], estimator
-        else:
-            return H, estimator
+
+        # if method == "both":
+        #     return (H[0], H[1]), estimator
+        # else:
+        return H, estimator
 
     @classmethod
     def calc_entropy_thread(

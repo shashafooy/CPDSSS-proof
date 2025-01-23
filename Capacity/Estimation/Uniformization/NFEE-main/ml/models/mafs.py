@@ -188,10 +188,10 @@ class MaskedAutoregressiveFlow:
         n_size = []
         x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
-        max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
-        for i in range(0, x.shape[0], max_samp):
-            trn_loss.append(self._eval_trn_loss(x[i : i + max_samp, :]))
-            n_size.append(x[i : i + max_samp, :].shape[0])
+        N_split = np.ceil(x.size / self.max_samp)
+        for section in np.array_split(range(x.shape[0]), N_split):
+            trn_loss.append(self._eval_trn_loss(x[section, :]))
+            n_size.append(x[section, :].shape[0])
         # combine means
         return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
 
@@ -207,10 +207,10 @@ class MaskedAutoregressiveFlow:
         n_size = []
         x = x[0] if isinstance(x, list) else x
         x = np.asarray(x, dtype=dtype)
-        max_samp = int(self.max_samp / x.shape[1])
-        for i in range(0, x.shape[0], max_samp):
-            stg_loss.append(self._eval_stage_loss(x[i : i + max_samp, :], index))
-            n_size.append(x[i : i + max_samp, :].shape[0])
+        N_split = np.ceil(x.size / self.max_samp)
+        for section in np.array_split(range(x.shape[0]), N_split):
+            stg_loss.append(self._eval_stage_loss(x[section, :], index))
+            n_size.append(x[section, :].shape[0])
         # combine means
         return sum(np.asarray(stg_loss) * np.asarray(n_size)) / (sum(n_size))
 
@@ -287,9 +287,9 @@ class MaskedAutoregressiveFlow:
             u = self.eval_us_f(x[np.newaxis, :])[0]
         else:
             u = []
-            max_samp = int(self.max_samp / x.shape[1])
-            for i in range(0, x.shape[0], max_samp):
-                u.append(self.eval_us_f(x[i : i + max_samp, :], stage_idx))
+            N_split = np.ceil(x.size / self.max_samp)
+            for section in np.array_split(range(x.shape[0]), N_split):
+                u.append(self.eval_us_f(x[section, :], stage_idx))
 
             # Concatenate the results into a single array
             u = np.concatenate(u) if len(u) > 1 else u[0]
@@ -305,9 +305,9 @@ class MaskedAutoregressiveFlow:
             logdet_jacobi = self.eval_jacobian_u(x[np.newaxis, :])[0]
         else:
             logdet_jacobi = []
-            max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
-            for i in range(0, x.shape[0], max_samp):
-                logdet_jacobi.append(self.eval_jacobian_u(x[i : i + max_samp, :]))
+            N_split = np.ceil(x.size / self.max_samp)
+            for section in np.array_split(range(x.shape[0]), N_split):
+                logdet_jacobi.append(self.eval_jacobian_u(x[section, :]))
             # Concatenate the results into a single array
             logdet_jacobi = (
                 np.concatenate(logdet_jacobi) if len(logdet_jacobi) > 1 else logdet_jacobi[0]
@@ -498,13 +498,13 @@ class ConditionalMaskedAutoregressiveFlow:
         input, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
         trn_loss = []
         n_size = []
-        max_samp = int(
-            self.max_samp / (input.shape[1] + givens.shape[1])
-        )  # approximately 1M total points
-        for i in range(0, input.shape[0], max_samp):
-            data_range = range(i, min(i + max_samp, input.shape[0]))
-            trn_loss.append(self._eval_trn_loss(input[data_range, :], givens[data_range, :]))
-            n_size.append(len(data_range))
+        # process at most max_samp points at a time. Minimizes memory usage
+        N_split = np.ceil(givens.size / self.max_samp)
+        for section in np.array_split(range(input.shape[0]), N_split):
+            # for i in range(0, input.shape[0], max_samp):
+            # data_range = range(i, min(i + max_samp, input.shape[0]))
+            trn_loss.append(self._eval_trn_loss(input[section, :], givens[section, :]))
+            n_size.append(len(section))
         # combine means
         return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
 
@@ -520,14 +520,13 @@ class ConditionalMaskedAutoregressiveFlow:
                 inputs=[self.input, self.givens, self.stage_idx],
                 outputs=self.stage_loss_tensor[self.stage_idx],
             )
-        x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
+        inputs, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
         trn_loss = []
         n_size = []
-        max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
-        for i in range(0, x.shape[0], max_samp):
-            data_range = range(i, min(i + max_samp, x.shape[0]))
-            trn_loss.append(self._eval_trn_loss(x[data_range, :], y[data_range, :], index))
-            n_size.append(len(data_range))
+        N_split = np.ceil(givens.size / self.max_samp)
+        for section in np.array_split(range(input.shape[0]), N_split):
+            trn_loss.append(self._eval_trn_loss(inputs[section, :], givens[section, :], index))
+            n_size.append(len(section))
         # combine means
         return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
 
@@ -613,13 +612,12 @@ class ConditionalMaskedAutoregressiveFlow:
         if self.eval_us_f is None:
             self.eval_us_f = theano.function(inputs=[self.input, self.givens], outputs=self.u)
 
-        x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
+        inputs, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
 
         u = []
-        max_samp = int(self.max_samp / x.shape[1])
-        for i in range(0, x.shape[0], max_samp):
-            d_range = range(i, min(i + max_samp, x.shape[0]))
-            u.append(self.eval_us_f(x[d_range, :], y[d_range, :]))
+        N_split = np.ceil(givens.size / self.max_samp)
+        for section in np.array_split(range(input.shape[0]), N_split):
+            u.append(self.eval_us_f(inputs[section, :], givens[section, :]))
 
         # Concatenate the results into a single array
         u = np.concatenate(u) if len(u) > 1 else u[0]
@@ -640,16 +638,15 @@ class ConditionalMaskedAutoregressiveFlow:
                 inputs=[self.input, self.givens], outputs=self.logdet_dudy
             )
 
-        x, y, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
+        inputs, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
 
         # logdet_jacobi = self.eval_jacobian_u(x, y)
         # logdet_jacobi = logdet_jacobi[0] if one_datapoint else logdet_jacobi
 
         logdet_jacobi = []
-        max_samp = int(self.max_samp / x.shape[1])  # approximately 1M total points
-        for i in range(0, x.shape[0], max_samp):
-            d_range = range(i, min(i + max_samp, x.shape[0]))
-            logdet_jacobi.append(self.eval_jacobian_u(x[d_range, :], y[d_range, :]))
+        N_split = np.ceil(givens.size / self.max_samp)
+        for section in np.array_split(range(input.shape[0]), N_split):
+            logdet_jacobi.append(self.eval_jacobian_u(inputs[section, :], givens[section, :]))
         # Concatenate the results into a single array
         logdet_jacobi = (
             np.concatenate(logdet_jacobi) if len(logdet_jacobi) > 1 else logdet_jacobi[0]
