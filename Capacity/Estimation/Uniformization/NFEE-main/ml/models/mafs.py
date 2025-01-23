@@ -495,12 +495,12 @@ class ConditionalMaskedAutoregressiveFlow:
             self._eval_trn_loss = theano.function(
                 inputs=[self.input, self.givens], outputs=self.trn_loss
             )
-        input, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
+        inputs, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
         trn_loss = []
         n_size = []
         # process at most max_samp points at a time. Minimizes memory usage
         N_split = np.ceil(givens.size / self.max_samp)
-        for section in np.array_split(range(input.shape[0]), N_split):
+        for section in np.array_split(range(inputs.shape[0]), N_split):
             # for i in range(0, input.shape[0], max_samp):
             # data_range = range(i, min(i + max_samp, input.shape[0]))
             trn_loss.append(self._eval_trn_loss(input[section, :], givens[section, :]))
@@ -524,7 +524,7 @@ class ConditionalMaskedAutoregressiveFlow:
         trn_loss = []
         n_size = []
         N_split = np.ceil(givens.size / self.max_samp)
-        for section in np.array_split(range(input.shape[0]), N_split):
+        for section in np.array_split(range(inputs.shape[0]), N_split):
             trn_loss.append(self._eval_trn_loss(inputs[section, :], givens[section, :], index))
             n_size.append(len(section))
         # combine means
@@ -616,7 +616,7 @@ class ConditionalMaskedAutoregressiveFlow:
 
         u = []
         N_split = np.ceil(givens.size / self.max_samp)
-        for section in np.array_split(range(input.shape[0]), N_split):
+        for section in np.array_split(range(inputs.shape[0]), N_split):
             u.append(self.eval_us_f(inputs[section, :], givens[section, :]))
 
         # Concatenate the results into a single array
@@ -645,7 +645,7 @@ class ConditionalMaskedAutoregressiveFlow:
 
         logdet_jacobi = []
         N_split = np.ceil(givens.size / self.max_samp)
-        for section in np.array_split(range(input.shape[0]), N_split):
+        for section in np.array_split(range(inputs.shape[0]), N_split):
             logdet_jacobi.append(self.eval_jacobian_u(inputs[section, :], givens[section, :]))
         # Concatenate the results into a single array
         logdet_jacobi = (
