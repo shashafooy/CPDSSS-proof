@@ -24,7 +24,7 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 1000
+n_train_samples = 100000
 
 N = 6
 inputs = 2
@@ -37,19 +37,28 @@ mu = np.zeros((N))
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
 sigma = np.tile(row, (N, 1))
 np.fill_diagonal(sigma, 1)
-sigma = 2 * np.eye(N)
+sigma_n = 2 * np.eye(N)
+sigma_A = 1
 A = np.random.normal(0, 1, (n_samples, N, N))
 x = np.random.normal(0, 1, (n_samples, N, 1))
 n = np.random.multivariate_normal(mu, sigma, n_samples)
 y = np.squeeze(np.matmul(A, x)) + n
 sim_model = simMod.Gaussian(mu, sigma)
 sim_model.input_dim = [N, N]
-H, estimator = ent.calc_entropy(sim_model, base_samples=[y, np.squeeze(x)], method="both")
+# H, estimator = ent.calc_entropy(sim_model, base_samples=[y, np.squeeze(x)], method="both")
 H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma))
-
+xAx = np.matmul(np.matmul(x.transpose(0, 2, 1), np.eye(N)), x)
+H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + np.mean(N / 2 * np.log(xAx + sigma_n[0, 0]))
 # sigma = np.array([np.roll(row, i) for i in range(N)])
+
+import sys
+
+sys.exit()
+
+
 for i in range(1, N):
     sigma[i, :i] = row[i]
+
 
 sim_model = simMod.Gaussian(mu, sigma)
 samples = sim_model.sim(n_train_samples * N)
