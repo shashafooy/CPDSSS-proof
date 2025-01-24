@@ -24,7 +24,7 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 1000
+n_train_samples = 100000
 
 N = 6
 inputs = 2
