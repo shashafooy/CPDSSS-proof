@@ -33,7 +33,7 @@ givens = N - inputs
 model = None
 n_samples = N * n_train_samples
 
-
+misc.print_border("A is random")
 """
 y=Ax+n
 A is random"""
@@ -55,10 +55,12 @@ xAx = np.matmul(np.matmul(x.transpose(0, 2, 1), np.eye(N)), x)
 H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + np.mean(N / 2 * np.log(xAx + sigma_n[0, 0]))
 # sigma = np.array([np.roll(row, i) for i in range(N)])
 
-print(f"y=Ax+n, A is random")
+
+print(f"\ny=Ax+n, A is random")
 print(f"estimated H: {H}")
 print(f"true H: {H_true:.4f}")
 
+misc.print_border("A is constant")
 
 """
 y=Ax+n
@@ -80,11 +82,14 @@ print(f"y=Ax+n, A is random")
 print(f"estimated H: {H}")
 print(f"true H: {H_true:.4f}")
 
+
 # import sys
 
 # sys.exit()
 
 """gaussian covariance, same diminishing covar for each var"""
+misc.print_border("gaussian covar decreasing for each N")
+
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
 sigma = np.tile(row, (N, 1))
 np.fill_diagonal(sigma, 1)
@@ -111,6 +116,8 @@ print(f"true H: {H_true:.4f}")
 
 
 """Toeplitz sigma"""
+misc.print_border("gaussian covar toeplitz. high correlation with nearby vars")
+
 
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
 sigma = lin.toeplitz(row)
