@@ -736,6 +736,7 @@ class ConditionalGaussianMade:
         givens=None,
         input=None,
         rng=np.random,
+        modify_givens=True,
     ):
         """
         Constructor.
@@ -747,6 +748,7 @@ class ConditionalGaussianMade:
         :param mode: strategy for assigning degrees to hidden nodes: can be 'random' or 'sequential'
         :param input: theano variable to serve as input; if None, a new variable is created
         :param output: theano variable to serve as output; if None, a new variable is created
+        :param modify_givens: Boolean to determine if [givens] should be modified. Set to false if this is the last made
         """
 
         # save input arguments
@@ -762,8 +764,15 @@ class ConditionalGaussianMade:
         Wx, Ws, bs, Wm, bm, Wp, bp = create_weights_conditional(
             n_givens, n_inputs, n_hiddens, None, rng
         )
+        if modify_givens:
+            y_W, y_b, y_W2, y_b2, _, _ = create_weights(n_givens, n_hiddens, None, rng)
+            y_W.append(y_W2)
+            y_b.append(y_b2)
+            self.parms = [Wx] + Ws + bs + [Wm, bm, Wp, bp] + y_W + y_b
+        else:
+            self.parms = [Wx] + Ws + bs + [Wm, bm, Wp, bp]
         self.masks = Ms + [Mmp]
-        self.parms = [Wx] + Ws + bs + [Wm, bm, Wp, bp]
+
         self.output_order = degrees[0]
 
         # activation function
@@ -779,6 +788,13 @@ class ConditionalGaussianMade:
         for l, (M, W, b) in enumerate(zip(Ms[1:], Ws[1:], bs[1:])):
             h = f(tt.dot(h, M * W) + b)
             h.name = "h" + str(l + 2)
+
+        y_out = self.givens
+        if modify_givens:
+            for l, (W, b) in enumerate(zip(y_W, y_b)):
+                y_out = f(tt.dot(y_out, W) + b)
+                y_out.name = "y_out" + str(l + 1)
+        self.givens_out = y_out
 
         # output means
         self.m = tt.dot(h, Mmp * Wm) + bm

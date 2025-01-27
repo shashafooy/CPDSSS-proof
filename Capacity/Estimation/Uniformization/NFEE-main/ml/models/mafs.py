@@ -373,6 +373,7 @@ class ConditionalMaskedAutoregressiveFlow:
         self.stage_loss = []
         self.stage_out = []
         self.u = self.input
+        self.givens_out = self.givens
         self.logdet_dudy = 0.0
 
         self.max_samp = 1000000
@@ -387,9 +388,10 @@ class ConditionalMaskedAutoregressiveFlow:
                 act_fun,
                 output_order,
                 mode,
-                self.givens,
+                self.givens_out,
                 self.u,
                 rng,
+                i != n_mades - 1,
             )
             self.mades.append(made)
             self.parms += made.parms
@@ -398,6 +400,7 @@ class ConditionalMaskedAutoregressiveFlow:
 
             # inverse autoregressive transform
             self.u = made.u
+            self.givens_out = made.givens_out
             self.logdet_dudy += 0.5 * tt.sum(made.logp, axis=1)
 
             # batch normalization
