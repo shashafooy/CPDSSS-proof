@@ -151,9 +151,9 @@ class _MAF_helper(ABC):
         end_time = time.time()
         print(f"knn time: {str(timedelta(seconds = int(end_time - start_time)))}")
         if method == "both":
-            print(f"tKL H={H[0]:.3f}\ntKSG H={H[1]:.3f}")
+            print(f"tKL H={H[0]:.4f}\ntKSG H={H[1]:.4f}")
         else:
-            print(f"H={H:.3f}")
+            print(f"knn H={H:.4f}")
 
         for i in range(3):
             gc.collect()
@@ -257,7 +257,7 @@ class _MAF_helper(ABC):
         end_time = time.time()
         print("learning time: ", str(timedelta(seconds=int(end_time - start_time))))
         if train_samples[0] is not None:
-            print(f"Final Loss: {pretrained_model.eval_trnloss(train_samples):.3f}")
+            print(f"Final Loss: {pretrained_model.eval_trnloss(train_samples):.4f}")
 
         return estimator
 

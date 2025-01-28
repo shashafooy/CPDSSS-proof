@@ -26,12 +26,30 @@ n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
 n_train_samples = 100000
 
-N = 6
+N = 16
 inputs = 2
 givens = N - inputs
 
 model = None
 n_samples = N * n_train_samples
+
+
+for N in range(17, 20):
+    sim_model = simMod.Laplace(0, 2, N)
+    sim_model.input_dim = [1, N - 1]
+    samples = sim_model.sim(n_samples)
+    H, estimator = ent.calc_entropy(
+        sim_model, base_samples=[samples[:, :1], samples[:, 1:]], method="both"
+    )
+    H_true = sim_model.entropy() / N
+    print(f"\nLaplace N={N}")
+    print(f"estimated H: {H}")
+    print(f"true H: {H_true:.4f}")
+
+import sys
+
+sys.exit()
+
 
 misc.print_border("A is random")
 """
@@ -78,7 +96,7 @@ sim_model.input_dim = [N, N]
 H, estimator = ent.calc_entropy(sim_model, base_samples=[y, np.squeeze(x)], method="both")
 H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
 
-print(f"y=Ax+n, A is random")
+print(f"y=Ax+n, A is constant")
 print(f"estimated H: {H}")
 print(f"true H: {H_true:.4f}")
 
@@ -104,11 +122,11 @@ samples = [
     samples[:, inputs:],
 ]  # first 2 dim conditioned on last N-2 dimensions
 sim_model.input_dim = [inputs, givens]
-H, estimator = ent.calc_entropy(sim_model, base_samples=samples)
+H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
-true_H = joint_H - marginal_H
+H_true = joint_H - marginal_H
 
 print(f"gaussian covar, sigma always decreasing for each additional N.")
 print(f"estimated H: {H}")
@@ -131,15 +149,15 @@ samples = [
 ]  # first 2 dim conditioned on last N-2 dimensions
 sim_model.input_dim = [inputs, givens]
 
-H, estimator = ent.calc_entropy(sim_model, base_samples=samples)
+H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
-cond_H = joint_H - marginal_H
+H_true = joint_H - marginal_H
 
 print("sigma toeplitz, further away values have less weight")
 print(f"estimated H: {H}")
-print(f"true H: {cond_H:.4f}")
+print(f"true H: {H_true:.4f}")
 
 
 # """
