@@ -35,21 +35,21 @@ n_samples = N * n_train_samples
 
 
 
-for N in range(17, 20):
-    sim_model = simMod.Laplace(0, 2, N)
-    sim_model.input_dim = [inputs, N - inputs]
-    samples = sim_model.sim(n_samples)
-    H, estimator = ent.calc_entropy(
-        sim_model, base_samples=[samples[:, :inputs], samples[:, inputs:]], method="both"
-    )
-    H_true = sim_model.entropy() * inputs / N
-    print(f"\nLaplace N={N}")
-    print(f"estimated H: {H}")
-    print(f"true H: {H_true:.4f}")
+#for N in range(17, 20):
+#    sim_model = simMod.Laplace(0, 2, N)
+#    sim_model.input_dim = [inputs, N - inputs]
+#    samples = sim_model.sim(n_samples)
+#    H, estimator = ent.calc_entropy(
+#        sim_model, base_samples=[samples[:, :inputs], samples[:, inputs:]], method="both"
+#    )
+#    H_true = sim_model.entropy() * inputs / N
+#    print(f"\nLaplace N={N}")
+#    print(f"estimated H: {H}")
+#    print(f"true H: {H_true:.4f}")
 
-import sys
+#import sys
 
-sys.exit()
+#sys.exit()
 
 
 misc.print_border("A is random")
