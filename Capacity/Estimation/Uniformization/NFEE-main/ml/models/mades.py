@@ -764,7 +764,7 @@ class ConditionalGaussianMade:
         Wx, Ws, bs, Wm, bm, Wp, bp = create_weights_conditional(
             n_givens, n_inputs, n_hiddens, None, rng
         )
-        modify_givens=False
+#        modify_givens=False
 
         if modify_givens:
             y_W, y_b, y_W2, y_b2, _, _ = create_weights(n_givens, n_hiddens, None, rng)
