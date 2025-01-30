@@ -33,23 +33,24 @@ givens = N - inputs
 model = None
 n_samples = N * n_train_samples
 
+model_paths = "temp_data/saved_models/conditional_tests"
 
 
-for N in range(17, 20):
-    sim_model = simMod.Laplace(0, 2, N)
-    sim_model.input_dim = [inputs, N - inputs]
-    samples = sim_model.sim(n_samples)
-    H, estimator = ent.calc_entropy(
-        sim_model, base_samples=[samples[:, :inputs], samples[:, inputs:]], method="both"
-    )
-    H_true = sim_model.entropy() * inputs / N
-    print(f"\nLaplace N={N}")
-    print(f"estimated H: {H}")
-    print(f"true H: {H_true:.4f}")
+# for N in range(17, 20):
+#    sim_model = simMod.Laplace(0, 2, N)
+#    sim_model.input_dim = [inputs, N - inputs]
+#    samples = sim_model.sim(n_samples)
+#    H, estimator = ent.calc_entropy(
+#        sim_model, base_samples=[samples[:, :inputs], samples[:, inputs:]], method="both"
+#    )
+#    H_true = sim_model.entropy() * inputs / N
+#    print(f"\nLaplace N={N}")
+#    print(f"estimated H: {H}")
+#    print(f"true H: {H_true:.4f}")
 
-import sys
+# import sys
 
-sys.exit()
+# sys.exit()
 
 
 misc.print_border("A is random")
@@ -68,11 +69,14 @@ n = np.random.multivariate_normal(mu, sigma_n, n_samples)
 y = np.squeeze(np.matmul(A, x)) + n
 sim_model = simMod.Gaussian(mu, sigma)
 sim_model.input_dim = [N, N]
-H, estimator = ent.calc_entropy(sim_model, base_samples=[y, np.squeeze(x)], method="both")
+samples = [y, np.squeeze(x)]
+
+H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 # H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma))
 xAx = np.matmul(np.matmul(x.transpose(0, 2, 1), np.eye(N)), x)
 H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + np.mean(N / 2 * np.log(xAx + sigma_n[0, 0]))
 # sigma = np.array([np.roll(row, i) for i in range(N)])
+_ = ent.update_best_model(estimator.model, samples, name="random_A", path=model_paths)
 
 
 print(f"\ny=Ax+n, A is random")
@@ -94,8 +98,10 @@ n = np.random.multivariate_normal(mu, sigma_n, n_samples)
 y = np.squeeze(np.matmul(A, x)) + n
 sim_model = simMod.Gaussian(mu, sigma)
 sim_model.input_dim = [N, N]
-H, estimator = ent.calc_entropy(sim_model, base_samples=[y, np.squeeze(x)], method="both")
+samples = [y, np.squeeze(x)]
+H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
+_ = ent.update_best_model(estimator.model, samples, name="constant_A", path=model_paths)
 
 print(f"y=Ax+n, A is constant")
 print(f"estimated H: {H}")
@@ -129,6 +135,10 @@ joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
 H_true = joint_H - marginal_H
 
+_ = ent.update_best_model(
+    estimator.model, samples, name="gaussian_cov_decreasing", path=model_paths
+)
+
 print(f"gaussian covar, sigma always decreasing for each additional N.")
 print(f"estimated H: {H}")
 print(f"true H: {H_true:.4f}")
@@ -155,6 +165,10 @@ H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
 H_true = joint_H - marginal_H
+_ = ent.update_best_model(
+    estimator.model, samples, name="gaussian_cov_distance_falloff", path=model_paths
+)
+
 
 print("sigma toeplitz, further away values have less weight")
 print(f"estimated H: {H}")
