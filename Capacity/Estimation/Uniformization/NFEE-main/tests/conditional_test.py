@@ -17,7 +17,7 @@ import util.io
 SAVE_MODEL = True
 TRAIN_ONLY = False
 REUSE_MODEL = True
-LOAD_MODEL = True
+LOAD_MODEL = False
 
 SAVE_FILE = True
 
@@ -29,6 +29,7 @@ min_knn_samples = 2000000  # samples to generate per entros.pathy calc
 n_train_samples = 100000
 
 N = 8
+T = 1
 inputs = 2
 givens = N - inputs
 
@@ -59,7 +60,6 @@ misc.print_border("A is random")
 """
 y=Ax+n
 A is random"""
-T = 2
 name = f"random_A_{T}T"
 mu = np.zeros((N))
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
@@ -72,7 +72,7 @@ A = np.random.normal(0, sigma_A, (n_samples, N, N))
 x = np.random.normal(0, 1, (n_samples, N, T))
 # n = np.random.multivariate_normal(mu, sigma_n, n_samples)
 n = np.random.normal(0, sigma_n, (n_samples, N, T))
-y = np.squeeze(np.matmul(A, x)) + n
+y = np.matmul(A, x) + n
 sim_model = simMod.Gaussian(mu, sigma)
 
 sim_model.input_dim = [N * T, N * T]
@@ -86,7 +86,6 @@ else:
     H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 
 
-H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 dets = np.sum(
     np.log(np.linalg.eigvalsh(sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x))),
     axis=1,
