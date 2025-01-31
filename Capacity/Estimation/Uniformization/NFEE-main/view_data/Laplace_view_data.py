@@ -30,77 +30,30 @@ L = 2
 # filepath=filepaths[1]
 # idx=0
 # for idx,filepath in enumerate(filepaths):
-for filename in os.listdir(filepath):
-    if not os.path.isfile(os.path.join(filepath, filename)):
-        continue
-    filename = os.path.splitext(filename)[0]  # remove extention
-    _N_range, _H_unif_KL, _H_unif_KSG, _H_KL, _H_KSG, _iter = util.io.load(
-        os.path.join(filepath, filename)
-    )
-    iter = range(0, _iter + 1)
+N_range, data = viewData.read_data(filepath, REMOVE_OUTLIERS)
 
-    # Initialize arrays
-    if "N_range" not in locals():
-        N_range = _N_range
-        N_size = len(N_range)
-        H_unif_KL = np.empty((0, N_size))
-        H_unif_KSG = np.empty((0, N_size))
-        H_KL = np.empty((0, N_size))
-        H_KSG = np.empty((0, N_size))
-
-    H_unif_KL, _ = viewData.append_data(H_unif_KL, N_range, _H_unif_KL, _N_range)
-    H_unif_KSG, _ = viewData.append_data(H_unif_KSG, N_range, _H_unif_KSG, _N_range)
-    H_KL, _ = viewData.append_data(H_KL, N_range, _H_KL, _N_range)
-    H_KSG, N_range = viewData.append_data(H_KSG, N_range, _H_KSG, _N_range)
-
-N_range = np.asarray(N_range[1:])
-viewData.clean_data(H_unif_KL)
-viewData.clean_data(H_unif_KSG)
-viewData.clean_data(H_KL)
-viewData.clean_data(H_KSG)
-
-# Remove any data that is outside of 3 standard deviations. These data points can be considered outliers.
-if REMOVE_OUTLIERS:
-    H_unif_KL = viewData.remove_outlier(H_unif_KL)
-    H_unif_KSG = viewData.remove_outlier(H_unif_KSG)
-    H_KL = viewData.remove_outlier(H_KL)
-    H_KSG = viewData.remove_outlier(H_KSG)
-
-H_unif_KL = H_unif_KL[:, 1:] / N_range
-H_unif_KSG = H_unif_KSG[:, 1:] / N_range
-H_KL = H_KL[:, 1:] / N_range
-H_KSG = H_KSG[:, 1:] / N_range
+H_unif_KL, H_unif_KSG, H_KL, H_KSG = [viewData.Data(data[i] / N_range) for i in range(0, 4)]
 
 
-H_unif_KL_mean = np.nanmean(H_unif_KL, axis=0)
-H_unif_KSG_mean = np.nanmean(H_unif_KSG, axis=0)
-H_KL_mean = np.nanmean(H_KL, axis=0)
-H_KSG_mean = np.nanmean(H_KSG, axis=0)
+H_true = Laplace(0, 2, 1).entropy()
+# for i, N in enumerate(N_range):
+#     H_true[i] = Laplace(mu=0, b=2, N=N).entropy()
+# H_true = H_true / N_range
 
-H_unif_KL_std = np.nanstd(H_unif_KL, axis=0)
-H_unif_KSG_std = np.nanstd(H_unif_KSG, axis=0)
-H_KL_std = np.nanstd(H_KL, axis=0)
-H_KSG_std = np.nanstd(H_KSG, axis=0)
+# MSE_unif_KL = np.nanmean((H_unif_KL - H_true) ** 2, axis=0)
+# MSE_unif_KSG = np.nanmean((H_unif_KSG - H_true) ** 2, axis=0)
+# MSE_KL = np.nanmean((H_KL - H_true) ** 2, axis=0)
+# MSE_KSG = np.nanmean((H_KSG - H_true) ** 2, axis=0)
 
-H_true = np.empty(len(N_range))
-for i, N in enumerate(N_range):
-    H_true[i] = Laplace(mu=0, b=2, N=N).entropy()
-H_true = H_true / N_range
+# RMSE_unif_KL = np.sqrt(MSE_unif_KL)
+# RMSE_unif_KSG = np.sqrt(MSE_unif_KSG)
+# RMSE_KL = np.sqrt(MSE_KL)
+# RMSE_KSG = np.sqrt(MSE_KSG)
 
-MSE_unif_KL = np.nanmean((H_unif_KL - H_true) ** 2, axis=0)
-MSE_unif_KSG = np.nanmean((H_unif_KSG - H_true) ** 2, axis=0)
-MSE_KL = np.nanmean((H_KL - H_true) ** 2, axis=0)
-MSE_KSG = np.nanmean((H_KSG - H_true) ** 2, axis=0)
-
-RMSE_unif_KL = np.sqrt(MSE_unif_KL)
-RMSE_unif_KSG = np.sqrt(MSE_unif_KSG)
-RMSE_KL = np.sqrt(MSE_KL)
-RMSE_KSG = np.sqrt(MSE_KSG)
-
-err_unif_KL = np.abs(H_true - H_unif_KL_mean)
-err_unif_KSG = np.abs(H_true - H_unif_KSG_mean)
-err_KL = np.abs(H_true - H_KL_mean)
-err_KSG = np.abs(H_true - H_KSG_mean)
+err_unif_KL = np.abs(H_true - H_unif_KL.mean)
+err_unif_KSG = np.abs(H_true - H_unif_KSG.mean)
+err_KL = np.abs(H_true - H_KL.mean)
+err_KSG = np.abs(H_true - H_KSG.mean)
 
 # PLOTS
 

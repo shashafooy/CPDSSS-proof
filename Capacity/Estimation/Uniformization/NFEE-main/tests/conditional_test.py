@@ -28,14 +28,14 @@ n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
 n_train_samples = 100000
 
-N = 16
+N = 8
 inputs = 2
 givens = N - inputs
 
 model = None
 n_samples = N * n_train_samples
 
-model_paths = "temp_data/saved_models/conditional_tests"
+model_paths = f"temp_data/saved_models/conditional_tests/{N}N"
 
 
 # for N in range(17, 20):
@@ -59,30 +59,39 @@ misc.print_border("A is random")
 """
 y=Ax+n
 A is random"""
-name = "random_A"
+T = 2
+name = f"random_A_{T}T"
 mu = np.zeros((N))
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
 sigma = np.tile(row, (N, 1))
 np.fill_diagonal(sigma, 1)
-sigma_n = 2 * np.eye(N)
+sigma_n = 2  # * np.eye(N)
 sigma_A = 1
-A = np.random.normal(0, 1, (n_samples, N, N))
-x = np.random.normal(0, 1, (n_samples, N, 1))
-n = np.random.multivariate_normal(mu, sigma_n, n_samples)
+
+A = np.random.normal(0, sigma_A, (n_samples, N, N))
+x = np.random.normal(0, 1, (n_samples, N, T))
+# n = np.random.multivariate_normal(mu, sigma_n, n_samples)
+n = np.random.normal(0, sigma_n, (n_samples, N, T))
 y = np.squeeze(np.matmul(A, x)) + n
 sim_model = simMod.Gaussian(mu, sigma)
-sim_model.input_dim = [N, N]
-samples = [y, np.squeeze(x)]
+
+sim_model.input_dim = [N * T, N * T]
+samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
+
 if LOAD_MODEL:
     model = ent.load_model(name=name, path=model_paths)
     estimator = UMestimator(sim_model, model, samples)
     H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
 else:
     H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
-# H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma))
-xAx = np.matmul(np.matmul(x.transpose(0, 2, 1), np.eye(N)), x)
-H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + np.mean(N / 2 * np.log(xAx + sigma_n[0, 0]))
-# sigma = np.array([np.roll(row, i) for i in range(N)])
+
+
+H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+dets = np.sum(
+    np.log(np.linalg.eigvalsh(sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x))),
+    axis=1,
+)
+H_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(dets)
 _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 
@@ -91,7 +100,9 @@ print(f"estimated H: {H}")
 print(f"true H: {H_true:.4f}")
 
 misc.print_border("A is constant")
+import sys
 
+sys.exit()
 """
 y=Ax+n
 A is constant"""
