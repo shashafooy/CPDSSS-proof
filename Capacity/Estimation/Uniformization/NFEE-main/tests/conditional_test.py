@@ -28,8 +28,8 @@ n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
 n_train_samples = 100000
 
-N = 8
-T = 1
+N = 16
+T = 2
 inputs = 2
 givens = N - inputs
 
@@ -85,7 +85,7 @@ if LOAD_MODEL:
 else:
     H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 
-
+# covar is symmetric so det is the product of eigenvalues
 dets = np.sum(
     np.log(np.linalg.eigvalsh(sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x))),
     axis=1,
