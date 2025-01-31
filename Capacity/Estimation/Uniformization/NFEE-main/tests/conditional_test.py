@@ -35,7 +35,7 @@ inputs = 2
 givens = N - inputs
 
 model = None
-n_samples = N * n_train_samples
+n_samples = N * T * n_train_samples
 
 model_paths = f"temp_data/saved_models/conditional_tests/{N}N"
 
@@ -71,6 +71,7 @@ sigma_A = 1
 
 for T in T_range:
     name = f"random_A_{T}T"
+    n_samples = N * T * n_train_samples
     A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N))
     x = np.random.normal(0, 1, (n_samples, N, T))
     n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
