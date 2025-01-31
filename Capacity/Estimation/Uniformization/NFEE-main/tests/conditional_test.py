@@ -17,6 +17,7 @@ import util.io
 SAVE_MODEL = True
 TRAIN_ONLY = False
 REUSE_MODEL = True
+LOAD_MODEL = False
 
 SAVE_FILE = True
 
@@ -28,6 +29,7 @@ min_knn_samples = 2000000  # samples to generate per entros.pathy calc
 n_train_samples = 100000
 
 N = 8
+T = 1
 inputs = 2
 givens = N - inputs
 
@@ -58,7 +60,6 @@ misc.print_border("A is random")
 """
 y=Ax+n
 A is random"""
-T = 2
 name = f"random_A_{T}T"
 mu = np.zeros((N))
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
@@ -73,21 +74,23 @@ x = np.random.normal(0, 1, (n_samples, N, T))
 n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
 y = np.matmul(A, x) + n
 sim_model = simMod.Gaussian(mu, sigma)
+
 sim_model.input_dim = [N * T, N * T]
 samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
 
-# model = ent.load_model(name=name, path=model_paths)
-# estimator = UMestimator(sim_model, model, samples)
-# estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
+if LOAD_MODEL:
+    model = ent.load_model(name=name, path=model_paths)
+    estimator = UMestimator(sim_model, model, samples)
+    H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
+else:
+    H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 
 
-H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 dets = np.sum(
     np.log(np.linalg.eigvalsh(sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x))),
     axis=1,
 )
 H_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(dets)
-# sigma = np.array([np.roll(row, i) for i in range(N)])
 _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 
@@ -102,6 +105,7 @@ sys.exit()
 """
 y=Ax+n
 A is constant"""
+name = "constant_A"
 mu = np.zeros((N))
 
 sigma_n = 2 * np.eye(N)
@@ -113,9 +117,14 @@ y = np.squeeze(np.matmul(A, x)) + n
 sim_model = simMod.Gaussian(mu, sigma)
 sim_model.input_dim = [N, N]
 samples = [y, np.squeeze(x)]
-H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+if LOAD_MODEL:
+    model = ent.load_model(name=name, path=model_paths)
+    estimator = UMestimator(sim_model, model, samples)
+    H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
+else:
+    H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
-_ = ent.update_best_model(estimator.model, samples, name="constant_A", path=model_paths)
+_ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 print(f"y=Ax+n, A is constant")
 print(f"estimated H: {H}")
@@ -129,6 +138,7 @@ print(f"true H: {H_true:.4f}")
 """gaussian covariance, same diminishing covar for each var"""
 misc.print_border("gaussian covar decreasing for each N")
 
+name = "gaussian_cov_decreasing"
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
 sigma = np.tile(row, (N, 1))
 np.fill_diagonal(sigma, 1)
@@ -143,15 +153,18 @@ samples = [
     samples[:, inputs:],
 ]  # first 2 dim conditioned on last N-2 dimensions
 sim_model.input_dim = [inputs, givens]
-H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+if LOAD_MODEL:
+    model = ent.load_model(name=name, path=model_paths)
+    estimator = UMestimator(sim_model, model, samples)
+    H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
+else:
+    H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
 H_true = joint_H - marginal_H
 
-_ = ent.update_best_model(
-    estimator.model, samples, name="gaussian_cov_decreasing", path=model_paths
-)
+_ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 print(f"gaussian covar, sigma always decreasing for each additional N.")
 print(f"estimated H: {H}")
@@ -161,7 +174,7 @@ print(f"true H: {H_true:.4f}")
 """Toeplitz sigma"""
 misc.print_border("gaussian covar toeplitz. high correlation with nearby vars")
 
-
+name = "gaussian_cov_distance_falloff"
 row = np.ones((N)) * np.exp(-np.arange(N) / 2)
 sigma = lin.toeplitz(row)
 
@@ -174,14 +187,16 @@ samples = [
 ]  # first 2 dim conditioned on last N-2 dimensions
 sim_model.input_dim = [inputs, givens]
 
-H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
-
+if LOAD_MODEL:
+    model = ent.load_model(name=name, path=model_paths)
+    estimator = UMestimator(sim_model, model, samples)
+    H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
+else:
+    H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
 H_true = joint_H - marginal_H
-_ = ent.update_best_model(
-    estimator.model, samples, name="gaussian_cov_distance_falloff", path=model_paths
-)
+_ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 
 print("sigma toeplitz, further away values have less weight")
