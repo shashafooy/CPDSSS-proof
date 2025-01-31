@@ -67,11 +67,11 @@ np.fill_diagonal(sigma, 1)
 sigma_n = 2  # * np.eye(N)
 sigma_A = 1
 
-A = np.random.normal(0, sigma_A, (n_samples, N, N))
+A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N))
 x = np.random.normal(0, 1, (n_samples, N, T))
 # n = np.random.multivariate_normal(mu, sigma_n, n_samples)
-n = np.random.normal(0, sigma_n, (n_samples, N, T))
-y = np.squeeze(np.matmul(A, x)) + n
+n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
+y = np.matmul(A, x) + n
 sim_model = simMod.Gaussian(mu, sigma)
 sim_model.input_dim = [N * T, N * T]
 samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
