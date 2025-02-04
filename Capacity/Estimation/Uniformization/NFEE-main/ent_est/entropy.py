@@ -12,6 +12,10 @@ import ml.step_strategies as ss
 
 from misc_CPDSSS.util import BackgroundThread
 
+from theano import config
+
+dtype = config.floatX
+
 
 config = configparser.ConfigParser()
 config.read("CPDSSS.ini")
@@ -45,7 +49,7 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
         _type_: entropy estimate, return list if k is a list
     """
 
-    y = np.asarray(y, float)
+    y = np.asarray(y, dtype)
     N, dim = y.shape
     if isinstance(k, list):
         max_k = k[-1]
@@ -126,7 +130,7 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     Returns:
         _type_: entropy estimate, returns list of estimates in K is a list
     """
-    y = np.asarray(y, float)
+    y = np.asarray(y, dtype)
 
     if isinstance(k, list):
         max_k = k[-1]
@@ -205,7 +209,7 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         _type_: entropy estimate
     """
 
-    y = np.asarray(y, float)
+    y = np.asarray(y, dtype)
 
     if standardize == True:
         y_std = np.std(y, axis=0)
@@ -256,7 +260,7 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
         _type_: entropy estimate
     """
 
-    y = np.asarray(y, float)
+    y = np.asarray(y, dtype)
     N, dim = y.shape
 
     if n is None:
@@ -303,7 +307,7 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     Alexander Kraskov, Harald Stogbauer, and Peter Grassberger, "Estimating Mutual Information", Physical review E, 2004
     """
 
-    y = np.asarray(y, float)
+    y = np.asarray(y, dtype)
 
     if standardize == True:
         y_std = np.std(y, axis=0)
@@ -356,7 +360,7 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
     Implements the KSG entropy estimation in m-dimensional case, as discribed by:
     Alexander Kraskov, Harald Stogbauer, and Peter Grassberger, "Estimating Mutual Information", Physical review E, 2004
     """
-    y = np.asarray(y, float)
+    y = np.asarray(y, dtype)
     N, dim = y.shape
 
     if n is None:
@@ -430,7 +434,7 @@ def learn_density(
         _type_: Trained model
     """
     xs = xs if isinstance(xs, list) else [xs]
-    xs = [np.asarray(_xs, np.float32) for _xs in xs]
+    xs = [np.asarray(_xs, dtype) for _xs in xs]
 
     n_data = xs[0].shape[0]
 
