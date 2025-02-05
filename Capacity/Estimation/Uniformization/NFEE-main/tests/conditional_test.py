@@ -17,7 +17,7 @@ import util.io
 SAVE_MODEL = True
 TRAIN_ONLY = False
 REUSE_MODEL = True
-LOAD_MODEL = False
+LOAD_MODEL = True
 
 SAVE_FILE = True
 
@@ -82,8 +82,9 @@ for T in T_range:
     samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
 
     if LOAD_MODEL:
-        model = ent.load_model(name=name, path=model_paths)
-        estimator = UMestimator(sim_model, model, samples)
+        # model = ent.load_model(name=name, path=model_paths)
+        # estimator = UMestimator(sim_model, model, samples)
+        estimator = ent.learn_model(sim_model, train_samples=[samples[0][:1000], samples[1][:1000]])
         H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
     else:
         H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
