@@ -16,8 +16,8 @@ import util.io
 
 SAVE_MODEL = True
 TRAIN_ONLY = False
-REUSE_MODEL = True
-LOAD_MODEL = False
+REUSE_MODEL = False
+LOAD_MODEL = True
 
 SAVE_FILE = True
 
@@ -28,9 +28,9 @@ n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
 n_train_samples = 100000
 
-N = 16
+N = 6
 T = 2
-T_range = range(1, 9)
+T_range = range(4, 5)
 inputs = 2
 givens = N - inputs
 
@@ -81,12 +81,13 @@ for T in T_range:
     sim_model.input_dim = [N * T, N * T]
     samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
 
-    if LOAD_MODEL:
-        model = ent.load_model(name=name, path=model_paths)
+    model = ent.load_model(name=name,path=model_paths) if LOAD_MODEL else None
+    if REUSE_MODEL:
+#        model = ent.load_model(name=name, path=model_paths)
         estimator = UMestimator(sim_model, model, samples)
         H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
     else:
-        H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+        H, estimator = ent.calc_entropy(sim_model, model=model,base_samples=samples, method="both")
 
     # covar is symmetric so det is the product of eigenvalues
     dets = np.sum(
@@ -96,7 +97,8 @@ for T in T_range:
         axis=1,
     )
     H_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(dets)
-    _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
+    if SAVE_MODEL:
+        _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
     print(f"\ny=Ax+n, A is random T={T}")
     print(f"estimated H: {H}")
@@ -128,7 +130,8 @@ if LOAD_MODEL:
 else:
     H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
-_ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
+if SAVE_MODEL:
+    _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 print(f"y=Ax+n, A is constant")
 print(f"estimated H: {H}")
@@ -168,7 +171,8 @@ joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
 H_true = joint_H - marginal_H
 
-_ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
+if SAVE_MODEL:
+   _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 print(f"gaussian covar, sigma always decreasing for each additional N.")
 print(f"estimated H: {H}")
@@ -200,7 +204,8 @@ else:
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
 H_true = joint_H - marginal_H
-_ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
+if SAVE_MODEL:
+   _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 
 print("sigma toeplitz, further away values have less weight")
