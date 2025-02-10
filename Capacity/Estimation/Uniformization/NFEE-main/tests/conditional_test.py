@@ -17,10 +17,10 @@ import util.io
 
 SAVE_MODEL = True
 TRAIN_ONLY = False
-REUSE_MODEL = False
+REUSE_MODEL = True
 LOAD_MODEL = True
 
-SAVE_FILE = True
+SAVE_FILE = False
 
 """
 Number of iterations
@@ -98,6 +98,7 @@ for T in T_range:
     estimator = entMAF.learn_model(sim_mod2, train_samples=samples[1], n_hiddens=n_hiddens)
     H_x = np.asarray(estimator.calc_ent(samples=samples[1], method="both"))
     print(f"H_x:\n{H_x}")
+    print(f"True H: {simMod.Gaussian(0,1,N * T).entropy()}")
 
     sim_model.input_dim = [N * T, N * T]
     n_hiddens = [4 * sum(sim_model.input_dim)] * 3
