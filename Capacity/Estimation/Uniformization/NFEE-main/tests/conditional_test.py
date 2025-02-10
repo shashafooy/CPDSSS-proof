@@ -9,14 +9,15 @@ set_sys_path()
 
 import simulators.CPDSSS_models as simMod
 from misc_CPDSSS.entropy_util import Cond_MAF as ent
+from misc_CPDSSS.entropy_util import MAF as entMAF
 from misc_CPDSSS import util as misc
 from ent_est.entropy import UMestimator
 import util.io
 
 
-SAVE_MODEL = False
+SAVE_MODEL = True
 TRAIN_ONLY = False
-REUSE_MODEL = True
+REUSE_MODEL = False
 LOAD_MODEL = True
 
 SAVE_FILE = True
@@ -30,7 +31,7 @@ n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(4, 5)
+T_range = range(5, 6)
 inputs = 2
 givens = N - inputs
 
@@ -81,6 +82,16 @@ for T in T_range:
     sim_model.input_dim = [N * T, N * T]
     samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
 
+    sim_mod2 = sim_model
+    sim_mod2.input_dim = N * T * 2
+    H_xy,_ = entMAF.calc_entropy(sim_mod2,base_samples=np.concatenate(samples,axis=1), method="both")
+    H_xy = np.asarray(H_xy)
+    sim_mod2.input_dim = N * T
+    H_x,_ = entMAF.calc_entropy(sim_mod2,base_samples=samples[1], method="both")
+    H_x = np.asarray(H_x)
+    
+    sim_model.input_dim = [N * T, N * T]
+
     model = ent.load_model(name=name,path=model_paths) if LOAD_MODEL else None
     if REUSE_MODEL:
         # model = ent.load_model(name=name, path=model_paths)
@@ -103,6 +114,7 @@ for T in T_range:
 
     print(f"\ny=Ax+n, A is random T={T}")
     print(f"estimated H: {H}")
+    print(f"estimated H_XY - H_X: {H_xy-H_x}")
     print(f"true H: {H_true:.4f}")
 
 misc.print_border("A is constant")
