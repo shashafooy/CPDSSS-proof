@@ -86,14 +86,14 @@ for T in T_range:
 
     sim_mod2.input_dim = N * T * 2
     test_samples = np.concatenate(samples, axis=1)
-    n_hiddens = [4 * sum(sim_mod2.input_dim)] * 3
+    n_hiddens = [4 * sim_mod2.input_dim] * 3
     # H_xy, _ = entMAF.calc_entropy(sim_mod2, base_samples=test_samples, method="both")
     estimator = entMAF.learn_model(sim_mod2, train_samples=test_samples, n_hiddens=n_hiddens)
     H_xy = np.asarray(estimator.calc_ent(samples=test_samples, method="both"))
     print(f"H_xy:\n{H_xy}")
 
     sim_mod2.input_dim = N * T
-    n_hiddens = [4 * sum(sim_mod2.input_dim)] * 3
+    n_hiddens = [4 * sim_mod2.input_dim] * 3
     # H_x, _ = entMAF.calc_entropy(sim_mod2, base_samples=samples[1], method="both")
     estimator = entMAF.learn_model(sim_mod2, train_samples=samples[1], n_hiddens=n_hiddens)
     H_x = np.asarray(estimator.calc_ent(samples=samples[1], method="both"))
