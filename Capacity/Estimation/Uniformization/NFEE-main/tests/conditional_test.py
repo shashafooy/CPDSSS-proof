@@ -27,7 +27,7 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 100000
+n_train_samples = 10000
 
 N = 6
 T = 2
@@ -83,23 +83,33 @@ for T in T_range:
     samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
 
     sim_mod2 = sim_model
-    sim_mod2.input_dim = N * T * 2
-    H_xy,_ = entMAF.calc_entropy(sim_mod2,base_samples=np.concatenate(samples,axis=1), method="both")
-    H_xy = np.asarray(H_xy)
-    sim_mod2.input_dim = N * T
-    H_x,_ = entMAF.calc_entropy(sim_mod2,base_samples=samples[1], method="both")
-    H_x = np.asarray(H_x)
-    
-    sim_model.input_dim = [N * T, N * T]
 
-    model = ent.load_model(name=name,path=model_paths) if LOAD_MODEL else None
+    sim_mod2.input_dim = N * T * 2
+    test_samples = np.concatenate(samples, axis=1)
+    n_hiddens = [4 * sum(sim_mod2.input_dim)] * 3
+    # H_xy, _ = entMAF.calc_entropy(sim_mod2, base_samples=test_samples, method="both")
+    estimator = entMAF.learn_model(sim_mod2, train_samples=test_samples, n_hiddens=n_hiddens)
+    H_xy = np.asarray(estimator.calc_ent(samples=test_samples, method="both"))
+    print(f"H_xy:\n{H_xy}")
+
+    sim_mod2.input_dim = N * T
+    n_hiddens = [4 * sum(sim_mod2.input_dim)] * 3
+    # H_x, _ = entMAF.calc_entropy(sim_mod2, base_samples=samples[1], method="both")
+    estimator = entMAF.learn_model(sim_mod2, train_samples=samples[1], n_hiddens=n_hiddens)
+    H_x = np.asarray(estimator.calc_ent(samples=samples[1], method="both"))
+    print(f"H_x:\n{H_x}")
+
+    sim_model.input_dim = [N * T, N * T]
+    n_hiddens = [4 * sum(sim_model.input_dim)] * 3
+    model = ent.load_model(name=name, path=model_paths) if LOAD_MODEL else None
     if REUSE_MODEL:
         # model = ent.load_model(name=name, path=model_paths)
         # estimator = UMestimator(sim_model, model, samples)
-        estimator = ent.learn_model(sim_model, train_samples=[samples[0][:1000], samples[1][:1000]])
+        # train_samples=[samples[0][:1000], samples[1][:1000]]
+        estimator = ent.learn_model(sim_model, train_samples=samples, n_hiddens=n_hiddens)
         H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
     else:
-        H, estimator = ent.calc_entropy(sim_model, model=model,base_samples=samples, method="both")
+        H, estimator = ent.calc_entropy(sim_model, model=model, base_samples=samples, method="both")
 
     # covar is symmetric so det is the product of eigenvalues
     dets = np.sum(
@@ -117,10 +127,12 @@ for T in T_range:
     print(f"estimated H_XY - H_X: {H_xy-H_x}")
     print(f"true H: {H_true:.4f}")
 
-misc.print_border("A is constant")
 import sys
 
 sys.exit()
+
+misc.print_border("A is constant")
+
 """
 y=Ax+n
 A is constant"""
@@ -185,7 +197,7 @@ marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + 
 H_true = joint_H - marginal_H
 
 if SAVE_MODEL:
-   _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
+    _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 print(f"gaussian covar, sigma always decreasing for each additional N.")
 print(f"estimated H: {H}")
@@ -218,7 +230,7 @@ joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
 H_true = joint_H - marginal_H
 if SAVE_MODEL:
-   _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
+    _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 
 print("sigma toeplitz, further away values have less weight")
