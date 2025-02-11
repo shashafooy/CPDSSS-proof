@@ -23,9 +23,40 @@ class _distribution:
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, x_dim=0, rng=np.random):
-        self.x_dim = x_dim
-        self.input_dim = x_dim
+        self._input_dim = x_dim
         self.rng = rng.default_rng()
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def x_dim(self):
+        return self._x_dim
+
+    @input_dim.setter
+    def input_dim(self, val):
+        # Validate the input to ensure it's either an int or a list of ints
+        if isinstance(val, int):
+            pass  # Valid case for int
+        elif isinstance(val, list) and all(isinstance(x, int) for x in val):
+            pass  # Valid case for list of integers
+        else:
+            raise ValueError("input_dim must be an integer or a list of integers.")
+
+        self._input_dim = val
+        self.update_x_dim()
+
+    def update_x_dim(self):
+        if isinstance(self.input_dim, list):
+            self._x_dim = sum(self.input_dim)
+        else:
+            self._x_dim = self.input_dim
+
+    @x_dim.setter
+    def x_dim(self, val):
+        self._x_dim = val
+        self._input_dim = val
 
     @abc.abstractmethod
     def sim(self):
@@ -83,7 +114,7 @@ class CPDSSS(_distribution):
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
 
-        self.use_chan_in_sim()
+        # self.use_chan_in_sim()
         self._sim_chan_only = False
 
         self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
@@ -314,10 +345,9 @@ class CPDSSS(_distribution):
         """
         self._use_chan = h_flag
         if h_flag:
-            self.x_dim = self.N * self.T + self.N
+            self.input_dim = self.N * self.T + self.N
         else:
-            self.x_dim = self.N * self.T
-        self.input_dim = self.x_dim
+            self.input_dim = self.N * self.T
 
     def only_sim_chan(self, sim_h=True):
         """Set flag to only return G when using sim()
@@ -327,11 +357,11 @@ class CPDSSS(_distribution):
         """
         self._sim_chan_only = sim_h
         if sim_h:
-            self.x_dim = self.N
+            self.input_dim = self.N
         elif self._use_chan:
-            self.x_dim = self.N * self.T + self.N
+            self.input_dim = self.N * self.T + self.N
         else:
-            self.x_dim = self.N * self.T
+            self.input_dim = self.N * self.T
         self.input_dim = self.x_dim
 
     def get_base_X_h(self, n_samples=1000, reuse_GQ=False):
@@ -353,30 +383,25 @@ class CPDSSS(_distribution):
 
     def set_dim_hxc(self):
         self._use_chan = True
-        self.x_dim = self.N * (self.T - 1) + self.N
-        self.input_dim = self.x_dim
+        self.input_dim = self.N * (self.T - 1) + self.N
 
     def set_dim_xxc(self):
         self._use_chan = False
-        self.x_dim = self.N * self.T
-        self.input_dim = self.x_dim
+        self.input_dim = self.N * self.T
 
     def set_dim_cond(self):
         self._use_chan = False
-        self.x_dim = self.N * (self.T - 1)
-        self.input_dim = self.x_dim
+        self.input_dim = self.N * (self.T - 1)
 
     def set_dim_joint(self):
         self._use_chan = True
-        self.x_dim = self.N * self.T + self.N
-        self.input_dim = self.x_dim
+        self.input_dim = self.N * self.T + self.N
 
     def set_T(self, T):
         ### TODO: update class to change how many transmissions are outputted when calling sim().
         # Potentially look at re-using samples from sim
         self.T = T
 
-        self.x_dim = self.N * self.T + self.N
         self.input_dim = self.T * self.N
         self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
@@ -385,12 +410,11 @@ class CPDSSS(_distribution):
 class CPDSSS_Cond(CPDSSS):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(num_tx, N, L, d0, d1)
-        self.x_dim = N
         self.sim_val = None
         self._X = None
 
     def sim(self, n_samples=1000, reuse_GQ=False):
-        assert self.input_dim[1] is not None
+        assert self.input_dim[1] > 0
         # if not reuse_GQ or self._X is None:
         self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples, reuse_GQ)
         if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
@@ -401,19 +425,19 @@ class CPDSSS_Cond(CPDSSS):
 
     def set_Xcond(self):
         self.input_dim[1] = self.N * (self.T - 1)
-        self.x_dim = self.input_dim[1] + self.N
+        self.update_x_dim()
 
     def set_XHcond(self):
         self.input_dim[1] = self.N * self.T
-        self.x_dim = self.input_dim[1] + self.N
+        self.update_x_dim()
 
     def set_T(self, T):
         ### TODO: update class to change how many transmissions are outputted when calling sim().
         # Potentially look at re-using samples from sim
         self.T = T
 
-        self.x_dim = self.N * self.T + self.N
-        self.input_dim = [self.N, None]
+        # self.x_dim = self.N * self.T + self.N
+        self.input_dim = [self.N, 0]
         self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
 

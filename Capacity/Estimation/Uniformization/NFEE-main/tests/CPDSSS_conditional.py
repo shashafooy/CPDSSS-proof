@@ -21,7 +21,7 @@ SAVE_FILE = True
 """
 Parameters for CPDSSS
 """
-N = 16
+N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
@@ -33,16 +33,19 @@ T_range = range(2, 6)
 Number of iterations
 """
 n_trials = 100  # iterations to average
-min_knn_samples = 2000000  # samples to generate per entros.pathy calc
+min_knn_samples = 200000  # samples to generate per entropy calc
 n_train_samples = 100000
 
 
 """
 Initialize arrays
 """
-MI = np.empty((n_trials, len(T_range))) * np.nan
-H_XH = np.empty((n_trials, len(T_range))) * np.nan
-H_XX = np.empty((n_trials, len(T_range))) * np.nan
+MI_KL = np.empty((n_trials, len(T_range))) * np.nan
+MI_KSG = np.empty((n_trials, len(T_range))) * np.nan
+H_XH_KL = np.empty((n_trials, len(T_range))) * np.nan
+H_XH_KSG = np.empty((n_trials, len(T_range))) * np.nan
+H_XX_KL = np.empty((n_trials, len(T_range))) * np.nan
+H_XX_KSG = np.empty((n_trials, len(T_range))) * np.nan
 
 
 model = None
@@ -56,9 +59,7 @@ base_path = f"temp_data/CPDSSS_data/MI(h,X)/conditional/N{N}_d0d1({d0},{d1})/"
 path = base_path  # + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-model_path = f"temp_data/saved_models/{N}N_d0d1({d0},{d1})"
-X_path = os.path.join(model_path, "X")
-XH_path = os.path.join(model_path, "XH")
+base_model_path = f"temp_data/saved_models/conditional/{N}N_d0d1({d0},{d1})"
 
 
 # fix filename if file already exists
@@ -68,6 +69,7 @@ if SAVE_FILE:
 for i in range(n_trials):
     sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1)
     for k, T in enumerate(T_range):
+        name = f"{T}T"
         index = (i, k)
         """
         Generate samples
@@ -82,28 +84,42 @@ for i in range(n_trials):
 
         """Train H(xT | h, x1:T-1)"""
         misc.print_border(f"1/2 calculating H(xT | h, x1:T-1), T: {T}, iter: {i+1}")
-        name = f"{T-1}T"
+        model_path = os.path.join(base_model_path, "XH")
 
-        H_XH[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
+        model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
+        (H_XH_KL[index], H_XH_KSG[index]), estimator = ent.calc_entropy(
+            sim_model, model=model, base_samples=samples, method="both"
+        )
+
+        if SAVE_MODEL:
+            _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
 
         if SAVE_FILE:
             filename = misc.update_filename(path, filename, i)
             util.io.save(
-                (T_range, MI, H_XH, H_XX, i),
+                (T_range, MI_KL, MI_KSG, H_XH_KL, H_XH_KSG, H_XX_KL, H_XX_KSG, i),
                 os.path.join(path, filename),
             )
 
         """Train H(xT |x1:T-1)"""
         misc.print_border(f"2/2 calculating H(xT | x1:T-1), T: {T}, iter: {i+1}")
-        name = f"{T-1}T"
+        model_path = os.path.join(base_model_path, "X")
 
         sim_model.set_Xcond()
         samples = sim_model.sim(knn_samples, reuse_GQ=True)
-        H_XX[index], _ = ent.calc_entropy(sim_model, base_samples=samples)
-        MI[index] = H_XX[index] - H_XH[index]
+
+        model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
+        (H_XX_KL[index], H_XX_KSG[index]), estimator = ent.calc_entropy(
+            sim_model, model=model, base_samples=samples, method="both"
+        )
+        MI_KL[index] = H_XX_KL[index] - H_XH_KL[index]
+        MI_KSG[index] = H_XX_KSG[index] - H_XH_KSG[index]
+
+        if SAVE_MODEL:
+            _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
 
         if SAVE_FILE:
             util.io.save(
-                (T_range, MI, H_XH, H_XX, i),
+                (T_range, MI_KL, MI_KSG, H_XH_KL, H_XH_KSG, H_XX_KL, H_XX_KSG, i),
                 os.path.join(path, filename),
             )
