@@ -143,8 +143,10 @@ class _MAF_helper(ABC):
         Returns:
             _type_: entropy estimate
         """
+        n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
+        base_samples = base_samples if reuse else None
         estimator = cls.learn_model(
-            sim_model, model, n_train, train_samples=base_samples if reuse else None
+            sim_model, model, n_train, train_samples=base_samples, n_hiddens=n_hiddens
         )
         start_time = time.time()
         H = estimator.calc_ent(samples=base_samples, method=method)
