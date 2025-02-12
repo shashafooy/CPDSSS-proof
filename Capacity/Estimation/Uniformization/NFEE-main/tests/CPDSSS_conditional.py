@@ -25,7 +25,9 @@ N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-T_range = range(2, 6)
+d0=4
+d1=int(N-d0)
+T_range = range(5, 10)
 # T_range = range(5, 7)
 
 
