@@ -15,7 +15,7 @@ from ent_est.entropy import UMestimator
 import util.io
 
 
-SAVE_MODEL = True
+SAVE_MODEL = False
 TRAIN_ONLY = False
 REUSE_MODEL = True
 LOAD_MODEL = True
@@ -27,11 +27,11 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 10000
+n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(5, 6)
+T_range = range(1, 2)
 inputs = 2
 givens = N - inputs
 
@@ -72,7 +72,7 @@ sigma_A = 1
 
 for T in T_range:
     name = f"random_A_{T}T"
-    n_samples = N * T * n_train_samples
+    n_samples = 2* N * T * n_train_samples
     A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N))
     x = np.random.normal(0, 1, (n_samples, N, T))
     n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
@@ -87,7 +87,7 @@ for T in T_range:
     sim_mod2.input_dim = N * T * 2
     test_samples = np.concatenate(samples, axis=1)
     n_hiddens = [4 * sim_mod2.input_dim] * 3
-    # H_xy, _ = entMAF.calc_entropy(sim_mod2, base_samples=test_samples, method="both")
+#    H_xy, _ = entMAF.calc_entropy(sim_mod2, base_samples=test_samples, method="both")
     estimator = entMAF.learn_model(sim_mod2, train_samples=test_samples, n_hiddens=n_hiddens)
     H_xy = np.asarray(estimator.calc_ent(samples=test_samples, method="both"))
     print(f"H_xy:\n{H_xy}")
