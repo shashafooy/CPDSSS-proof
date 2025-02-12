@@ -23,6 +23,7 @@ class _distribution:
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, x_dim=0, rng=np.random):
+        self._x_dim = x_dim
         self._input_dim = x_dim
         self.rng = rng.default_rng()
 

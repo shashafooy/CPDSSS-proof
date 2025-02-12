@@ -31,7 +31,7 @@ n_train_samples = 10000
 
 N = 6
 T = 2
-T_range = range(5, 6)
+T_range = range(4, 6)
 inputs = 2
 givens = N - inputs
 
@@ -79,6 +79,17 @@ for T in T_range:
     y = np.matmul(A, x) + n
     sim_model = simMod.Gaussian(mu, sigma)
 
+    # covar is symmetric so det is the product (log sum) of eigenvalues
+    dets = np.sum(
+        np.log(
+            np.linalg.eigvalsh(sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x))
+        ),
+        axis=1,
+    )
+    H_ygx_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(dets)
+    H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
+    H_xy_true = H_ygx_true + H_x_true
+
     sim_model.input_dim = [N * T, N * T]
     samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
 
@@ -91,6 +102,7 @@ for T in T_range:
     estimator = entMAF.learn_model(sim_mod2, train_samples=test_samples, n_hiddens=n_hiddens)
     H_xy = np.asarray(estimator.calc_ent(samples=test_samples, method="both"))
     print(f"H_xy:\n{H_xy}")
+    print(f"True H: {H_xy_true}")
 
     sim_mod2.input_dim = N * T
     n_hiddens = [4 * sum(sim_mod2.input_dim)] * 3
@@ -98,7 +110,7 @@ for T in T_range:
     estimator = entMAF.learn_model(sim_mod2, train_samples=samples[1], n_hiddens=n_hiddens)
     H_x = np.asarray(estimator.calc_ent(samples=samples[1], method="both"))
     print(f"H_x:\n{H_x}")
-    print(f"True H: {simMod.Gaussian(0,1,N * T).entropy()}")
+    print(f"True H: {H_x_true}")
 
     sim_model.input_dim = [N * T, N * T]
     n_hiddens = [4 * sum(sim_model.input_dim)] * 3
@@ -112,21 +124,13 @@ for T in T_range:
     else:
         H, estimator = ent.calc_entropy(sim_model, model=model, base_samples=samples, method="both")
 
-    # covar is symmetric so det is the product of eigenvalues
-    dets = np.sum(
-        np.log(
-            np.linalg.eigvalsh(sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x))
-        ),
-        axis=1,
-    )
-    H_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(dets)
     if SAVE_MODEL:
         _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
     print(f"\ny=Ax+n, A is random T={T}")
     print(f"estimated H: {H}")
     print(f"estimated H_XY - H_X: {H_xy-H_x}")
-    print(f"true H: {H_true:.4f}")
+    print(f"true H: {H_ygx_true:.4f}")
 
 import sys
 
@@ -155,13 +159,13 @@ if LOAD_MODEL:
     H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
 else:
     H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
-H_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
+H_ygx_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
 if SAVE_MODEL:
     _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 print(f"y=Ax+n, A is constant")
 print(f"estimated H: {H}")
-print(f"true H: {H_true:.4f}")
+print(f"true H: {H_ygx_true:.4f}")
 
 
 # import sys
@@ -195,14 +199,14 @@ else:
 
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
-H_true = joint_H - marginal_H
+H_ygx_true = joint_H - marginal_H
 
 if SAVE_MODEL:
     _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 print(f"gaussian covar, sigma always decreasing for each additional N.")
 print(f"estimated H: {H}")
-print(f"true H: {H_true:.4f}")
+print(f"true H: {H_ygx_true:.4f}")
 
 
 """Toeplitz sigma"""
@@ -229,14 +233,14 @@ else:
     H, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
-H_true = joint_H - marginal_H
+H_ygx_true = joint_H - marginal_H
 if SAVE_MODEL:
     _ = ent.update_best_model(estimator.model, samples, name=name, path=model_paths)
 
 
 print("sigma toeplitz, further away values have less weight")
 print(f"estimated H: {H}")
-print(f"true H: {H_true:.4f}")
+print(f"true H: {H_ygx_true:.4f}")
 
 
 # """

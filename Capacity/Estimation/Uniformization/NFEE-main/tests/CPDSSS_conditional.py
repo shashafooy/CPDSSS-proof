@@ -79,7 +79,7 @@ for i in range(n_trials):
         sim_model.set_T(T)
         # generate base samples based on max dimension
         sim_model.set_XHcond()
-        knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
+        knn_samples = int(max(min_knn_samples, n_train_samples * sim_model.x_dim))
         samples = sim_model.sim(knn_samples, reuse_GQ=True)
 
         """Train H(xT | h, x1:T-1)"""
