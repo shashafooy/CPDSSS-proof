@@ -168,7 +168,11 @@ class CPDSSS(_distribution):
 
         # channel is reused, append new samples if needed
         new_samples = n_samples - self.h.shape[0] if reuse_GQ else n_samples
-        new_h = (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading)).astype(dtype)
+        new_h = (
+            (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading)).astype(dtype)
+            if new_samples > 0
+            else np.empty((0, self.N), dtype=dtype)
+        )
         self.h = np.concatenate((self.h, new_h), axis=0, dtype=dtype) if reuse_GQ else new_h
         # self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
 
@@ -188,7 +192,7 @@ class CPDSSS(_distribution):
         )  # order 'F' needed to make arrays stack instead of interlaced
 
         if self._use_chan:
-            self.samples = np.concatenate((joint_X, self.h), axis=1)
+            self.samples = np.concatenate((joint_X, self.h[:n_samples]), axis=1)
         else:
             self.samples = joint_X
 
@@ -206,7 +210,7 @@ class CPDSSS(_distribution):
         Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
 
         split_N = np.floor(new_samples / 100000)
-        split_N = max(split_N, 25)  # Calculate at most 4% of G,Q at a time
+        split_N = max(split_N, 4)  # Calculate at most 25% of G,Q at a time
         sections = np.array_split(range(new_samples, 0, -1), split_N)
 
         if self.tt_GQ_func is None:
@@ -419,7 +423,7 @@ class CPDSSS_Cond(CPDSSS):
         # if not reuse_GQ or self._X is None:
         self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples, reuse_GQ)
         if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
-            cond = np.concatenate((self._Xcond, self._h), axis=1)
+            cond = np.concatenate((self._Xcond, self._h[:n_samples]), axis=1)
         else:  # X is the conditional
             cond = self._Xcond
         return [self._XT, cond]
