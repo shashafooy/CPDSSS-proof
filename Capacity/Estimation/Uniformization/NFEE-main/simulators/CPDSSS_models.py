@@ -168,7 +168,11 @@ class CPDSSS(_distribution):
 
         # channel is reused, append new samples if needed
         new_samples = n_samples - self.h.shape[0] if reuse_GQ else n_samples
-        new_h = (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading)).astype(dtype)
+        new_h = (
+            (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading)).astype(dtype)
+            if new_samples > 0
+            else np.array((0, self.N))
+        )
         self.h = np.concatenate((self.h, new_h), axis=0, dtype=dtype) if reuse_GQ else new_h
         # self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
 
