@@ -80,8 +80,8 @@ for model_folder in os.listdir(base_folder):
             _ = ent.update_best_model(new_model, samples, name=name, path=old_model_path)
             # compare_models(X_samp, name, base_folder_X, name, new_folder_X)
             os.remove(os.path.join(new_model_path, name + ".pkl"))
-        os.remove(os.path.join(curr_path, folder))
-    os.remove(curr_path)
+        os.rmdir(os.path.join(curr_path, folder))
+    os.rmdir(curr_path)
 
 
 # if os.path.exists(new_folder_X):

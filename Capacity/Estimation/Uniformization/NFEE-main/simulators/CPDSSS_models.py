@@ -210,7 +210,7 @@ class CPDSSS(_distribution):
         Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
 
         split_N = np.floor(new_samples / 100000)
-        split_N = max(split_N, 25)  # Calculate at most 4% of G,Q at a time
+        split_N = max(split_N, 4)  # Calculate at most 25% of G,Q at a time
         sections = np.array_split(range(new_samples, 0, -1), split_N)
 
         if self.tt_GQ_func is None:
