@@ -192,7 +192,7 @@ class CPDSSS(_distribution):
         )  # order 'F' needed to make arrays stack instead of interlaced
 
         if self._use_chan:
-            self.samples = np.concatenate((joint_X, self.h), axis=1)
+            self.samples = np.concatenate((joint_X, self.h[:n_samples]), axis=1)
         else:
             self.samples = joint_X
 
