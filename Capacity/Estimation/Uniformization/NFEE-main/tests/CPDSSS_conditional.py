@@ -21,13 +21,13 @@ SAVE_FILE = True
 """
 Parameters for CPDSSS
 """
-N = 2
+N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0=1
+d0=2
 d1=int(N-d0)
-T_range = range(2, 9)
+T_range = range(2, 10)
 # T_range = range(5, 7)
 
 
