@@ -23,7 +23,7 @@ N = 6
 # d0=N/L
 # d1=N-d0
 
-d0 = 3
+d0 = 2
 d1 = N - d0
 
 REMOVE_OUTLIERS = True
@@ -112,22 +112,22 @@ fig2, ax2 = plt.subplots(2, 2)
 fig2.suptitle("Entropy increase per added transmission, N={}".format(N))
 
 diff = H_hxc.mean[1:] - H_hxc.mean[:-1]
-yerr = H_hxc.var[1:] + H_hxc.var[:-1]
+yerr = np.abs(H_hxc.var[1:] + H_hxc.var[:-1])
 ax2[0, 0].cla(), ax2[0, 0].errorbar(T_range[:-1], diff, yerr=yerr)
 ax2[0, 0].set_title("H1(g,x_cond)"), ax2[0, 0].set_ylabel("delta H()"), ax2[0, 0].set_xlabel("T")
 
 diff = H_joint.mean[1:] - H_joint.mean[:-1]
-yerr = H_joint.var[1:] - H_joint.var[:-1]
+yerr = np.abs(H_joint.var[1:] - H_joint.var[:-1])
 ax2[1, 0].cla(), ax2[1, 0].errorbar(T_range[:-1], diff, yerr=yerr)
 ax2[1, 0].set_title("H1(g,x,x_cond)"), ax2[1, 0].set_ylabel("delta H()"), ax2[1, 0].set_xlabel("T")
 
 diff = H_cond.mean[1:] - H_cond.mean[:-1]
-yerr = H_cond.var[1:] - H_cond.var[:-1]
+yerr = np.abs(H_cond.var[1:] - H_cond.var[:-1])
 ax2[0, 1].cla(), ax2[0, 1].errorbar(T_range[:-1], diff, yerr=yerr)
 ax2[0, 1].set_title("H1(x_cond)"), ax2[0, 1].set_ylabel("delta H()"), ax2[0, 1].set_xlabel("T")
 
 diff = H_xxc.mean[1:] - H_xxc.mean[:-1]
-yerr = H_xxc.var[1:] - H_xxc.var[:-1]
+yerr = np.abs(H_xxc.var[1:] - H_xxc.var[:-1])
 ax2[1, 1].cla(), ax2[1, 1].errorbar(T_range[:-1], diff, yerr=yerr)
 ax2[1, 1].set_title("H1(x,x_cond)"), ax2[1, 1].set_ylabel("delta H()"), ax2[1, 1].set_xlabel("T")
 

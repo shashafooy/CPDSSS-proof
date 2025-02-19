@@ -36,15 +36,6 @@ max_T = 9
 Generate data
 """
 
-current_model_path = f"temp_data/saved_models/conditional/{N}N_d0d1({d0},{d1})"
-new_model_path = f"temp_data/saved_models/new_models/conditional/{N}N_d0d1({d0},{d1})"
-
-
-sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1)
-# generate base samples based on max dimension
-knn_samples = int(n_train_samples * sim_model.x_dim)
-
-print(f"Current models: {current_model_path}\nNew models: {new_model_path}")
 base_folder = "temp_data/saved_models/new_models/conditional"
 for model_folder in os.listdir(base_folder):
     curr_path = os.path.join(base_folder, model_folder)
