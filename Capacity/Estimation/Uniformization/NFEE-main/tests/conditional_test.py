@@ -63,9 +63,11 @@ sim_model = simMod.CPDSSS_Cond(1, N, d0=0, d1=N)
 sim_model.set_XHcond()
 samples = sim_model.sim(100 * sim_model.x_dim, reuse_GQ=True)
 H_XH = ent.calc_entropy(sim_model, base_samples=samples)[0]
+# loss = 3.3744
+# knn = 3.3691
 
 sim_model.set_Xcond()
-samples = sim_model.sim(10000 * sim_model.x_dim, reuse_GQ=True)
+samples = sim_model.sim(100 * sim_model.x_dim, reuse_GQ=True)
 H_X = ent.calc_entropy(sim_model, base_samples=samples)[0]
 
 MI = H_X - H_XH
