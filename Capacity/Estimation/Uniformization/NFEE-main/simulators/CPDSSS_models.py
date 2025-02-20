@@ -427,13 +427,13 @@ class CPDSSS_Cond(CPDSSS):
         self._X = None
 
     def sim(self, n_samples=1000, reuse_GQ=False):
-        assert self.input_dim[1] != -1, "Input_dim[1] has not been set"
+        assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
         # if not reuse_GQ or self._X is None:
         self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples, reuse_GQ)
         if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
             cond = np.concatenate((self._Xcond, self._h[:n_samples]), axis=1)
         elif self.input_dim[1] == 0:
-            cond = np.zeros((n_samples, 0))
+            cond = np.zeros((n_samples, 1))
         else:  # X is the conditional
             cond = self._Xcond
         return [self._XT, cond]

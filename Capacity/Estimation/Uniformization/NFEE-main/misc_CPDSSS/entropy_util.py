@@ -355,7 +355,7 @@ class Cond_MAF(_MAF_helper):
         """
 
         return mafs.ConditionalMaskedAutoregressiveFlow(
-            n_givens=n_inputs[1],
+            n_givens=max(n_inputs[1], 1),
             n_inputs=n_inputs[0],
             n_hiddens=n_hiddens,
             act_fun="tanh",

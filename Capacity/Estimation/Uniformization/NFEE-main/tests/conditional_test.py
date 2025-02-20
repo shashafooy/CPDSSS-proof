@@ -64,6 +64,8 @@ print("starting H(X|h)")
 sim_model.set_XHcond()
 samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
 H_XH = ent.calc_entropy(sim_model, base_samples=samples)[0]
+# loss = 3.3744
+# knn = 3.3691
 
 print("starting H(X)")
 sim_model.set_Xcond()
