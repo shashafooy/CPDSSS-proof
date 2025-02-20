@@ -502,7 +502,7 @@ class ConditionalMaskedAutoregressiveFlow:
         trn_loss = []
         n_size = []
         # process at most max_samp points at a time. Minimizes memory usage
-        N_split = np.ceil(givens.size / self.max_samp)
+        N_split = np.ceil((inputs.size + givens.size) / self.max_samp)
         for section in np.array_split(range(inputs.shape[0]), N_split):
             # for i in range(0, input.shape[0], max_samp):
             # data_range = range(i, min(i + max_samp, input.shape[0]))
@@ -526,7 +526,7 @@ class ConditionalMaskedAutoregressiveFlow:
         inputs, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
         trn_loss = []
         n_size = []
-        N_split = np.ceil(givens.size / self.max_samp)
+        N_split = np.ceil((inputs.size + givens.size) / self.max_samp)
         for section in np.array_split(range(inputs.shape[0]), N_split):
             trn_loss.append(self._eval_trn_loss(inputs[section, :], givens[section, :], index))
             n_size.append(len(section))
@@ -618,7 +618,7 @@ class ConditionalMaskedAutoregressiveFlow:
         inputs, givens, one_datapoint = util.misc.prepare_cond_input(xy, dtype)
 
         u = []
-        N_split = np.ceil(givens.size / self.max_samp)
+        N_split = np.ceil((inputs.size + givens.size) / self.max_samp)
         for section in np.array_split(range(inputs.shape[0]), N_split):
             u.append(self.eval_us_f(inputs[section, :], givens[section, :]))
 
@@ -647,7 +647,7 @@ class ConditionalMaskedAutoregressiveFlow:
         # logdet_jacobi = logdet_jacobi[0] if one_datapoint else logdet_jacobi
 
         logdet_jacobi = []
-        N_split = np.ceil(givens.size / self.max_samp)
+        N_split = np.ceil((inputs.size + givens.size) / self.max_samp)
         for section in np.array_split(range(inputs.shape[0]), N_split):
             logdet_jacobi.append(self.eval_jacobian_u(inputs[section, :], givens[section, :]))
         # Concatenate the results into a single array

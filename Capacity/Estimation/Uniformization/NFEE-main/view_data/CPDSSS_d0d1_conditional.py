@@ -26,6 +26,7 @@ d0d1 = [(3, 3), (2, 4), (4, 2)]
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 USE_KSG = True
+NORMALIZE_MI = False
 
 
 MI_kl = []
@@ -92,7 +93,7 @@ fig2, ax2 = plt.subplots()
 for i, (d0, d1) in enumerate(d0d1):
     """Plot individual and cumulative Mutual Information"""
 
-    _MI_mean = MI[i].mean
+    _MI_mean = MI[i].mean / H_h[i] if NORMALIZE_MI else MI[i].mean
     # fig1.suptitle("N={}, L={}".format(N, L))
     # temp_range = range(1, max(T_range[i]) + 1)
     temp_range = np.insert(T_range[i], 0, 1)
@@ -111,7 +112,7 @@ ax2.set_xlabel(r"$T$")
 ax2.set_ylabel(r"Mutual Information")
 
 
-ax2.axhline(y=H_h[i], linestyle="dashed", color="black")
+# ax2.axhline(y=H_h[i], linestyle="dashed", color="black")
 ax2.text(
     x=1,
     y=H_h[i] + 0.02,

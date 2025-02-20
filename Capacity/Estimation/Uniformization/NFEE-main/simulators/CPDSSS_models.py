@@ -22,7 +22,7 @@ dtype = theano.config.floatX
 class _distribution:
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, x_dim=0, rng=np.random):
+    def __init__(self, x_dim=-1, rng=np.random):
         self._x_dim = x_dim
         self._input_dim = x_dim
         self.rng = rng.default_rng()
@@ -95,11 +95,14 @@ class CPDSSS(_distribution):
         elif d0 is not None and d1 is not None:
             assert d0 + d1 == N, "d0+d1 must be equal to N"
             self.sym_N = d0
-            self.noise_N = d1
-            if N / d0 % 1 == 0:  # same as using L
+            self.noise_N = min(d1, N - 1)  # cannot make Q with d1=N
+            if d0 != 0 and N / d0 % 1 == 0:  # same as using L
                 self.G_slice = range(0, N, int(N / d0))
                 # if USE_GPU:
                 self.tt_G_slice = theano.shared(np.arange(0, N, int(N / d0), dtype=np.int32))
+            elif d0 == 0:  # treat d0 as 1 and make G=0
+                self.G_slice = range(0, 1)
+                self.tt_G_slice = theano.shared(np.arange(0, 1, dtype=np.int32))
             else:
                 self.G_slice = range(0, d0)
                 # if USE_GPU:
@@ -209,8 +212,7 @@ class CPDSSS(_distribution):
         G = np.empty((0, self.N, self.sym_N), dtype=dtype)
         Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
 
-        split_N = np.floor(new_samples / 100000)
-        split_N = max(split_N, 4)  # Calculate at most 25% of G,Q at a time
+        split_N = max(np.floor(new_samples / 100000), 1)
         sections = np.array_split(range(new_samples, 0, -1), split_N)
 
         if self.tt_GQ_func is None:
@@ -231,7 +233,7 @@ class CPDSSS(_distribution):
                     util.misc.printProgressBar(i + 1, split_N, "G,Q generation ")
                 except KeyboardInterrupt:
                     sys.exit()
-                except:  # regenerate h if inv(H'H) is singular
+                except Exception as inst:  # regenerate h if inv(H'H) is singular
                     self.h[-section] = (
                         self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
                     ).astype(dtype)
@@ -247,15 +249,19 @@ class CPDSSS(_distribution):
         # A=E.T @ H
         # Slightly faster than doing E.T @ H
         HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[self.G_slice, :]
+
         R = HE.T @ HE + self.eye
         p = HE[0, :].T
         # g = lin.inv(R) @ p
-        g = np.linalg.solve(R, p)  # faster than inverse
-        # Only take every L columns of toepltiz matrix
-        # Slightly faster than doing G@E
-        G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
-        # Potentially better G, fullfills G'*Q=0 and HE * G = I
-        # G = lin.inv(R) @ HE[self.G_slice,:].T
+        if self.sym_N == 0:
+            G = np.zeros((self.N, 0))
+        else:
+            g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros(self.N)
+            # Only take every L columns of toepltiz matrix
+            # Slightly faster than doing G@E
+            G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
+            # Potentially better G, fullfills G'*Q=0 and HE * G = I
+            # G = lin.inv(R) @ HE[self.G_slice,:].T
 
         # ev, V = lin.eig(R)
         ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
@@ -294,6 +300,8 @@ class CPDSSS(_distribution):
         # Solve g = inv(R) * p
         # Make toeplitz matrix and decimate across its columns
         def make_G(R, p):
+            if self.sym_N == 0:  # return 0 vector if there are 0 symbols
+                return tt.zeros((self.N, 0))
             col = tt.slinalg.solve(R, p)  # g vector R*g = p
 
             """Generate a toeplitz matrix HE and slice it such that HE[:,G_slice]"""
@@ -419,11 +427,13 @@ class CPDSSS_Cond(CPDSSS):
         self._X = None
 
     def sim(self, n_samples=1000, reuse_GQ=False):
-        assert self.input_dim[1] > 0
+        assert self.input_dim[1] != -1, "Input_dim[1] has not been set"
         # if not reuse_GQ or self._X is None:
         self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples, reuse_GQ)
         if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
             cond = np.concatenate((self._Xcond, self._h[:n_samples]), axis=1)
+        elif self.input_dim[1] == 0:
+            cond = np.zeros((n_samples, 0))
         else:  # X is the conditional
             cond = self._Xcond
         return [self._XT, cond]
@@ -442,7 +452,7 @@ class CPDSSS_Cond(CPDSSS):
         self.T = T
 
         # self.x_dim = self.N * self.T + self.N
-        self.input_dim = [self.N, 0]
+        self.input_dim = [self.N, -1]
         self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
 

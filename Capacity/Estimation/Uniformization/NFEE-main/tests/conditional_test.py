@@ -58,6 +58,36 @@ model_paths = f"temp_data/saved_models/conditional_tests/{N}N"
 # sys.exit()
 
 
+sim_model = simMod.CPDSSS_Cond(1, N, d0=0, d1=N)
+
+sim_model.set_XHcond()
+samples = sim_model.sim(100 * sim_model.x_dim, reuse_GQ=True)
+H_XH = ent.calc_entropy(sim_model, base_samples=samples)[0]
+
+sim_model.set_Xcond()
+samples = sim_model.sim(10000 * sim_model.x_dim, reuse_GQ=True)
+H_X = ent.calc_entropy(sim_model, base_samples=samples)[0]
+
+MI = H_X - H_XH
+print("CPDSSS with d0=0. Only noise")
+print(f"MI: {MI}")
+
+x = np.random.normal(0, 1, (N, 1))
+h = np.random.normal(0, 1, (N, 1))
+sim_model.set_XHcond()
+samples = [x, h]
+H_XH = ent.calc_entropy(sim_model, base_samples=samples)[0]
+
+H_X = simMod.Gaussian(0, 1, N).entropy()
+MI = H_X - H_XH
+print("independent gaussian x,h")
+print(f"MI: {MI}")
+
+import sys
+
+sys.exit()
+
+
 misc.print_border("A is random")
 """
 y=Ax+n
@@ -72,7 +102,7 @@ sigma_A = 1
 
 for T in T_range:
     name = f"random_A_{T}T"
-    n_samples = 2* N * T * n_train_samples
+    n_samples = 2 * N * T * n_train_samples
     A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N))
     x = np.random.normal(0, 1, (n_samples, N, T))
     n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
@@ -98,7 +128,7 @@ for T in T_range:
     sim_mod2.input_dim = N * T * 2
     test_samples = np.concatenate(samples, axis=1)
     n_hiddens = [4 * sim_mod2.input_dim] * 3
-#    H_xy, _ = entMAF.calc_entropy(sim_mod2, base_samples=test_samples, method="both")
+    #    H_xy, _ = entMAF.calc_entropy(sim_mod2, base_samples=test_samples, method="both")
     estimator = entMAF.learn_model(sim_mod2, train_samples=test_samples, n_hiddens=n_hiddens)
     H_xy = np.asarray(estimator.calc_ent(samples=test_samples, method="both"))
     print(f"H_xy:\n{H_xy}")

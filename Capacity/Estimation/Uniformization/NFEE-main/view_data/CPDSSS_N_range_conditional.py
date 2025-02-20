@@ -30,6 +30,7 @@ N_range = [2, 6]
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
 USE_KSG = True
+NORMALIZE_MI = False
 
 
 MI = []
@@ -76,6 +77,7 @@ for i, N in enumerate(N_range):
     sim_model = CPDSSS_Cond(1, N, d0=d0, d1=d1)
     H_h.append(sim_model.chan_entropy())
 
+
 for HX, X, N, t_range in zip(H_HX, H_X, N_range, T_range):
     fig, ax = plt.subplots(1, 2)
     x = np.full(HX.data.shape, t_range)
@@ -92,7 +94,7 @@ fig2, ax2 = plt.subplots()
 for i, N in enumerate(N_range):
     """Plot individual and cumulative Mutual Information"""
 
-    _MI_mean = MI[i].mean
+    _MI_mean = MI[i].mean / H_h[i] if NORMALIZE_MI else MI[i].mean
     # fig1.suptitle("N={}, L={}".format(N, L))
     # temp_range = range(1, max(T_range[i]) + 1)
     temp_range = np.insert(T_range[i], 0, 1)
@@ -101,13 +103,14 @@ for i, N in enumerate(N_range):
     ax1.plot(temp_range, _MI_mean, label=rf"$N={N}$")
 
     (line,) = ax2.plot(temp_range, np.cumsum(_MI_mean), label=rf"$N={N}$")
+    # ax2.axhline(y=H_h[i], linestyle="dashed", color=line.get_color())
 
 
 ax1.set_title(r"Individual $I(\mathbf{h},\mathbf{x}_T | \mathbf{x}_{1:T-1})$")
 ax1.set_xlabel(r"$T$ Transmissions")
 ax1.set_ylabel(r"Entropy")
 
-ax2.axhline(y=H_h[i], linestyle="dashed", color=line.get_color())
+
 ax2.set_title(r"Total $I(\mathbf{h},\mathbf{X})$")
 ax2.set_xlabel(r"$T$ Transmissions")
 ax2.set_ylabel(r"Entropy")
