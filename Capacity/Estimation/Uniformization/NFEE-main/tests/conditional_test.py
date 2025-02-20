@@ -27,7 +27,7 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 100000
+n_train_samples = 10000
 
 N = 6
 T = 2
@@ -60,20 +60,22 @@ model_paths = f"temp_data/saved_models/conditional_tests/{N}N"
 
 sim_model = simMod.CPDSSS_Cond(1, N, d0=0, d1=N)
 
+print("starting H(X|h)")
 sim_model.set_XHcond()
-samples = sim_model.sim(100 * sim_model.x_dim, reuse_GQ=True)
+samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
 H_XH = ent.calc_entropy(sim_model, base_samples=samples)[0]
 
+print("starting H(X)")
 sim_model.set_Xcond()
-samples = sim_model.sim(10000 * sim_model.x_dim, reuse_GQ=True)
+samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
 H_X = ent.calc_entropy(sim_model, base_samples=samples)[0]
 
 MI = H_X - H_XH
 print("CPDSSS with d0=0. Only noise")
 print(f"MI: {MI}")
-
-x = np.random.normal(0, 1, (N, 1))
-h = np.random.normal(0, 1, (N, 1))
+n_samples = n_train_samples * 2 * N
+x = np.random.normal(0, 1, (n_samples, N, 1))
+h = np.random.normal(0, 1, (n_samples, N, 1))
 sim_model.set_XHcond()
 samples = [x, h]
 H_XH = ent.calc_entropy(sim_model, base_samples=samples)[0]
