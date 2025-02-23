@@ -76,8 +76,8 @@ MI = H_X - H_XH
 print("CPDSSS with d0=0. Only noise")
 print(f"MI: {MI}")
 n_samples = n_train_samples * 2 * N
-x = np.random.normal(0, 1, (n_samples, N, 1))
-h = np.random.normal(0, 1, (n_samples, N, 1))
+x = np.random.normal(0, 1, (n_samples, N))
+h = np.random.normal(0, 1, (n_samples, N))
 sim_model.set_XHcond()
 samples = [x, h]
 H_XH = ent.calc_entropy(sim_model, base_samples=samples)[0]
