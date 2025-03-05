@@ -27,7 +27,7 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 100000
+n_train_samples = 100
 
 N = 6
 T = 2
@@ -165,18 +165,13 @@ for iter in range(n_trials):
         H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
         H_xy_true[iter, T] = H_y_given_x_true + H_x_true
 
-        sim_mod2 = sim_model
-        model = entMAF.load_model(name=model_name, path=XY_model_path) if LOAD_MODEL else None
-        sim_mod2.input_dim = N * T * 2
         test_samples = np.concatenate(samples, axis=1)
+        model = entMAF.load_model(name=model_name, path=XY_model_path) if LOAD_MODEL else None
+        sim_model.input_dim = N * T * 2
         H_xy_MAF[iter, T], estimator = entMAF.calc_entropy(
-            sim_mod2, model=model, base_samples=test_samples, method="both"
+            sim_model, model=model, base_samples=test_samples, method="both"
         )
         H_xy_kl_ksg[iter, T] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-
-        print(f"H_xy MAF:\n{H_xy_MAF[iter,T]}")
-        print(f"H_xy kl,ksg:\n{H_xy_kl_ksg[iter,T]}")
-        print(f"True H: {H_xy_true[iter,T]}")
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=XY_model_path
@@ -187,16 +182,17 @@ for iter in range(n_trials):
                 (T_range, H_y_given_x_true, H_xy_MAF, H_xy_kl_ksg, H_x_MAF, H_x_kl_ksg, H_cond_MAF),
                 os.path.join(random_A_path, filename),
             )
+        print(f"H_xy MAF:\n{H_xy_MAF[iter,T]}")
+        print(f"H_xy kl,ksg:\n{H_xy_kl_ksg[iter,T]}")
+        print(f"True H: {H_xy_true[iter,T]}")
 
-        model = entCondMAF.load_model(name=model_name, path=X_model_path) if LOAD_MODEL else None
-        sim_mod2.input_dim = N * T
+        test_samples = samples[1]
+        model = entMAF.load_model(name=model_name, path=X_model_path) if LOAD_MODEL else None
+        sim_model.input_dim = N * T
         H_x_MAF[iter, T], estimator = entMAF.calc_entropy(
-            sim_mod2, base_samples=samples[1], method="both"
+            sim_model, model=model, base_samples=test_samples, method="both"
         )
-        H_x_kl_ksg[iter, T] = entMAF.knn_entropy(estimator, samples[1], method="kl_ksg")
-        print(f"H_x MAF:\n{H_x_MAF[iter, T]}")
-        print(f"H_x kl,ksg:\n{H_x_kl_ksg[iter,T]}")
-        print(f"True H: {H_x_true}")
+        H_x_kl_ksg[iter, T] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=X_model_path
@@ -206,9 +202,12 @@ for iter in range(n_trials):
                 (T_range, H_y_given_x_true, H_xy_MAF, H_xy_kl_ksg, H_x_MAF, H_x_kl_ksg, H_cond_MAF),
                 os.path.join(random_A_path, filename),
             )
+        print(f"H_x MAF:\n{H_x_MAF[iter, T]}")
+        print(f"H_x kl,ksg:\n{H_x_kl_ksg[iter,T]}")
+        print(f"True H: {H_x_true}")
 
-        sim_model.input_dim = [N * T, N * T]
         model = entCondMAF.load_model(name=model_name, path=cond_model_path) if LOAD_MODEL else None
+        sim_model.input_dim = [N * T, N * T]
         H_cond_MAF[iter, T], estimator = entCondMAF.calc_entropy(
             sim_model, model=model, base_samples=samples, method="both"
         )
