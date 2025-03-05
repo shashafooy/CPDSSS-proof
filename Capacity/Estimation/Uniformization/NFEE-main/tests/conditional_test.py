@@ -15,12 +15,12 @@ from ent_est.entropy import UMestimator
 import util.io
 
 
-SAVE_MODEL = False
+SAVE_MODEL = True
 TRAIN_ONLY = False
 REUSE_MODEL = True
 LOAD_MODEL = True
 
-SAVE_FILE = False
+SAVE_FILE = True
 
 """
 Number of iterations
