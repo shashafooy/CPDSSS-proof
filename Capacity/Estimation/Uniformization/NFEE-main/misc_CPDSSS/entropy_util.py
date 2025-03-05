@@ -281,10 +281,8 @@ class _MAF_helper(ABC):
         H = estimator.calc_ent(samples=base_samples, method=method, k=k)
         end_time = time.time()
         print("knn time: ", str(timedelta(seconds=int(end_time - start_time))))
-        if method == "both":
-            return H[0], H[1]
-        else:
-            return H
+
+        return H
 
 
 class MAF(_MAF_helper):

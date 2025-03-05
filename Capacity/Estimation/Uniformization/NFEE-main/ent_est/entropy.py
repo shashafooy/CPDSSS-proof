@@ -551,7 +551,7 @@ class UMestimator:
         Args:
             k (int, optional): k neighbors for knn. Defaults to 1.
             reuse_samples (bool, optional): True to reuse samples stored in estimator. Defaults to True.
-            method (str, optional): knn method ('umtkl','umtksg','both'). Defaults to 'umtksg'.
+            method (str, optional): knn method ('kl','ksg','kl_ksg','umtkl','umtksg','both'). Defaults to 'umtksg'.
             SHOW_PDF_PLOTS (bool, optional): true to display plots of original data and transformed gaussian and uniform points. Defaults to False.
 
         Returns:
@@ -560,19 +560,32 @@ class UMestimator:
         if samples is None:
             samples = self.sim_model.sim(self.n_samples)
 
-        uniform, correction = self.uniform_correction(samples, SHOW_PDF_PLOTS)
-        if method == "umtkl":
-            H = tkl(uniform, k=k)
-        elif method == "umtksg":
-            H = tksg(uniform, k=k)
-        elif method == "both":
-            H = tkl_tksg(uniform, k=k)
+        correction = 0
+        if method == "kl":
+            H = kl(samples, k=k)
+        elif method == "ksg":
+            H = ksg(samples, k=k)
+        elif method == "kl_ksg":
+            H = kl_ksg(samples, k=k)
+        else:
+
+            uniform, correction = self.uniform_correction(samples, SHOW_PDF_PLOTS)
+            if method == "umtkl":
+                H = tkl(uniform, k=k)
+            elif method == "umtksg":
+                H = tksg(uniform, k=k)
+            elif method == "both":
+                H = tkl_tksg(uniform, k=k)
+            else:
+                raise Exception("invalid method type")
 
         # If method is 'both', then H is a tuple with (H_KL,H_KSG)
-        return H + correction
+        return np.asarray(H) + correction
 
     def knn_ent(self, k=1, reuse_samples=True, method="kl"):
-        """Evaluate knn directly without uniformizing or using truncated knn
+        """
+        DEPRECATED: Use calc_ent using the flags method={'kl','ksg','kl_ksg'}
+        Evaluate knn directly without uniformizing or using truncated knn
 
         Args:
             k (int, optional): k value for knn. Defaults to 1.
@@ -644,7 +657,7 @@ class UMestimator:
 
         # Jacobian correction from the CDF
         uniform = stats.norm.cdf(z)
-        correction1 = -np.mean(np.log(np.prod(stats.norm.pdf(z), axis=1)))
+        correction1 = -np.mean(np.sum(np.log(stats.norm.pdf(z)), axis=1))
 
         logdet = self.model.logdet_jacobi_u(samples)
         correction2 = -np.mean(logdet[idx])
