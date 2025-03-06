@@ -376,14 +376,30 @@ class SGD(SGD_Template):
         if self.do_validation:
 
             # compile theano function for validation
-            self.validate = theano.function(
-                inputs=[],
+            # self.validate = theano.function(
+            #     inputs=[],
+            #     outputs=val_loss,
+            #     givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens,
+            # )
+            self._validate = theano.function(
+                inputs=[idx],
                 outputs=val_loss,
-                givens=list(zip(self.val_inputs, self.val_data)) + self.batch_norm_givens,
+                givens=list(zip(self.val_inputs, [x[idx] for x in self.val_data]))
+                + self.batch_norm_givens,
             )
             if self.set_batch_norm_stats is not None:
                 self.set_batch_norm_stats()
             self.best_val_loss = self.validate()
+
+    def validate(self):
+        val_loss = []
+        n_size = []
+
+        N_split = np.ceil(sum(x.size for x in self.val_data) / 1e6)
+        for section in np.array_split(range(self.n_trn_data), N_split):
+            val_loss.append(self._validate(section))
+            n_size.append(len(section))
+        return sum(np.asarray(val_loss) * np.asarray(n_size)) / sum(n_size)
 
     def reduce_step_size(self):
         """update the step size to use smaller step size for fine tuning during training"""
