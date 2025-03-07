@@ -66,7 +66,7 @@ class MaskedAutoregressiveFlow:
         self.u = self.input
         self.logdet_dudx = 0.0
 
-        self.max_samp = 1000000
+        self.max_samp = 2e6
 
         # self.target_lnpx = target_logpdf(self.input) if target_logpdf is not None else 0
         self.target_lnpx = -target_entropy if target_entropy is not None else 0

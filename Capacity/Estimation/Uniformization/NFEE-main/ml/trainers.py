@@ -77,7 +77,7 @@ class SGD_Template:
             self.val_inputs = [model.input] if val_target is None else [model.input, val_target]
             if len(val_data) == 2 and trn_target is None:
                 self.val_inputs = [model.input, model.givens]
-            self.validate = None  # to be implemented by a subclass
+            # self.validate = None  # to be implemented by a subclass
 
             # create checkpointer to store best model
             self.checkpointer = ModelCheckpointer(model)
@@ -86,6 +86,11 @@ class SGD_Template:
         # initialize some variables
         self.trn_loss = float("inf")
         self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
+
+    @abc.abstractmethod
+    def validate(self):
+        """Method to evaluate validation loss, to be implemented by subclass"""
+        return
 
     @abc.abstractmethod
     def reduce_step_size(self):
@@ -394,9 +399,8 @@ class SGD(SGD_Template):
     def validate(self):
         val_loss = []
         n_size = []
-
-        N_split = np.ceil(sum(x.size for x in self.val_data) / 1e6)
-        for section in np.array_split(range(self.n_trn_data), N_split):
+        N_split = np.ceil(sum(x.container.data.size for x in self.val_data) / 1e6)
+        for section in np.array_split(np.arange(self.n_val_data, dtype=np.int32), N_split):
             val_loss.append(self._validate(section))
             n_size.append(len(section))
         return sum(np.asarray(val_loss) * np.asarray(n_size)) / sum(n_size)
