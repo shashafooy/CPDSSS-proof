@@ -137,6 +137,7 @@ H_xy_kl_ksg = np.empty((n_trials, len(T_range), 2)) * np.nan
 H_x_kl_ksg = np.empty((n_trials, len(T_range), 2)) * np.nan
 H_cond_MAF = np.empty((n_trials, len(T_range), 2)) * np.nan
 H_xy_true = np.empty((n_trials, len(T_range))) * np.nan
+H_y_given_x_true = np.empty((n_trials, len(T_range))) * np.nan
 
 for iter in range(n_trials):
     for Ti, T in enumerate(T_range):
@@ -163,9 +164,11 @@ for iter in range(n_trials):
         # gaussian entropy 0.5*log(2 pi e ) + 0.5*log(det(sigma))
         # Matrix form of gaussian
         # Multiple-Antennas and Isotropically Random Unitary Inputs: The Received Signal Density in Closed Form
-        H_y_given_x_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(dets)
+        H_y_given_x_true[index] = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(
+            dets
+        )
         H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
-        H_xy_true[index] = H_y_given_x_true + H_x_true
+        H_xy_true[index] = H_y_given_x_true[index] + H_x_true
 
         misc.print_border(f"evaluating joint H(x,y) MAF, T={T}, iter={iter}")
         test_samples = np.concatenate(samples, axis=1)
