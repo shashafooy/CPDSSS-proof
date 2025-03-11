@@ -167,7 +167,7 @@ for iter in range(n_trials):
         H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
         H_xy_true[index] = H_y_given_x_true + H_x_true
 
-        misc.print_border(f"evaluating joint H(x,y) MAF, T={Ti}, iter={iter}")
+        misc.print_border(f"evaluating joint H(x,y) MAF, T={T}, iter={iter}")
         test_samples = np.concatenate(samples, axis=1)
         model = entMAF.load_model(name=model_name, path=XY_model_path) if LOAD_MODEL else None
         sim_model.input_dim = N * T * 2
@@ -189,7 +189,7 @@ for iter in range(n_trials):
         print(f"H_xy kl,ksg:\n{H_xy_kl_ksg[index]}")
         print(f"True H: {H_xy_true[index]}")
 
-        misc.print_border(f"evaluating H(x) MAF, T={Ti}, iter={iter}")
+        misc.print_border(f"evaluating H(x) MAF, T={T}, iter={iter}")
         test_samples = samples[1]
         model = entMAF.load_model(name=model_name, path=X_model_path) if LOAD_MODEL else None
         sim_model.input_dim = N * T
@@ -210,7 +210,7 @@ for iter in range(n_trials):
         print(f"H_x kl,ksg:\n{H_x_kl_ksg[index]}")
         print(f"True H: {H_x_true}")
 
-        misc.print_border(f"evaluating cond H(y|x) condMAF, T={Ti}, iter={iter}")
+        misc.print_border(f"evaluating cond H(y|x) condMAF, T={T}, iter={iter}")
         model = entCondMAF.load_model(name=model_name, path=cond_model_path) if LOAD_MODEL else None
         sim_model.input_dim = [N * T, N * T]
         H_cond_MAF[index], estimator = entCondMAF.calc_entropy(
