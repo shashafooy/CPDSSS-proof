@@ -121,8 +121,8 @@ sigma_n = 2  # * np.eye(N)
 sigma_A = 1
 
 X_model_path = os.path.join(model_paths, "MAF_X")
-XY_model_path = os.path.join(model_paths, "MAF XY")
-cond_model_path = os.path.join(model_paths, "cond MAF")
+XY_model_path = os.path.join(model_paths, "MAF_XY")
+cond_model_path = os.path.join(model_paths, "cond_MAF")
 
 random_A_path = "temp_data/conditional_test/random_A/"
 today = date.today().strftime("%b_%d")
