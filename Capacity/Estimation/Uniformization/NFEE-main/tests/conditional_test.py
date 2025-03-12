@@ -232,7 +232,7 @@ for iter in range(n_trials):
         print(f"estimated cond MAF H: {H_cond_MAF[index]}")
         print(f"estimated MAF H_XY - H_X: {H_xy_MAF[index]-H_x_MAF[index]}")
         print(f"estimated knn H_XY - H_X: {H_xy_kl_ksg[index]-H_x_kl_ksg[index]}")
-        print(f"true H: {H_y_given_x_true:.4f}")
+        print(f"true H: {H_y_given_x_true[index]}")
 
 import sys
 

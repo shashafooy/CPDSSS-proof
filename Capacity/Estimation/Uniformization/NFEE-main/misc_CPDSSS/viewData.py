@@ -26,8 +26,18 @@ def align_and_concatenate(old_data, new_data, old_range=(0), new_range=(0)):
     num_dims = old_data.ndim - 1
 
     # add to list if input is just a 1d array
-    old_range = [old_range] if num_dims <= 1 else list(old_range)
-    new_range = [new_range] if num_dims <= 1 else list(new_range)
+    if isinstance(old_range, tuple):
+        old_range = list(old_range)
+        new_range = list(new_range)
+    else:
+        old_range = [old_range]
+        new_range = [new_range]
+    num_range_dim = len(old_range)
+    # old_range = [old_range] if not isinstance(old_range, tuple) else list(old_range)
+    # new_range = [new_range] if not isinstance(new_range, tuple) else list(new_range)
+    # num_range_dim = len(old_range)
+    # if num_range_dim>num_dims:
+    #     old_range = old_range * (num_dims/num_range_dim)
     # old_range = [old_range] if isinstance(old_range,np.ndarray) else old_range
     # new_range = [new_range] if isinstance(new_range,np.ndarray) else new_range
 
@@ -44,7 +54,8 @@ def align_and_concatenate(old_data, new_data, old_range=(0), new_range=(0)):
     old_index_maps = []
     new_index_maps = []
 
-    for dim in range(num_dims):
+    for dim in range(min(num_dims, num_range_dim)):
+        # dim = min(dim, len(old_range) - 1)
         old_list = list(old_range[dim])
         new_list = list(new_range[dim])
         union_list = sorted(set(old_list).union(set(new_list)))
@@ -58,8 +69,14 @@ def align_and_concatenate(old_data, new_data, old_range=(0), new_range=(0)):
 
     # Create padded arrays filled with NaN
     union_shape = [old_data.shape[0]] + [len(r) for r in union_ranges]
+    union_shape = (
+        union_shape + [old_data.shape[2]] if num_range_dim == 1 and num_dims > 1 else union_shape
+    )
     old_data_padded = np.full(union_shape, np.nan)
     union_shape = [new_data.shape[0]] + [len(r) for r in union_ranges]
+    union_shape = (
+        union_shape + [old_data.shape[2]] if num_range_dim == 1 and num_dims > 1 else union_shape
+    )
     new_data_padded = np.full(union_shape, np.nan)
 
     # Fill the padded arrays with the original data
@@ -72,7 +89,7 @@ def align_and_concatenate(old_data, new_data, old_range=(0), new_range=(0)):
     # Concatenate the padded arrays along the 'iter' dimension
     result = np.concatenate((old_data_padded, new_data_padded), axis=0)
 
-    return result, union_ranges[0] if num_dims == 1 else union_ranges
+    return result, union_ranges[0] if num_dims == 1 or num_range_dim == 1 else union_ranges
 
 
 def append_data(old_data, old_T_range, new_data, new_T_range):
