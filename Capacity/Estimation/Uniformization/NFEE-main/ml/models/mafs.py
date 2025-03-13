@@ -10,6 +10,8 @@ import ml.models.mades as mades
 import util.misc
 import util.ml
 
+import misc_CPDSSS.util as utils
+
 dtype = theano.config.floatX
 
 
@@ -193,7 +195,7 @@ class MaskedAutoregressiveFlow:
             trn_loss.append(self._eval_trn_loss(x[section, :]))
             n_size.append(x[section, :].shape[0])
         # combine means
-        return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
+        return utils.combine_means(trn_loss, n_size)
 
     def eval_stageloss(self, x, index):
         if self._eval_stage_loss is None:
@@ -212,7 +214,7 @@ class MaskedAutoregressiveFlow:
             stg_loss.append(self._eval_stage_loss(x[section, :], index))
             n_size.append(x[section, :].shape[0])
         # combine means
-        return sum(np.asarray(stg_loss) * np.asarray(n_size)) / (sum(n_size))
+        return utils.combine_means(stg_loss, n_size)
 
     def grad_log_p(self, x):
         """
@@ -509,7 +511,7 @@ class ConditionalMaskedAutoregressiveFlow:
             trn_loss.append(self._eval_trn_loss(inputs[section, :], givens[section, :]))
             n_size.append(len(section))
         # combine means
-        return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
+        return utils.combine_means(trn_loss, n_size)
 
     def eval_stage_loss(self, xy, index):
         """
@@ -531,7 +533,7 @@ class ConditionalMaskedAutoregressiveFlow:
             trn_loss.append(self._eval_trn_loss(inputs[section, :], givens[section, :], index))
             n_size.append(len(section))
         # combine means
-        return sum(np.asarray(trn_loss) * np.asarray(n_size)) / (sum(n_size))
+        return utils.combine_means(trn_loss, n_size)
 
     def grad_log_p(self, xy):
         """

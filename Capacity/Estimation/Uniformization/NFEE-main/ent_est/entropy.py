@@ -10,7 +10,7 @@ import configparser
 import ml.trainers as trainers
 import ml.step_strategies as ss
 
-from misc_CPDSSS.util import BackgroundThread
+import misc_CPDSSS.util as utils
 
 from theano import config
 
@@ -80,36 +80,48 @@ def tkl_tksg(y, n=None, k=1, max_k=None, shuffle=True, rng=np.random):
     h_ksg = np.zeros(len(k_range))
     for i, k in enumerate(k_range):
         # truncated KL
-        zeros_mask = dist[:, k] != 0
+        N_split = np.ceil(y.size / 10e6)
+        hh_mean = []
+        n_size = []
+        for section in np.array_split(range(N), N_split):
+            zeros_mask = dist[section, k] != 0
+            yy = y[section]
+            r = dist[section, k]  # radius
+            r = np.tile(r[:, np.newaxis], (1, dim))
+            lb = (yy - r >= 0) * (yy - r) + (yy - r < 0) * 0
+            ub = (yy + r <= 1) * (yy + r) + (yy + r > 1) * 1
 
-        r = dist[:, k]
-        r = np.tile(r[:, np.newaxis], (1, dim))
-        lb = (y - r >= 0) * (y - r) + (y - r < 0) * 0
-        ub = (y + r <= 1) * (y + r) + (y + r > 1) * 1
+            zeta = (ub - lb)[zeros_mask]  # remove zeros, duplicate points result in 0 distance
+            # N = zeta.shape[0]
+            hh = np.sum(np.log(zeta), axis=1)
+            n_size.append(hh.shape[0])
+            hh_mean.append(np.mean(hh))
 
-        zeta = (ub - lb)[zeros_mask]  # remove zeros, duplicate points result in 0 distance
-        N = zeta.shape[0]
-        hh = np.log(np.prod(zeta, axis=1))
-
-        h_kl[i] = -spl.digamma(k) + spl.digamma(N) + np.mean(hh)
+        h_kl[i] = -spl.digamma(k) + spl.digamma(sum(n_size)) + utils.combine_means(hh_mean, n_size)
 
         # truncated KSG
-        # epsilons = np.abs(y-y[idx[:,k]])
-        y_dup = np.tile(y[:, np.newaxis, :], (1, k, 1))  # duplicate last axis to add k dimension
-        epsilons = np.max(np.abs(y_dup - y[idx[:, 1 : k + 1]]), axis=1)
-        zeta2 = np.minimum(y + epsilons, 1) - np.maximum(y - epsilons, 0)
-        # remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
-        zeros_mask = ~np.any(zeta2 == 0, axis=1)
-        zeta2 = zeta2[zeros_mask]
-        hh2 = np.sum(np.log(zeta2), axis=1)
-        N = zeta2.shape[0]
+        hh_mean = []
+        n_size = []
+        for section in np.array_split(range(N), N_split):
+            y_dup = np.tile(
+                y[section, np.newaxis, :], (1, k, 1)
+            )  # duplicate last axis to add k dimension
+            epsilons = np.max(np.abs(y_dup - y[idx[section, 1 : k + 1]]), axis=1)
+            zeta2 = np.minimum(y[section] + epsilons, 1) - np.maximum(y[section] - epsilons, 0)
+            # remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
+            zeros_mask = ~np.any(zeta2 == 0, axis=1)
+            zeta2 = zeta2[zeros_mask]
+            hh2 = np.sum(np.log(zeta2), axis=1)
+            # N = zeta2.shape[0]
+            n_size.append(hh2.shape[0])
+            hh_mean.append(np.mean(hh2))
 
-        # hh3 = np.zeros(n)
-        # for j in range(n):
-        #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
-        #     hh3[j] = np.log(np.prod(2*r))
-
-        h_ksg[i] = -spl.digamma(k) + spl.digamma(N) + (dim - 1) / k + np.mean(hh2)
+        h_ksg[i] = (
+            -spl.digamma(k)
+            + spl.digamma(sum(n_size))
+            + (dim - 1) / k
+            + utils.combine_means(hh_mean, n_size)
+        )
 
     # If we only used 1 k value, return that value, not an array
     (h_kl, h_ksg) = (h_kl, h_ksg) if len(k_range) > 1 else (h_kl[0], h_ksg[0])
@@ -164,30 +176,47 @@ def kl_ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     h_kl = np.empty(len(k_range))
     h_ksg = np.empty(len(k_range))
     for i, k in enumerate(k_range):
-
         # KL
         zeros_mask = dist[:, k] != 0
         dist = dist[zeros_mask, :]
 
-        if standardize == True:
-            hh = dim * np.log(2 * dist[:, k]) + np.sum(np.log(y_std))
-        else:
-            hh = dim * np.log(2 * dist[:, k])
-        N = hh.shape[0]
-        h_kl[i] = -spl.digamma(k) + spl.digamma(N) + np.mean(hh)
+        N_split = np.ceil(y.size / 10e6)
+        hh_mean = []
+        n_size = []
+        for section in np.array_split(range(N), N_split):
+            if standardize == True:
+                hh = dim * np.log(2 * dist[section, k]) + np.sum(np.log(y_std))
+            else:
+                hh = dim * np.log(2 * dist[section, k])
+            hh_mean.append(np.mean(hh))
+            n_size.append(len(hh))
+        # N = hh.shape[0]
+        h_kl[i] = -spl.digamma(k) + spl.digamma(sum(n_size)) + utils.combine_means(hh_mean, n_size)
 
         # KSG
         # epsilons=np.abs(y-y[idx[:,k]])
-        y_dup = np.tile(y[:, np.newaxis, :], (1, k, 1))  # duplicate last axis to add k dimension
-        epsilons = np.max(np.abs(y_dup - y[idx[:, 1 : k + 1]]), axis=1)
-        zeros_mask = ~np.any(epsilons == 0, axis=1)
-        epsilons = epsilons[zeros_mask]
-        if standardize == True:
-            hh = np.sum(np.log(2 * epsilons * y_std), axis=1)
-        else:
-            hh = np.sum(np.log(2 * epsilons), axis=1)
-        N = hh.shape[0]
-        h_ksg[i] = -spl.digamma(k) + spl.digamma(N) + (dim - 1) / k + np.mean(hh)
+        hh_mean = []
+        n_size = []
+        for section in np.array_split(range(N), N_split):
+            y_dup = np.tile(
+                y[section, np.newaxis, :], (1, k, 1)
+            )  # duplicate last axis to add k dimension
+            epsilons = np.max(np.abs(y_dup - y[idx[section, 1 : k + 1]]), axis=1)
+            zeros_mask = ~np.any(epsilons == 0, axis=1)
+            epsilons = epsilons[zeros_mask]
+            if standardize == True:
+                hh = np.sum(np.log(2 * epsilons * y_std), axis=1)
+            else:
+                hh = np.sum(np.log(2 * epsilons), axis=1)
+            hh_mean.append(np.mean(hh))
+            n_size.append(len(hh))
+        # N = hh.shape[0]
+        h_ksg[i] = (
+            -spl.digamma(k)
+            + spl.digamma(sum(n_size))
+            + (dim - 1) / k
+            + utils.combine_means(hh_mean, n_size)
+        )
 
     h_kl, h_ksg = (h_kl, h_ksg) if len(k_range) > 1 else (h_kl[0], h_ksg[0])
 
@@ -235,12 +264,25 @@ def kl(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
     dist = dist[zeros_mask, :]
     N = dist.shape[0]
 
-    if standardize == True:
-        hh = dim * np.log(2 * dist[:, k]) + np.sum(np.log(y_std))
-    else:
-        hh = dim * np.log(2 * dist[:, k])
+    N_split = np.ceil(y.size / 10e6)
+    hh_mean = []
+    n_size = []
+    for section in np.array_split(range(N), N_split):
+        if standardize == True:
+            hh = dim * np.log(2 * dist[section, k]) + np.sum(np.log(y_std))
+        else:
+            hh = dim * np.log(2 * dist[section, k])
+        hh_mean.append(np.mean(hh))
+        n_size.append(len(hh))
+    # N = hh.shape[0]
+    h = -spl.digamma(k) + spl.digamma(sum(n_size)) + utils.combine_means(hh_mean, n_size)
 
-    h = -spl.digamma(k) + spl.digamma(N) + np.mean(hh)
+    # if standardize == True:
+    #     hh = dim * np.log(2 * dist[:, k]) + np.sum(np.log(y_std))
+    # else:
+    #     hh = dim * np.log(2 * dist[:, k])
+
+    # h = -spl.digamma(k) + spl.digamma(N) + np.mean(hh)
 
     return h
 
@@ -285,18 +327,24 @@ def tkl(y, n=None, k=1, shuffle=True, rng=np.random):
 
     dist, idx = nbrs.kneighbors(y)
 
-    zeros_mask = dist[:, k] != 0
+    N_split = np.ceil(y.size / 10e6)
+    hh_mean = []
+    n_size = []
+    for section in np.array_split(range(N), N_split):
+        zeros_mask = dist[section, k] != 0
+        yy = y[section]
+        r = dist[section, k]  # radius
+        r = np.tile(r[:, np.newaxis], (1, dim))
+        lb = (yy - r >= 0) * (yy - r) + (yy - r < 0) * 0
+        ub = (yy + r <= 1) * (yy + r) + (yy + r > 1) * 1
 
-    r = dist[:, k]
-    r = np.tile(r[:, np.newaxis], (1, dim))
-    lb = (y - r >= 0) * (y - r) + (y - r < 0) * 0
-    ub = (y + r <= 1) * (y + r) + (y + r > 1) * 1
+        zeta = (ub - lb)[zeros_mask]  # remove zeros, duplicate points result in 0 distance
+        # N = zeta.shape[0]
+        hh = np.sum(np.log(zeta), axis=1)
+        n_size.append(hh.shape[0])
+        hh_mean.append(np.mean(hh))
 
-    zeta = (ub - lb)[zeros_mask]  # remove zeros, duplicate points result in 0 distance
-    N = zeta.shape[0]
-    hh = np.log(np.prod(zeta, axis=1))
-
-    h = -spl.digamma(k) + spl.digamma(N) + np.mean(hh)
+    h = -spl.digamma(k) + spl.digamma(sum(n_size)) + utils.combine_means(hh_mean, n_size)
 
     return h
 
@@ -331,26 +379,29 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
 
     dist, idx = nbrs.kneighbors(y)
 
-    # hh = np.empty(n)
-    # epsilons=np.abs(y-y[idx[:,k]])
-    y_dup = np.tile(y[:, np.newaxis, :], (1, k, 1))  # duplicate last axis to add k dimension
-    epsilons = np.max(np.abs(y_dup - y[idx[:, 1 : k + 1]]), axis=1)
-    zeros_mask = ~np.any(epsilons == 0, axis=1)
-    epsilons = epsilons[zeros_mask]
-    if standardize == True:
-        hh = np.sum(np.log(2 * epsilons * y_std), axis=1)
-        # for j in range(n):
-        #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
-        #     hh[j] = np.log(np.prod(2*r*y_std))
-
-    else:
-        hh = np.sum(np.log(2 * epsilons), axis=1)
-        # for j in range(n):
-        #     r = np.max(np.abs(y[j]-y[idx[j,1:k+1]]), axis=0)
-        #     hh[j] = np.log(np.prod(2*r))
-
-    N = hh.shape[0]
-    h = -spl.digamma(k) + spl.digamma(N) + (dim - 1) / k + np.mean(hh)
+    N_split = np.ceil(y.size / 10e6)
+    hh_mean = []
+    n_size = []
+    for section in np.array_split(range(N), N_split):
+        y_dup = np.tile(
+            y[section, np.newaxis, :], (1, k, 1)
+        )  # duplicate last axis to add k dimension
+        epsilons = np.max(np.abs(y_dup - y[idx[section, 1 : k + 1]]), axis=1)
+        zeros_mask = ~np.any(epsilons == 0, axis=1)
+        epsilons = epsilons[zeros_mask]
+        if standardize == True:
+            hh = np.sum(np.log(2 * epsilons * y_std), axis=1)
+        else:
+            hh = np.sum(np.log(2 * epsilons), axis=1)
+        hh_mean.append(np.mean(hh))
+        n_size.append(len(hh))
+    # N = hh.shape[0]
+    h_ksg[i] = (
+        -spl.digamma(k)
+        + spl.digamma(sum(n_size))
+        + (dim - 1) / k
+        + utils.combine_means(hh_mean, n_size)
+    )
 
     return h
 
@@ -381,17 +432,30 @@ def tksg(y, n=None, k=1, shuffle=True, rng=np.random):
         n_neighbors=k + 1, algorithm=algorithm, metric="chebyshev", n_jobs=n_jobs
     ).fit(y)
     dist, idx = nbrs.kneighbors(y)
+    N_split = np.ceil(y.size / 10e6)
 
-    y_dup = np.tile(y[:, np.newaxis, :], (1, k, 1))  # duplicate last axis to add k dimension
-    epsilons = np.max(np.abs(y_dup - y[idx[:, 1 : k + 1]]), axis=1)
-    zeta = np.minimum(y + epsilons, 1) - np.maximum(y - epsilons, 0)
-    # remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
-    zeros_mask = ~np.any(zeta == 0, axis=1)
-    zeta = zeta[zeros_mask]
-    hh2 = np.sum(np.log(zeta), axis=1)
-    N = zeta.shape[0]
+    hh_mean = []
+    n_size = []
+    for section in np.array_split(range(N), N_split):
+        y_dup = np.tile(
+            y[section, np.newaxis, :], (1, k, 1)
+        )  # duplicate last axis to add k dimension
+        epsilons = np.max(np.abs(y_dup - y[idx[section, 1 : k + 1]]), axis=1)
+        zeta2 = np.minimum(y[section] + epsilons, 1) - np.maximum(y[section] - epsilons, 0)
+        # remove zeros, invalid data. Zeros occur if points along a dimension are exactly the same
+        zeros_mask = ~np.any(zeta2 == 0, axis=1)
+        zeta2 = zeta2[zeros_mask]
+        hh2 = np.sum(np.log(zeta2), axis=1)
+        # N = zeta2.shape[0]
+        n_size.append(hh2.shape[0])
+        hh_mean.append(np.mean(hh2))
 
-    h = -spl.digamma(k) + spl.digamma(N) + (dim - 1) / k + np.mean(hh2)
+    h = (
+        -spl.digamma(k)
+        + spl.digamma(sum(n_size))
+        + (dim - 1) / k
+        + utils.combine_means(hh_mean, n_size)
+    )
 
     return h
 
@@ -568,8 +632,9 @@ class UMestimator:
         elif method == "kl_ksg":
             H = kl_ksg(samples, k=k)
         else:
-
+            print("evaluating uniformizing corrections")
             uniform, correction = self.uniform_correction(samples, SHOW_PDF_PLOTS)
+            print("evaluating uniform knn")
             if method == "umtkl":
                 H = tkl(uniform, k=k)
             elif method == "umtksg":
@@ -623,20 +688,44 @@ class UMestimator:
         if samples is None:
             samples = self.sim_model.sim(self.n_samples)
 
-        z = self.model.calc_random_numbers(samples)
+        # z = self.model.calc_random_numbers(samples)
 
-        # something went wrong in training, reload initial value
-        if np.any(np.isnan(z)):
-            self.checkpointer.restore()
-            z = self.model.calc_random_numbers(samples)
+        chunk_size = 1e6
+        N_split = np.ceil(samples.shape[0] / chunk_size)
+        uniform = np.empty_like(samples)
+        n_size = []
+        correction1 = []
+        correction2 = []
+        start_idx = 0
+        for section in np.array_split(range(samples.shape[0]), N_split):
+            z_chunk = self.model.calc_random_numbers(samples[section])
+            idx = np.all(np.abs(z_chunk) < stats.norm.ppf(1.0 - 1e-6), axis=1)
+            z_chunk = z_chunk[idx]
+            n_size.append(len(z_chunk))
+            # something went wrong in training, reload initial value
+            if np.any(np.isnan(z_chunk)):
+                self.checkpointer.restore()
+                z = self.model.calc_random_numbers(samples[section])
+            uniform[start_idx : start_idx + n_size[-1]] = stats.norm.cdf(z_chunk)
+            start_idx = start_idx + n_size[-1]
+            correction1.append(-np.mean(np.sum(np.log(stats.norm.pdf(z_chunk)), axis=1)))
+            correction2.append(-np.mean(self.model.logdet_jacobi_u(samples[section][idx])))
+        uniform = uniform[:start_idx]  # remove ending empty samples
+
+        # memory efficient mean
+        # mean(val) = 1/N * sum(mean(val_i)*N_i)
+        N_tot = sum(n_size)
+        correction1 = utils.combine_means(correction1, n_size)
+        correction2 = utils.combine_means(correction2, n_size)
+        del z_chunk
 
         # remove extreme data that isn't within 99.9999% of the norm dist
-        idx = np.all(np.abs(z) < stats.norm.ppf(1.0 - 1e-6), axis=1)
-        z = z[idx]
+        # idx = np.all(np.abs(z) < stats.norm.ppf(1.0 - 1e-6), axis=1)
+        # z = z[idx]
 
-        # Made a bad gaussian estimate
-        if z.shape[0] < 0.01 * self.samples[0].shape[0]:
-            return None
+        # # Made a bad gaussian estimate
+        # if z.shape[0] < 0.01 * self.samples[0].shape[0]:
+        #     return None
 
         if SHOW_PDF_PLOTS == True:
             # Plot histograms of original data, gaussian, and uniform transforms
@@ -656,11 +745,11 @@ class UMestimator:
             ax[2].hist(samples[0], bins=100, density=True), ax[2].set_title("Original Data")
 
         # Jacobian correction from the CDF
-        uniform = stats.norm.cdf(z)
-        correction1 = -np.mean(np.sum(np.log(stats.norm.pdf(z)), axis=1))
+        # uniform = stats.norm.cdf(z)
+        # correction1 = -np.mean(np.sum(np.log(stats.norm.pdf(z)), axis=1))
 
-        logdet = self.model.logdet_jacobi_u(samples)
-        correction2 = -np.mean(logdet[idx])
+        # logdet = self.model.logdet_jacobi_u(samples)
+        # correction2 = -np.mean(logdet[idx])
 
         return uniform, correction1 + correction2
 

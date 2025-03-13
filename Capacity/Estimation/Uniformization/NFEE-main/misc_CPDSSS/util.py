@@ -9,6 +9,7 @@ import time
 import re
 from theano.printing import pydotprint
 import theano.d3viz as d3v
+import numpy as np
 
 
 def update_filename(path, old_name, iter=-1, rename=True):
@@ -42,6 +43,10 @@ def update_filename(path, old_name, iter=-1, rename=True):
     if rename:
         os.rename(os.path.join(path, old_name + ".pkl"), os.path.join(path, new_name + ".pkl"))
     return new_name
+
+
+def combine_means(mean_list, N_list):
+    return sum(np.asarray(mean_list) * (np.asarray(N_list) / sum(N_list)))
 
 
 def int_to_short_string(num):

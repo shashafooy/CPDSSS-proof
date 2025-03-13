@@ -38,7 +38,9 @@ class SGD_Template:
         self.val_target = val_target
         # prepare training data
         self.n_trn_data = self._get_n_data(trn_data)
-        self.trn_data = [theano.shared(x.astype(dtype), borrow=True) for x in trn_data]
+        self.trn_data = [
+            theano.shared(x.astype(dtype), borrow=True) for x in trn_data
+        ]  # VRAM intensive
         self.minibatch = 100  # default value, may be overridden in train()
         self.monitor_every = None
 
