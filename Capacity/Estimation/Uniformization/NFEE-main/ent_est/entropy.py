@@ -633,6 +633,7 @@ class UMestimator:
             H = kl_ksg(samples, k=k)
         else:
             print("evaluating uniformizing corrections")
+            samples = [samples] if not isinstance(samples, list) else samples
             uniform, correction = self.uniform_correction(samples, SHOW_PDF_PLOTS)
             print("evaluating uniform knn")
             if method == "umtkl":
@@ -691,25 +692,28 @@ class UMestimator:
         # z = self.model.calc_random_numbers(samples)
 
         chunk_size = 1e6
-        N_split = np.ceil(samples.shape[0] / chunk_size)
-        uniform = np.empty_like(samples)
+        tot_samp = samples[0].shape[0]
+        N_split = np.ceil(tot_samp / chunk_size)
+        uniform = np.empty_like(samples[0])
         n_size = []
         correction1 = []
         correction2 = []
         start_idx = 0
-        for section in np.array_split(range(samples.shape[0]), N_split):
-            z_chunk = self.model.calc_random_numbers(samples[section])
+        for section in np.array_split(range(tot_samp), N_split):
+            z_chunk = self.model.calc_random_numbers([x[section] for x in samples])
             idx = np.all(np.abs(z_chunk) < stats.norm.ppf(1.0 - 1e-6), axis=1)
             z_chunk = z_chunk[idx]
             n_size.append(len(z_chunk))
             # something went wrong in training, reload initial value
             if np.any(np.isnan(z_chunk)):
                 self.checkpointer.restore()
-                z = self.model.calc_random_numbers(samples[section])
+                z = self.model.calc_random_numbers([x[section] for x in samples])
             uniform[start_idx : start_idx + n_size[-1]] = stats.norm.cdf(z_chunk)
             start_idx = start_idx + n_size[-1]
             correction1.append(-np.mean(np.sum(np.log(stats.norm.pdf(z_chunk)), axis=1)))
-            correction2.append(-np.mean(self.model.logdet_jacobi_u(samples[section][idx])))
+            correction2.append(
+                -np.mean(self.model.logdet_jacobi_u([x[section][idx] for x in samples]))
+            )
         uniform = uniform[:start_idx]  # remove ending empty samples
 
         # memory efficient mean
