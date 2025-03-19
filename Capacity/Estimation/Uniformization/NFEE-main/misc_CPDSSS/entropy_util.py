@@ -60,15 +60,21 @@ class _MAF_helper(ABC):
             else model
         )
 
-        assert len(params) == len(
-            model.parms
-        ), "number of parameters is not the same, likely due to different number of stages"
-        assert (
-            params[0].shape[0] == model.parms[0].get_value().shape[0]
-        ), f"invalid model input dimension. Expected {model.parms[0].get_value().shape[0]}, got {params[0].shape[0]}"
-        assert (
-            params[0].shape[1] == model.parms[0].get_value().shape[1]
-        ), f"invalid model, number of nodes per hidden layer. Expected {model.parms[0].get_value().shape[1]}, got {params[0].shape[1]}"
+        # assert len(params) == len(
+        #     model.parms
+        # ), "number of parameters is not the same, likely due to different number of stages"
+        # assert (
+        #     params[0].shape[0] == model.parms[0].get_value().shape[0]
+        # ), f"invalid model input dimension. Expected {model.parms[0].get_value().shape[0]}, got {params[0].shape[0]}"
+        # assert (
+        #     params[0].shape[1] == model.parms[0].get_value().shape[1]
+        # ), f"invalid model, number of nodes per hidden layer. Expected {model.parms[0].get_value().shape[1]}, got {params[0].shape[1]}"
+
+        # if given model doesn't match loaded model, remake model
+        if len(params) != len(model.parms) or params[0].shape != model.parms[0].get_value().shape:
+            model = cls.create_model(
+                n_inputs, n_hiddens=n_hiddens, n_mades=n_mades, sim_model=sim_model
+            )
 
         for i, p in enumerate(params):
             model.parms[i].set_value(p.astype(dtype))
@@ -111,7 +117,7 @@ class _MAF_helper(ABC):
         checkpointer.checkpoint()
 
         # if best_trn_loss == np.Inf:
-        old_model = _MAF_helper.load_model(model, name, path)
+        old_model = cls.load_model(model, name, path)
 
         if old_model is not None:
             best_trn_loss = old_model.eval_trnloss(samples)

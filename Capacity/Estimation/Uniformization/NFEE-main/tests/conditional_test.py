@@ -175,7 +175,10 @@ for iter in range(n_trials):
         model = entMAF.load_model(name=model_name, path=XY_model_path) if LOAD_MODEL else None
         sim_model.input_dim = N * T * 2
         if TRAIN_ONLY:
-            estimator = entMAF.learn_model(sim_model, model, train_samples=test_samples)
+            n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
+            estimator = entMAF.learn_model(
+                sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
+            )
         else:
             H_xy_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
@@ -200,7 +203,10 @@ for iter in range(n_trials):
         model = entMAF.load_model(name=model_name, path=X_model_path) if LOAD_MODEL else None
         sim_model.input_dim = N * T
         if TRAIN_ONLY:
-            estimator = entMAF.learn_model(sim_model, model, train_samples=test_samples)
+            n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
+            estimator = entMAF.learn_model(
+                sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
+            )
         else:
             H_x_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
@@ -223,7 +229,10 @@ for iter in range(n_trials):
         model = entCondMAF.load_model(name=model_name, path=cond_model_path) if LOAD_MODEL else None
         sim_model.input_dim = [N * T, N * T]
         if TRAIN_ONLY:
-            estimator = entCondMAF.learn_model(sim_model, model, train_samples=samples)
+            n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
+            estimator = entCondMAF.learn_model(
+                sim_model, model, train_samples=samples, h_hiddens=n_hiddens
+            )
         else:
             H_cond_MAF[index], estimator = entCondMAF.calc_entropy(
                 sim_model, model=model, base_samples=samples, method="both"
