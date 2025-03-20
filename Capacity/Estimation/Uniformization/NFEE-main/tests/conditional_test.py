@@ -231,7 +231,7 @@ for iter in range(n_trials):
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
             estimator = entCondMAF.learn_model(
-                sim_model, model, train_samples=samples, h_hiddens=n_hiddens
+                sim_model, model, train_samples=samples, n_hiddens=n_hiddens
             )
         else:
             H_cond_MAF[index], estimator = entCondMAF.calc_entropy(
