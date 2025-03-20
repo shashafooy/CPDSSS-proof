@@ -31,7 +31,7 @@ n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(6, 11)
+T_range = range(10, 11)
 inputs = 2
 givens = N - inputs
 
