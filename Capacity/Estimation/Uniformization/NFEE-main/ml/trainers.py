@@ -87,7 +87,14 @@ class SGD_Template:
 
         # initialize some variables
         self.trn_loss = float("inf")
-        self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
+
+        # self.make_update can be unstable at high number of samples if indexing is random.
+        # This is likely due to theano interaction with randomly indexing shared vectors.
+        # Behavior does not exist for sequential data.
+        if self.n_trn_data > 4e6:
+            self.idx_stream = ds.IndexSubSamplerSeq(self.n_trn_data)
+        else:
+            self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
 
     @abc.abstractmethod
     def validate(self):
@@ -186,7 +193,7 @@ class SGD_Template:
                     val_loss = self.validate()
                     patience_left -= 1
 
-                    if np.isnan(val_loss):
+                    if np.isnan(val_loss) or np.isinf(val_loss):
                         self.checkpointer.restore()
 
                     if val_loss < self.best_val_loss:
