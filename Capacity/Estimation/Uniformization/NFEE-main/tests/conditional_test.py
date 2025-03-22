@@ -183,7 +183,7 @@ for iter in range(n_trials):
             H_xy_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
             )
-            H_xy_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
+            # H_xy_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=XY_model_path
@@ -211,7 +211,7 @@ for iter in range(n_trials):
             H_x_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
             )
-            H_x_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
+            # H_x_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=X_model_path
