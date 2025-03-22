@@ -16,7 +16,7 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
+TRAIN_ONLY = False
 REUSE_MODEL = True
 LOAD_MODEL = True
 
@@ -31,7 +31,7 @@ n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(10, 11)
+T_range = range(6, 10)
 inputs = 2
 givens = N - inputs
 
