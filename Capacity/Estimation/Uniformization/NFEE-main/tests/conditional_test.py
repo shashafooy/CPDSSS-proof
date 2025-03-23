@@ -16,7 +16,7 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = False
+TRAIN_ONLY = True
 REUSE_MODEL = True
 LOAD_MODEL = True
 
@@ -31,7 +31,7 @@ n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(6, 11)
+T_range = range(8, 9)
 inputs = 2
 givens = N - inputs
 
@@ -176,18 +176,18 @@ for iter in range(n_trials):
         sim_model.input_dim = N * T * 2
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
-            estimator = entMAF.learn_model(
-                sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
-            )
+            # estimator = entMAF.learn_model(
+            #     sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
+            # )
         else:
             H_xy_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
             )
             # H_xy_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-        if SAVE_MODEL:
-            _ = entMAF.update_best_model(
-                estimator.model, test_samples, name=model_name, path=XY_model_path
-            )
+        # if SAVE_MODEL:
+        #     _ = entMAF.update_best_model(
+        #         estimator.model, test_samples, name=model_name, path=XY_model_path
+        #     )
         if SAVE_FILE and not TRAIN_ONLY:
             filename = misc.update_filename(random_A_path, filename, iter)
             util.io.save(
@@ -204,18 +204,18 @@ for iter in range(n_trials):
         sim_model.input_dim = N * T
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
-            estimator = entMAF.learn_model(
-                sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
-            )
+            # estimator = entMAF.learn_model(
+            #     sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
+            # )
         else:
             H_x_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
             )
             # H_x_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-        if SAVE_MODEL:
-            _ = entMAF.update_best_model(
-                estimator.model, test_samples, name=model_name, path=X_model_path
-            )
+        # if SAVE_MODEL:
+        #     _ = entMAF.update_best_model(
+        #         estimator.model, test_samples, name=model_name, path=X_model_path
+        #     )
         if SAVE_FILE and not TRAIN_ONLY:
             util.io.save(
                 (T_range, H_y_given_x_true, H_xy_MAF, H_xy_kl_ksg, H_x_MAF, H_x_kl_ksg, H_cond_MAF),
