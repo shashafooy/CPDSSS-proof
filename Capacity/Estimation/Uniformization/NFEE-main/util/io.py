@@ -16,9 +16,9 @@ def save(data, file):
         make_folder(dir)
 
     with open(file + ".pkl", "wb") as f:
-        fcntl.flock((f, fcntl.LOCK_EX))
+        fcntl.flock(f, fcntl.LOCK_EX)
         pickle.dump(data, f)
-        fcntl.flock((f, fcntl.LOCK_UN))
+        fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def load(file):
@@ -45,9 +45,9 @@ def save_txt(str, file):
         make_folder(dir)
 
     with open(file, "w") as f:
-        fcntl.flock((f, fcntl.LOCK_EX))
+        fcntl.flock(f, fcntl.LOCK_EX)
         f.write(str)
-        fcntl.flock((f, fcntl.LOCK_UN))
+        fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def load_txt(file):
