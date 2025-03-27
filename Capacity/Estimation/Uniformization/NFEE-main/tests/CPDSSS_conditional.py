@@ -13,10 +13,10 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = False
-REUSE_MODEL = True
+TRAIN_ONLY = True
+REUSE_MODEL = False
 
-SAVE_FILE = True
+SAVE_FILE = False
 
 """
 Parameters for CPDSSS
@@ -25,9 +25,9 @@ N = 12
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0=3
-d1=int(N-d0)
-T_range = range(2, 10)
+d0 = 6
+d1 = int(N - d0)
+T_range = range(6, 11)
 # T_range = range(5, 7)
 
 
@@ -89,9 +89,12 @@ for i in range(n_trials):
         model_path = os.path.join(base_model_path, "XH")
 
         model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
-        (H_XH_KL[index], H_XH_KSG[index]), estimator = ent.calc_entropy(
-            sim_model, model=model, base_samples=samples, method="both"
-        )
+        if TRAIN_ONLY:
+            estimator = ent.learn_model(sim_model, model, train_samples=samples)
+        else:
+            (H_XH_KL[index], H_XH_KSG[index]), estimator = ent.calc_entropy(
+                sim_model, model=model, base_samples=samples, method="both"
+            )
 
         if SAVE_MODEL:
             _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
@@ -111,9 +114,12 @@ for i in range(n_trials):
         samples = sim_model.sim(knn_samples, reuse_GQ=True)
 
         model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
-        (H_XX_KL[index], H_XX_KSG[index]), estimator = ent.calc_entropy(
-            sim_model, model=model, base_samples=samples, method="both"
-        )
+        if TRAIN_ONLY:
+            estimator = ent.learn_model(sim_model, model, train_samples=samples)
+        else:
+            (H_XX_KL[index], H_XX_KSG[index]), estimator = ent.calc_entropy(
+                sim_model, model=model, base_samples=samples, method="both"
+            )
         MI_KL[index] = H_XX_KL[index] - H_XH_KL[index]
         MI_KSG[index] = H_XX_KSG[index] - H_XH_KSG[index]
 
