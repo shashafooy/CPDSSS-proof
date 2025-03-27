@@ -18,9 +18,10 @@ import ent_est.entropy as entropy
 import util.io
 
 
-SAVE_MODEL = False
+SAVE_MODEL = True
 TRAIN_ONLY = False
-LOAD_MODEL = False
+REUSE_MODEL = True
+LOAD_MODEL = True
 
 SAVE_FILE = True
 
@@ -33,7 +34,7 @@ n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(10, 11)
+T_range = range(8, 11)
 inputs = 2
 givens = N - inputs
 
@@ -187,11 +188,12 @@ for iter in range(n_trials):
             #     sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
             # )
         else:
-            # H_xy_MAF[index], estimator = entMAF.calc_entropy(
-            #     sim_model, model=model, base_samples=test_samples, method="both"
-            # )
+            H_xy_MAF[index], estimator = entMAF.calc_entropy(
+                sim_model, model=model, base_samples=test_samples, method="both"
+            )
             # H_xy_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-            H_xy_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
+            # H_xy_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
+
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=XY_model_path
@@ -216,11 +218,11 @@ for iter in range(n_trials):
                 sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
             )
         else:
-            # H_x_MAF[index], estimator = entMAF.calc_entropy(
-            #     sim_model, model=model, base_samples=test_samples, method="both"
-            # )
+            H_x_MAF[index], estimator = entMAF.calc_entropy(
+                sim_model, model=model, base_samples=test_samples, method="both"
+            )
             # H_x_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-            H_x_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
+            # H_x_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=X_model_path
