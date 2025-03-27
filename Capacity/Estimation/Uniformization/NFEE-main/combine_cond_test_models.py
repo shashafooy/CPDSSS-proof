@@ -47,6 +47,20 @@ max_T = 9
 """
 Generate data
 """
+T = 10
+sigma_A = 1
+sigma_n = 2
+n_samples = 2 * N * T * n_train_samples
+A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N))
+x = np.random.normal(0, 1, (n_samples, N, T))
+n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
+y = np.matmul(A, x) + n
+sim_model = simMod.Gaussian(0, 1)
+samples = [
+    y.reshape(n_samples, N * T, order="F"),
+    x.reshape(n_samples, N * T, order="F"),
+]
+
 
 base_folder = "temp_data/saved_models/new_models/conditional_tests"
 for model_folder in os.listdir(base_folder):
@@ -60,6 +74,7 @@ for model_folder in os.listdir(base_folder):
         use_MAF = False if "cond" in folder else True
         is_MAF_XY = True if use_MAF and "XY" in folder else False
 
+        print(f"checking loss for folder {folder}")
         for file in os.listdir(os.path.join(curr_path, folder)):
             # find T value in file name
             T = int(re.findall(r"(\d+)(?=T)", file)[0])
@@ -72,23 +87,15 @@ for model_folder in os.listdir(base_folder):
             original_model_path = "/".join(segments)
 
             # Generate samples
-            sigma_A = 1
-            sigma_n = 2
-            n_samples = 2 * N * T * n_train_samples
-            A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N))
-            x = np.random.normal(0, 1, (n_samples, N, T))
-            n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
-            y = np.matmul(A, x) + n
-            sim_model = simMod.Gaussian(0, 1)
-            samples = [
-                y.reshape(n_samples, N * T, order="F"),
-                x.reshape(n_samples, N * T, order="F"),
-            ]
+
             if use_MAF:
-                test_samples = np.concatenate(samples, axis=1) if is_MAF_XY else samples[1]
+                if is_MAF_XY:
+                    test_samples = np.concatenate([x[:, : N * T] for x in samples], axis=1)
+                else:
+                    test_samples = samples[1][:, : N * T]
                 from misc_CPDSSS.entropy_util import MAF as ent
             else:
-                test_samples = samples
+                test_samples = [x[:, : N * T] for x in samples]
                 from misc_CPDSSS.entropy_util import Cond_MAF as ent
 
             # Compare with new model files
@@ -98,5 +105,5 @@ for model_folder in os.listdir(base_folder):
             _ = ent.update_best_model(new_model, test_samples, name=name, path=original_model_path)
             # compare_models(X_samp, name, base_folder_X, name, new_folder_X)
             os.remove(os.path.join(new_model_path, name + ".pkl"))
-        os.rmdir(os.path.join(curr_path, folder))
-    os.rmdir(curr_path)
+        # os.rmdir(os.path.join(curr_path, folder))
+    # os.rmdir(curr_path)

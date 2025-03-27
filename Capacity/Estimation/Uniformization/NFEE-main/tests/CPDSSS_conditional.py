@@ -105,6 +105,7 @@ for i in range(n_trials):
                 (T_range, MI_KL, MI_KSG, H_XH_KL, H_XH_KSG, H_XX_KL, H_XX_KSG, i),
                 os.path.join(path, filename),
             )
+        del estimator
 
         """Train H(xT |x1:T-1)"""
         misc.print_border(f"2/2 calculating H(xT | x1:T-1), T: {T}, iter: {i+1}")
@@ -131,3 +132,4 @@ for i in range(n_trials):
                 (T_range, MI_KL, MI_KSG, H_XH_KL, H_XH_KSG, H_XX_KL, H_XX_KSG, i),
                 os.path.join(path, filename),
             )
+        del estimator

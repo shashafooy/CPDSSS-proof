@@ -184,9 +184,9 @@ for iter in range(n_trials):
         sim_model.input_dim = N * T * 2
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
-            # estimator = entMAF.learn_model(
-            #     sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
-            # )
+            estimator = entMAF.learn_model(
+                sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
+            )
         else:
             H_xy_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"

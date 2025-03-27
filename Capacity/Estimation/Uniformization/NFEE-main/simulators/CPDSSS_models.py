@@ -123,8 +123,6 @@ class CPDSSS(_distribution):
 
         self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
 
-        self.X = None
-        self.s = None
         self.h = np.empty((0, N))
         self.G = np.empty((0, N, self.sym_N))
         self.Q = np.empty((0, N, self.noise_N))
@@ -177,6 +175,7 @@ class CPDSSS(_distribution):
             else np.empty((0, self.N), dtype=dtype)
         )
         self.h = np.concatenate((self.h, new_h), axis=0, dtype=dtype) if reuse_GQ else new_h
+        del new_h
         # self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
 
         if self._sim_chan_only:  # return early if we only need channel
@@ -185,21 +184,19 @@ class CPDSSS(_distribution):
 
         self.sim_GQ(reuse_GQ)
         if self.sym_N == self.N:
-            self.X = np.matmul(self.G[:n_samples, :, :], self.s)
+            X = np.matmul(self.G[:n_samples, :, :], self.s)
         else:
-            self.X = np.matmul(self.G[:n_samples, :, :], self.s) + np.matmul(
-                self.Q[:n_samples, :, :], v
-            )
-        joint_X = self.X[:, :, : self.T].reshape(
+            X = np.matmul(self.G[:n_samples, :, :], self.s) + np.matmul(self.Q[:n_samples, :, :], v)
+        joint_X = X[:, :, : self.T].reshape(
             (n_samples, self.N * self.T), order="F"
         )  # order 'F' needed to make arrays stack instead of interlaced
 
         if self._use_chan:
-            self.samples = np.concatenate((joint_X, self.h[:n_samples]), axis=1)
+            samples = np.concatenate((joint_X, self.h[:n_samples]), axis=1)
         else:
-            self.samples = joint_X
+            samples = joint_X
 
-        return self.samples
+        return samples
 
     # @profile
     def sim_GQ(self, reuse):
@@ -424,19 +421,18 @@ class CPDSSS_Cond(CPDSSS):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(num_tx, N, L, d0, d1)
         self.sim_val = None
-        self._X = None
 
     def sim(self, n_samples=1000, reuse_GQ=False):
         assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
         # if not reuse_GQ or self._X is None:
-        self._X, self._XT, self._Xcond, self._h = super().get_base_X_h(n_samples, reuse_GQ)
+        _, XT, Xcond, _ = super().get_base_X_h(n_samples, reuse_GQ)
         if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
-            cond = np.concatenate((self._Xcond, self._h[:n_samples]), axis=1)
+            cond = np.concatenate((Xcond, self.h[:n_samples]), axis=1)
         elif self.input_dim[1] == 0:
             cond = np.zeros((n_samples, 1))
         else:  # X is the conditional
-            cond = self._Xcond
-        return [self._XT, cond]
+            cond = Xcond
+        return [XT, cond]
 
     def set_Xcond(self):
         self.input_dim[1] = self.N * (self.T - 1)

@@ -42,6 +42,13 @@ H_x_MAF = viewData.Data(data[3])
 H_x_kl_ksg = viewData.Data(data[4])
 H_cond_MAF = viewData.Data(data[5])
 
+# temp placeholder values. Model loss values
+H_cond_MAF.mean[7] = 109.9792
+H_cond_MAF.mean[7:, 1] = np.array([110.21987, 123.41146, 135.82276])
+
+H_xy_MAF.mean[7:, 1] = np.array([178.98333, 201.179542, 228.37499])
+H_x_MAF.mean[7:, 1] = np.array([68.10809, 76.621849, 85.13507])
+
 H_y_given_x_MAF = H_xy_MAF.mean - H_x_MAF.mean
 H_y_given_x_knn = H_xy_kl_ksg.mean - H_x_kl_ksg.mean
 
@@ -49,34 +56,26 @@ H_y_given_x_knn = H_xy_kl_ksg.mean - H_x_kl_ksg.mean
 # entropy values
 fig, ax1 = plt.subplots()
 ax1.plot(T_range, H_y_given_x_true.mean, "-")
-ax1.plot(T_range, H_y_given_x_MAF, "--")
 ax1.plot(T_range, H_y_given_x_knn, "--*")
-ax1.plot(T_range, H_cond_MAF.mean, "--x")
-ax1.legend(["H(y|x)", "MAF KL", "MAF KSG", "KL", "KSG", "cond MAF KL", "cond MAF KSG"])
+ax1.plot(T_range, H_y_given_x_MAF[:, 1], "--o")
+ax1.plot(T_range, H_cond_MAF.mean[:, 1], "--x")
+ax1.legend(["H(y|x)", "KL", "KSG", "MAF", "cond MAF"])
 
-
-# entropy values
-fig, ax1 = plt.subplots()
-ax1.plot(T_range, H_y_given_x_true.mean, "-")
-ax1.plot(T_range, H_y_given_x_MAF, "--")
-ax1.plot(T_range, H_y_given_x_knn, "--*")
-ax1.plot(T_range, H_cond_MAF.mean, "--x")
-ax1.legend(["H(y|x)", "MAF KL", "MAF KSG", "KL", "KSG", "cond MAF KL", "cond MAF KSG"])
 fig.tight_layout()
 
 # Normalizedentropy values
 fig, ax1 = plt.subplots()
-ax1.hlines(1, 1, 10)
+ax1.axhline(y=1, linestyle="dashed", color="black")
 # ax1.plot(T_range, H_y_given_x_true.mean, "-")
-ax1.plot(T_range, H_y_given_x_MAF / H_y_given_x_true.mean[:, np.newaxis], "--")
 ax1.plot(T_range, H_y_given_x_knn / H_y_given_x_true.mean[:, np.newaxis], "--*")
-ax1.plot(T_range, H_cond_MAF.mean / H_y_given_x_true.mean[:, np.newaxis], "--x")
-ax1.legend(["norm entropy", "MAF KL", "MAF KSG", "KL", "KSG", "cond MAF KL", "cond MAF KSG"])
+ax1.plot(T_range, H_y_given_x_MAF[:, 1] / H_y_given_x_true.mean, "-o")
+ax1.plot(T_range, H_cond_MAF.mean[:, 1] / H_y_given_x_true.mean, "--x")
+ax1.legend(["norm entropy", "KL", "KSG", "MAF", "cond MAF"])
 
 # error
 fig, ax1 = plt.subplots()
-ax1.plot(T_range, H_y_given_x_MAF - H_y_given_x_true.mean[:, np.newaxis], "--")
 ax1.plot(T_range, H_y_given_x_knn - H_y_given_x_true.mean[:, np.newaxis], "--*")
-ax1.plot(T_range, H_cond_MAF.mean - H_y_given_x_true.mean[:, np.newaxis], "--x")
-ax1.legend(["MAF KL", "MAF KSG", "KL", "KSG", "cond MAF KL", "cond MAF KSG"])
+ax1.plot(T_range, H_y_given_x_MAF[:, 1] - H_y_given_x_true.mean, "--o")
+ax1.plot(T_range, H_cond_MAF.mean[:, 1] - H_y_given_x_true.mean, "--x")
+ax1.legend(["KL", "KSG", "MAF", "cond MAF"])
 plt.show()

@@ -4,6 +4,8 @@ token.txt
 .gitignore-pop-os
 
 
+
+
 covar_X_given_S.mat
 Repeated Q/rotation.mat
 
@@ -14,3 +16,4 @@ Capacity/Estimation/Uniformization/NFEE-main/CPDSSS_run_double.sh
 Capacity/Estimation/Uniformization/NFEE-main/CPDSSS_run.sh
 Capacity/Estimation/Uniformization/NFEE-main/CPDSSS.ini
 Capacity/Estimation/Uniformization/NFEE-main/temp_data/**/*(-1_iter)*
+Capacity/Estimation/Uniformization/NFEE-main/temp_data/saved_models/
