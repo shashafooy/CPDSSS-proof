@@ -13,10 +13,10 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
-REUSE_MODEL = False
+TRAIN_ONLY = False
+REUSE_MODEL = True
 
-SAVE_FILE = False
+SAVE_FILE = True
 
 """
 Parameters for CPDSSS
@@ -93,9 +93,10 @@ for i in range(n_trials):
         if TRAIN_ONLY:
             estimator = ent.learn_model(sim_model, model, train_samples=samples)
         else:
-            (H_XH_KL[index], H_XH_KSG[index]), estimator = ent.calc_entropy(
+            H, estimator = ent.calc_entropy(
                 sim_model, model=model, base_samples=samples, method="both"
             )
+            H_XH_KL[index], H_XH_KSG[index] = H[0], H[1]
 
         if SAVE_MODEL:
             _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
@@ -119,9 +120,10 @@ for i in range(n_trials):
         if TRAIN_ONLY:
             estimator = ent.learn_model(sim_model, model, train_samples=samples)
         else:
-            (H_XX_KL[index], H_XX_KSG[index]), estimator = ent.calc_entropy(
+            H, estimator = ent.calc_entropy(
                 sim_model, model=model, base_samples=samples, method="both"
             )
+            H_XX_KL[index], H_XX_KSG[index] = H[0], H[1]
         MI_KL[index] = H_XX_KL[index] - H_XH_KL[index]
         MI_KSG[index] = H_XX_KSG[index] - H_XH_KSG[index]
 
