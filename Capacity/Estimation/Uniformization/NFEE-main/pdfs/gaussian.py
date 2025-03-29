@@ -97,6 +97,12 @@ class Gaussian:
             else:
                 raise ValueError("Mean information missing.")
 
+            self.P = self.P.astype(np.float32)
+            self.C = self.C.astype(np.float32)
+            self.S = self.S.astype(np.float32)
+            self.m = self.m.astype(np.float32)
+            self.logdetP = self.logdetP.astype(np.float32)
+
         except np.linalg.LinAlgError:
             raise ImproperCovarianceError()
 
@@ -107,7 +113,10 @@ class Gaussian:
 
         one_sample = n_samples is None
 
-        z = rng.randn(1 if one_sample else n_samples, self.n_dims)
+        # z = rng.randn(1 if one_sample else n_samples, self.n_dims)
+        z = rng.default_rng().standard_normal(
+            size=(1 if one_sample else n_samples, self.n_dims), dtype=np.float32
+        )
         samples = np.dot(z, self.C) + self.m
 
         return samples[0] if one_sample else samples

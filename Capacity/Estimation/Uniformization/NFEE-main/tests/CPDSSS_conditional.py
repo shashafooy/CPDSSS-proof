@@ -28,6 +28,7 @@ d1 = int(N / 2)
 d0 = 6
 d1 = int(N - d0)
 T_range = range(6, 11)
+T_range = range(2, 6)
 # T_range = range(5, 7)
 
 

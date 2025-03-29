@@ -1,4 +1,5 @@
 import abc
+import gc
 import numpy as np
 import scipy.linalg as lin
 import scipy.special as spec
@@ -124,8 +125,8 @@ class CPDSSS(_distribution):
         self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
 
         self.h = np.empty((0, N))
-        self.G = np.empty((0, N, self.sym_N))
-        self.Q = np.empty((0, N, self.noise_N))
+        self.G = np.empty((0, N, self.sym_N), dtype=dtype)
+        self.Q = np.empty((0, N, self.noise_N), dtype=dtype)
 
         # For larger N, the regularization factor may need to increase so H^T*H is not singular
         if self.N > 10:
@@ -155,7 +156,7 @@ class CPDSSS(_distribution):
             numpy: (n_samples, dim_x) array of generated values
         """
 
-        self.s = (
+        s = (
             self.sim_S.sim(n_samples=n_samples)
             .astype(dtype)
             .reshape((n_samples, self.sym_N, self.T))
@@ -184,17 +185,20 @@ class CPDSSS(_distribution):
 
         self.sim_GQ(reuse_GQ)
         if self.sym_N == self.N:
-            X = np.matmul(self.G[:n_samples, :, :], self.s)
+            X = np.matmul(self.G[:n_samples, :, :], s)
         else:
-            X = np.matmul(self.G[:n_samples, :, :], self.s) + np.matmul(self.Q[:n_samples, :, :], v)
+            X = np.matmul(self.G[:n_samples, :, :], s) + np.matmul(self.Q[:n_samples, :, :], v)
+        del s, v
+        gc.collect()
         joint_X = X[:, :, : self.T].reshape(
             (n_samples, self.N * self.T), order="F"
         )  # order 'F' needed to make arrays stack instead of interlaced
-
+        del X
+        gc.collect()
         if self._use_chan:
-            samples = np.concatenate((joint_X, self.h[:n_samples]), axis=1)
+            return np.concatenate((joint_X, self.h[:n_samples]), axis=1)
         else:
-            samples = joint_X
+            return joint_X
 
         return samples
 
@@ -500,8 +504,8 @@ class CPDSSS_XS(CPDSSS):
         ret_val = np.empty((n_samples, 0))
         if self.use_X:
             ret_val = np.concatenate((ret_val, X), axis=1)
-        if self.use_S:
-            ret_val = np.concatenate((ret_val, self.s[:, :, 0]), axis=1)
+        # if self.use_S:
+        #     ret_val = np.concatenate((ret_val, self.s[:, :, 0]), axis=1)
 
         return ret_val
 

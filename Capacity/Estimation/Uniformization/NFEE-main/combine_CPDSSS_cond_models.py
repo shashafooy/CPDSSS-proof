@@ -30,7 +30,6 @@ d1 = N - d0
 
 # min_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
-max_T = 9
 
 """
 Generate data
