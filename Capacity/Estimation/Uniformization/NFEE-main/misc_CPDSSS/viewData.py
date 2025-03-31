@@ -170,9 +170,9 @@ def clean_data(data):
 def read_data(filepath, remove_outliers=True, outlier_std=3):
     init = False
     for filename in os.listdir(filepath):
-        filename = os.path.splitext(filename)[0]  # remove extention
-        if re.search(r"-1_iter", filename):
+        if re.search(r"-1_iter|\.old", filename):
             continue
+        filename = os.path.splitext(filename)[0]  # remove extention
         file_items = util.io.load(os.path.join(filepath, filename))
         _T_range = file_items[0]
 

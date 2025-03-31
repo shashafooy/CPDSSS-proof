@@ -1,6 +1,8 @@
 import numpy as np
 from datetime import date
 import scipy.linalg as lin
+import gc
+
 
 import os
 from _utils import set_sys_path
@@ -12,11 +14,12 @@ from misc_CPDSSS.entropy_util import Cond_MAF as entCondMAF
 from misc_CPDSSS.entropy_util import MAF as entMAF
 from misc_CPDSSS import util as misc
 from ent_est.entropy import UMestimator
+import ent_est.entropy as entropy
 import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
+TRAIN_ONLY = False
 REUSE_MODEL = True
 LOAD_MODEL = True
 
@@ -31,7 +34,7 @@ n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(6, 11)
+T_range = range(8, 11)
 inputs = 2
 givens = N - inputs
 
@@ -151,6 +154,10 @@ for iter in range(n_trials):
         y = np.matmul(A, x) + n
         sim_model = simMod.Gaussian(mu, sigma)
 
+        y = np.asarray(y, dtype=np.float32)
+        x = np.asarray(x, dtype=np.float32)
+        del A, n  # free memory
+
         samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
         # covar is symmetric so det is the product (log sum) of eigenvalues
         dets = np.sum(
@@ -167,6 +174,7 @@ for iter in range(n_trials):
         H_y_given_x_true[index] = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(
             dets
         )
+        del dets, y, x  # free memory
         H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
         H_xy_true[index] = H_y_given_x_true[index] + H_x_true
 
@@ -183,7 +191,9 @@ for iter in range(n_trials):
             H_xy_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
             )
-            H_xy_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
+            # H_xy_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
+            # H_xy_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
+
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=XY_model_path
@@ -211,7 +221,8 @@ for iter in range(n_trials):
             H_x_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
             )
-            H_x_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
+            # H_x_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
+            # H_x_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=X_model_path
@@ -231,12 +242,12 @@ for iter in range(n_trials):
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
             estimator = entCondMAF.learn_model(
-                sim_model, model, train_samples=samples, h_hiddens=n_hiddens
+                sim_model, model, train_samples=samples, n_hiddens=n_hiddens
             )
-        else:
-            H_cond_MAF[index], estimator = entCondMAF.calc_entropy(
-                sim_model, model=model, base_samples=samples, method="both"
-            )
+        # else:
+        # H_cond_MAF[index], estimator = entCondMAF.calc_entropy(
+        #     sim_model, model=model, base_samples=samples, method="both"
+        # )
         if SAVE_MODEL:
             _ = entCondMAF.update_best_model(
                 estimator.model, samples, name=model_name, path=cond_model_path
@@ -251,6 +262,8 @@ for iter in range(n_trials):
         print(f"estimated MAF H_XY - H_X: {H_xy_MAF[index]-H_x_MAF[index]}")
         print(f"estimated knn H_XY - H_X: {H_xy_kl_ksg[index]-H_x_kl_ksg[index]}")
         print(f"true H: {H_y_given_x_true[index]}")
+        del samples, test_samples
+        gc.collect()
 
 import sys
 

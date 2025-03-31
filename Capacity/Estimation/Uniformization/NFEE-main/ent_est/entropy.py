@@ -553,6 +553,10 @@ class UMestimator:
 
         self.checkpointer.checkpoint()
 
+    def __del__(self):
+        del self.samples
+        del self.checkpointer
+
     def learn_transformation(
         self,
         n_samples,
