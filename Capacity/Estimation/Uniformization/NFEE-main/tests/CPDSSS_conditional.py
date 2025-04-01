@@ -13,10 +13,10 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = False
-REUSE_MODEL = True
+TRAIN_ONLY = True
+REUSE_MODEL = False
 
-SAVE_FILE = True
+SAVE_FILE = False
 
 """
 Parameters for CPDSSS
@@ -25,10 +25,10 @@ N = 12
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 6
+d0 = 3
 d1 = int(N - d0)
-T_range = range(6, 11)
-T_range = range(2, 6)
+T_range = range(2, 11)
+#T_range = range(2, 6)
 # T_range = range(5, 7)
 
 
