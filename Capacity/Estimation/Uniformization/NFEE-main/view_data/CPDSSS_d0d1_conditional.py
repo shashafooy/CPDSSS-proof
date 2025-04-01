@@ -19,9 +19,9 @@ min_T = 0
 
 # N_range = [2, 4, 6]
 # L = 2
-N = 6
+N = 12
 N_range = [2, 4, 6]
-d0d1 = [(3, 3), (2, 4), (4, 2)]
+d0d1 = [(6, 6), (3, 9), (9, 3)]
 
 REMOVE_OUTLIERS = True
 COMBINE_ENTROPIES = True
@@ -76,11 +76,15 @@ for d0, d1 in d0d1:
 # MI[0].mean[-2:] = [0.28, 0.23]
 # MI[2].mean[-5:-1] = [0.386, 0.346, 0.303, 0.255]
 
+H_HX[0].mean = np.array([14.5132, 14.5166, 14.5215, 14.5277, 14.5360, 14.5404, 14.5537, 14.5603])
+H_X[0].mean = np.array([15.7444, 15.5817, 15.4454, 15.3492, 15.2795, 15.2169, 15.1924, 15.1820])
+
 
 for data_HX, data_X, (d0, d1), t_range in zip(H_HX, H_X, d0d1, T_range):
     fig, ax = plt.subplots(1, 2)
     x = np.full(data_HX.data.shape, t_range)
     ax[0].scatter(x, data_HX.data), ax[0].set_title("H(X|h,Xold)")
+    x = np.full(data_X.data.shape, t_range)
     ax[1].scatter(x, data_X.data), ax[1].set_title("H(X,Xold)")
     fig.suptitle(f"Cond scatter for d_0={d0}, d_1={d1}")
 
