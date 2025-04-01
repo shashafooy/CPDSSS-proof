@@ -21,14 +21,14 @@ SAVE_FILE = False
 """
 Parameters for CPDSSS
 """
-N = 12
+N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 3
-d1 = int(N - d0)
-T_range = range(2, 11)
-#T_range = range(2, 6)
+# d0 = 3
+# d1 = int(N - d0)
+T_range = range(9, 10)
+# T_range = range(2, 6)
 # T_range = range(5, 7)
 
 
@@ -37,7 +37,7 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
-n_train_samples = 100000
+n_train_samples = 1000
 
 
 """
@@ -58,11 +58,11 @@ model = None
 File names
 """
 today = date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/MI(h,X)/conditional/N{N}_d0d1({d0},{d1})/"
+base_path = f"temp_data/CPDSSS_data/MI(h,X)/conditional_noFading/N{N}_d0d1({d0},{d1})/"
 path = base_path  # + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-base_model_path = f"temp_data/saved_models/conditional/{N}N_d0d1({d0},{d1})"
+base_model_path = f"temp_data/saved_models/conditional_noFading/{N}N_d0d1({d0},{d1})"
 
 
 # fix filename if file already exists
@@ -70,7 +70,7 @@ if SAVE_FILE:
     filename = misc.update_filename(path, filename, -1, rename=False)
 
 for i in range(n_trials):
-    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1)
+    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=False)
     for k, T in enumerate(T_range):
         name = f"{T}T"
         index = (i, k)

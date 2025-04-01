@@ -80,7 +80,7 @@ class _distribution:
 
 
 class CPDSSS(_distribution):
-    def __init__(self, num_tx, N, L=None, d0=None, d1=None):
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True):
         super().__init__(x_dim=N * num_tx + N)
 
         self.N = N
@@ -122,7 +122,9 @@ class CPDSSS(_distribution):
         # self.use_chan_in_sim()
         self._sim_chan_only = False
 
-        self.fading = np.exp(-np.arange(self.N) / 3).astype(dtype)
+        self.fading = (
+            np.exp(-np.arange(self.N) / 3).astype(dtype) if use_fading else np.ones(self.N)
+        )
 
         self.h = np.empty((0, N))
         self.G = np.empty((0, N, self.sym_N), dtype=dtype)
@@ -349,6 +351,9 @@ class CPDSSS(_distribution):
         return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
 
     def chan_entropy(self):
+        return self.N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(
+            np.linalg.det(np.diag(self.fading))
+        )
         return 0.5 * np.log(np.linalg.det(2 * math.pi * np.exp(1) * np.diag(self.fading)))
 
     def use_chan_in_sim(self, h_flag=True):
@@ -422,8 +427,8 @@ class CPDSSS(_distribution):
 
 
 class CPDSSS_Cond(CPDSSS):
-    def __init__(self, num_tx, N, L=None, d0=None, d1=None):
-        super().__init__(num_tx, N, L, d0, d1)
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True):
+        super().__init__(num_tx, N, L, d0, d1, use_fading)
         self.sim_val = None
 
     def sim(self, n_samples=1000, reuse_GQ=False):
