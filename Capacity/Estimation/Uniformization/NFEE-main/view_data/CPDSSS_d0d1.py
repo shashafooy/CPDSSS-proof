@@ -45,11 +45,11 @@ for d0, d1 in d0d1:
 
     _T_range, data = viewData.read_data(filepath, REMOVE_OUTLIERS)
     T_range.append(_T_range)
-    MI.append(viewData.Data(data[1]))
-    H_hxc.append(viewData.Data(data[2]))
-    H_xxc.append(viewData.Data(data[3]))
-    H_joint.append(viewData.Data(data[4]))
-    H_cond.append(viewData.Data(data[5]))
+    MI.append(viewData.Data(data[0]))
+    H_hxc.append(viewData.Data(data[1]))
+    H_xxc.append(viewData.Data(data[2]))
+    H_joint.append(viewData.Data(data[3]))
+    H_cond.append(viewData.Data(data[4]))
 
     MI[-1].mean = H_hxc[-1].mean + H_xxc[-1].mean - H_joint[-1].mean - H_cond[-1].mean
 
