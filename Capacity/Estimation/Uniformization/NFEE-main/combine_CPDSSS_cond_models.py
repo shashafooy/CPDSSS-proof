@@ -8,22 +8,10 @@ from simulators.CPDSSS_models import CPDSSS_Cond
 from misc_CPDSSS.entropy_util import Cond_MAF as ent
 
 
-def compare_models(samples, name1, base_folder, name2, new_model_folder):
-    model = ent.create_model(samples.shape[1])
-    current_loss = ent.load_model(model, name1, base_folder).eval_trnloss(samples)
-    new_loss = ent.load_model(model, name2, new_model_folder).eval_trnloss(samples)
-    print(f"{name1} current loss: {current_loss:.3f}, new loss: {new_loss:.3f}")
-    if new_loss < current_loss:
-        ent.save_model(model, name1, base_folder)
-    else:
-        model = ent.load_model(model, name1, base_folder)
-        ent.save_model(model, name2, new_model_folder)
-
-
 """
 Parameters for CPDSSS
 """
-N = 6
+N = 12
 L = 3
 d0 = 3
 d1 = N - d0
@@ -35,7 +23,7 @@ n_train_samples = 100000
 Generate data
 """
 
-base_folder = "temp_data/saved_models/new_models/conditional"
+base_folder = "temp_data/saved_models/new_models/conditional_noFading"
 for model_folder in os.listdir(base_folder):
     curr_path = os.path.join(base_folder, model_folder)
     match = re.match(r"(\d{1,2})N_d0d1\((\d{1,2}),\s*(\d{1,2})\)", model_folder)
@@ -44,9 +32,10 @@ for model_folder in os.listdir(base_folder):
     d1 = int(match.group(3))
     assert N == d0 + d1, "invalid d0d1"
 
-    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1)
+    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=False)
 
     for folder in os.listdir(curr_path):
+        print(f"comparing models {model_folder}/{folder}")
         for file in os.listdir(os.path.join(curr_path, folder)):
             T = int(re.match("^\d{1,2}", file).group())
             name = file.split(".")[0]
@@ -71,35 +60,4 @@ for model_folder in os.listdir(base_folder):
             # compare_models(X_samp, name, base_folder_X, name, new_folder_X)
             os.remove(os.path.join(new_model_path, name + ".pkl"))
         os.rmdir(os.path.join(curr_path, folder))
-    os.rmdir(curr_path)
-
-
-# if os.path.exists(new_folder_X):
-#     for file in os.listdir(new_folder_X):
-#         T = int(re.match("^\d{1,2}", file).group())
-#         sim_model.set_T(T)
-#         sim_model.set_Xcond()
-#         name = f"{T}T"
-
-#         samples = sim_model.sim(knn_samples, reuse_GQ=True)
-
-#         # Compare with new model files
-#         print(f"checking loss for {T}T X")
-#         new_model = ent.load_model(name=name, path=new_folder_X)
-#         _ = ent.update_best_model(new_model, samples, name=name, path=base_folder_X)
-#         # compare_models(X_samp, name, base_folder_X, name, new_folder_X)
-#         os.remove(os.path.join(new_folder_X, name + ".pkl"))
-# if os.path.exists(new_folder_XH):
-#     for file in os.listdir(new_folder_XH):
-#         T = int(re.match("^\d{1,2}", file).group())
-#         sim_model.set_T(T)
-#         sim_model.set_XHcond()
-#         name = f"{T}T"
-
-#         samples = sim_model.sim(knn_samples, reuse_GQ=True)
-#         # Compare with new model files
-#         print(f"checking loss for {T}T XH")
-#         new_model = ent.load_model(name=name, path=new_folder_XH)
-#         _ = ent.update_best_model(new_model, samples, name=name, path=base_folder_XH)
-#         # compare_models(XH_samp, name, base_folder_XH, name, new_folder_XH)
-#         os.remove(os.path.join(new_folder_XH, name + ".pkl"))
+    # os.rmdir(curr_path)

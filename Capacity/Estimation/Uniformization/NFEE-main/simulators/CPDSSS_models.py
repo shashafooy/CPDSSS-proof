@@ -1,4 +1,5 @@
 import abc
+from datetime import timedelta
 import gc
 import numpy as np
 import scipy.linalg as lin
@@ -244,7 +245,7 @@ class CPDSSS(_distribution):
 
         self.G = np.concatenate((self.G, G), axis=0) if reuse else G
         self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
-        print(f"G,Q time {time.time() - start:.4f}")
+        print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 
     def _gen_GQ_sample(self, h):
 
