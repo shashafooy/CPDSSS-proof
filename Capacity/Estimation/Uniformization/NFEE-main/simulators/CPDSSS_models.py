@@ -463,6 +463,95 @@ class CPDSSS_Cond(CPDSSS):
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
 
 
+class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None):
+        super().__init__(num_tx, N, L, d0, d1)
+
+    def sim(self, n_samples=1000):
+        assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
+        s = (
+            self.sim_S.sim(n_samples=n_samples)
+            .astype(dtype)
+            .reshape((n_samples, self.sym_N, self.T))
+        )
+
+        v = (
+            self.sim_V.sim(n_samples=n_samples)
+            .astype(dtype)
+            .reshape((n_samples, self.noise_N, self.T))
+        )
+        self.H = np.random.standard_normal((n_samples, self.N, self.N))
+        self.h = np.reshape(self.H, (n_samples, self.N * self.N), order="F")
+        self.sim_GQ()
+
+        if self.sym_N == self.N:
+            X = np.matmul(self.G[:n_samples, :, :], s)
+        else:
+            X = np.matmul(self.G[:n_samples, :, :], s) + np.matmul(self.Q[:n_samples, :, :], v)
+        del s, v
+        gc.collect()
+
+        # separate X into T-th transmission and previous transmissions
+        previous_X_T = X[:, :, : self.T - 1].reshape((n_samples, self.N * (self.T - 1)), order="F")
+        X_T = X[:, :, -1]
+        del X
+        gc.collect()
+
+        if self.input_dim[1] == self.N * (self.T - 1) + self.N**2:  # X,H are conditionals
+            cond = np.concatenate((previous_X_T, self.h[:n_samples]), axis=1)
+        elif self.input_dim[1] == 0:
+            cond = np.zeros((n_samples, 1))
+        else:  # X is the conditional
+            cond = previous_X_T
+        return [X_T, cond]
+
+    def sim_GQ(self):
+        # generate G and Q using Gram-Schmidt process
+        # https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
+
+        def project(v, u):
+            return np.dot(u, v) / np.dot(u, u) * u
+
+        def gram_schmidt(vectors, normalize=True):
+            orthogonal_vectors = []
+            for v in vectors:
+                for u in orthogonal_vectors:
+                    v -= project(v, u)
+                orthogonal_vectors.append(v)
+
+            orthogonal_vectors = np.array(orthogonal_vectors)
+            if normalize:
+                return orthogonal_vectors / np.linalg.norm(orthogonal_vectors, axis=1)[:, None]
+            else:
+                return orthogonal_vectors
+
+        n_samples = self.H.shape[0]
+
+        self.G = np.empty((n_samples, self.N, self.sym_N), dtype=dtype)
+        self.Q = np.empty((n_samples, self.N, self.noise_N), dtype=dtype)
+
+        start = time.time()
+        for i in range(n_samples):
+            if i % 10000 == 0:
+                util.misc.printProgressBar(i, n_samples, "G,Q generation")
+            vect = gram_schmidt(self.H[i])
+            self.G[i] = vect[:, : self.sym_N]
+            self.Q[i] = vect[:, -self.noise_N :]
+        util.misc.printProgressBar(n_samples, n_samples, "G,Q generation")
+        print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
+
+    def set_Xcond(self):
+        self.input_dim[1] = self.N * (self.T - 1)
+        self.update_x_dim()
+
+    def set_XHcond(self):
+        self.input_dim[1] = self.N * (self.T - 1) + self.N * self.N
+        self.update_x_dim()
+
+    def chan_entropy(self):
+        return self.N * self.N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(1)
+
+
 class CPDSSS_Hinv(CPDSSS):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None):
         super().__init__(num_tx, N, L, d0, d1)
