@@ -38,9 +38,10 @@ class SGD_Template:
         self.val_target = val_target
         # prepare training data
         self.n_trn_data = self._get_n_data(trn_data)
-        self.trn_data = [
-            theano.shared(x.astype(dtype), borrow=True) for x in trn_data
-        ]  # VRAM intensive
+        self.trn_data = trn_data
+        # self.trn_data = [
+        #     theano.shared(x.astype(dtype), borrow=True) for x in trn_data
+        # ]  # VRAM intensive
         self.minibatch = 100  # default value, may be overridden in train()
         self.monitor_every = None
 
@@ -75,6 +76,8 @@ class SGD_Template:
             self.n_val_data = self._get_n_data(val_data)
             self.val_data = [theano.shared(x.astype(dtype), borrow=True) for x in val_data]
 
+            self._validate = None  # to be implemented by a subclass
+
             # compile theano function for validation
             self.val_inputs = [model.input] if val_target is None else [model.input, val_target]
             if len(val_data) == 2 and trn_target is None:
@@ -91,10 +94,18 @@ class SGD_Template:
         # self.make_update can be unstable at high number of samples if indexing is random.
         # This is likely due to theano interaction with randomly indexing shared vectors.
         # Behavior does not exist for sequential data.
-        if self.n_trn_data > 4e6:
-            self.idx_stream = ds.IndexSubSamplerSeq(self.n_trn_data)
-        else:
-            self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
+        # if self.n_trn_data > 4e6:
+        #     self.idx_stream = ds.IndexSubSamplerSeq(self.n_trn_data)
+        # else:
+        self.idx_stream = ds.IndexSubSampler(self.n_trn_data, rng=np.random.RandomState(42))
+
+    def __del__(self):
+        self.release_shared_data()
+        del self.trn_data
+        del self.val_data
+        del self.make_update
+        del self._validate
+        del self.set_batch_norm_stats
 
     @abc.abstractmethod
     def validate(self):
@@ -177,13 +188,14 @@ class SGD_Template:
         while True:
 
             # make update to parameters
-            trn_loss = self.make_update(self.idx_stream.gen(self.minibatch))
+            # trn_loss = self.make_update(self.idx_stream.gen(self.minibatch))
+            idx = self.idx_stream.gen(self.minibatch)
+            trn_loss = self.make_update(*[x[idx] for x in self.trn_data])
             diff = self.trn_loss - trn_loss
             self.iter += 1
             self.trn_loss = trn_loss
 
             if self.iter % self.monitor_every == 0:
-
                 epoch = self.iter * float(self.minibatch) / self.n_trn_data
 
                 # do validation
@@ -333,6 +345,7 @@ class SGD_Template:
     def release_shared_data(self):
         for share in self.val_data:
             share.set_value([[]])
+        return
         for share in self.trn_data:
             share.set_value([[]])
 
@@ -380,10 +393,16 @@ class SGD(SGD_Template):
         grads = [tt.switch(tt.isnan(g), 0.0, g) for g in grads]
         self.grads = grads if max_norm is None else util.ml.total_norm_constraint(grads, max_norm)
         # generate function for gradient descent using the given step algorithm and gradient
+        # self.make_update = theano.function(
+        #     inputs=[idx],
+        #     outputs=trn_loss,
+        #     givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
+        #     updates=step.updates(model.parms, self.grads),
+        # )
+
         self.make_update = theano.function(
-            inputs=[idx],
+            inputs=self.trn_inputs,
             outputs=trn_loss,
-            givens=list(zip(self.trn_inputs, [x[idx] for x in self.trn_data])),
             updates=step.updates(model.parms, self.grads),
         )
 
