@@ -536,7 +536,9 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
                 util.misc.printProgressBar(i, n_samples, "G,Q generation")
             vect = gram_schmidt(self.H[i])
             self.G[i] = vect[:, : self.sym_N]
-            self.Q[i] = vect[:, -self.noise_N :]
+            self.Q[i] = (
+                vect[:, -self.noise_N :] if self.noise_N > 0 else np.empty((self.N, 0), dtype=dtype)
+            )
         util.misc.printProgressBar(n_samples, n_samples, "G,Q generation")
         print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 

@@ -69,15 +69,50 @@ for d0, d1 in d0d1:
     """
     from simulators.CPDSSS_models import CPDSSS
 
-    sim_model = CPDSSS(1, N, d0=d0, d1=d1)
+    sim_model = CPDSSS(1, N, d0=d0, d1=d1, use_fading=False)
     H_h.append(sim_model.chan_entropy())
 
 # manual smoothing/prediction
+"""12N using fading"""
 # MI[0].mean[-2:] = [0.28, 0.23]
 # MI[2].mean[-5:-1] = [0.386, 0.346, 0.303, 0.255]
 
-H_HX[0].mean = np.array([14.5132, 14.5166, 14.5215, 14.5277, 14.5360, 14.5404, 14.5537, 14.5603])
-H_X[0].mean = np.array([15.7444, 15.5817, 15.4454, 15.3492, 15.2795, 15.2169, 15.1924, 15.1820])
+# H_HX[0].mean = np.array([14.5132, 14.5166, 14.5215, 14.5277, 14.5360, 14.5404, 14.5537, 14.5603])
+# H_X[0].mean = np.array([15.7444, 15.5817, 15.4454, 15.3492, 15.2795, 15.2169, 15.1924, 15.1820])
+
+"""12N without fading"""
+# model loss values
+# d0d1=6,6
+H_X[0].mean[:] = [13.1207, 12.6009, 12.2494, 11.9966, 11.8077, 11.6757, 11.5875, 11.5429, 11.6195]
+H_HX[0].mean[:] = [10.7586, 10.7599, 10.7533, 10.7724, 10.7602, 10.7563, 10.7592, 10.7637, 10.8048]
+MI[0].mean = H_X[0].mean - H_HX[0].mean
+
+# d0d1=3,9
+H_HX[1].mean = np.asarray([13.636, 13.634, 13.634, 13.632, 13.635, 13.641, 13.651, 13.658, 13.657])
+H_X[1].mean = np.asarray([15.488, 15.447, 15.425, 15.388, 15.374, 15.358, 15.352, 15.351, 15.475])
+MI[1].mean = H_X[1].mean - H_HX[1].mean
+
+# d0d1=9,3
+H_HX[2].mean = np.asarray([8.424, 8.445, 8.372, 8.295, 8.309, 8.279, 8.263, 8.610, 8.643])
+H_X[2].mean = np.asarray([10.737, 10.391, 10.157, 10.017, 9.889, 9.824, 9.729, 9.634, 9.815])
+MI[2].mean = H_X[2].mean - H_HX[2].mean
+
+H_h[0] = CPDSSS(1, N, d0=6, d1=6, use_fading=False).chan_entropy()
+H_h[1] = H_h[0]
+H_h[2] = H_h[0]
+
+"""3N without fading"""
+# d0d1=1,2
+H_X[0].mean[:] = [4.124, 4.100, 4.098, 4.089, 4.079, 4.073, 4.067, 4.057, 4.053]
+H_HX[0].mean[:] = [3.902, 3.900, 3.904, 3.903, 3.906, 3.902, 3.903, 3.904, 3.905]
+MI[0].mean = H_X[0].mean - H_HX[0].mean
+
+# d0d1=2,1
+H_X[1].mean = np.asarray([4.113, 4.058, 4.016, 3.987, 3.965, 3.945, 3.928, 3.916, 3.904])
+H_HX[1].mean = np.asarray([3.706, 3.711, 3.713, 3.713, 3.714, 3.714, 3.713, 3.714, 3.714])
+MI[1].mean = H_X[1].mean - H_HX[1].mean
+
+H_h[:] = [CPDSSS(1, 3, d0=1, d1=2, use_fading=False).chan_entropy()] * 3
 
 
 for data_HX, data_X, (d0, d1), t_range in zip(H_HX, H_X, d0d1, T_range):
@@ -89,6 +124,7 @@ for data_HX, data_X, (d0, d1), t_range in zip(H_HX, H_X, d0d1, T_range):
     fig.suptitle(f"Cond scatter for d_0={d0}, d_1={d1}")
 
 
+T_range[:] = [range(2, 11)] * 3
 fig1, ax1 = plt.subplots()
 fig2, ax2 = plt.subplots()
 # fig4, ax4 = plt.subplots(2, 1)

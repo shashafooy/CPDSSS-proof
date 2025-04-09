@@ -116,7 +116,7 @@ for i in range(n_trials):
         model_path = os.path.join(base_model_path, "X")
 
         sim_model.set_Xcond()
-        samples = sim_model.sim(knn_samples, reuse_GQ=True)
+        samples = sim_model.sim(knn_samples)
 
         model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
         if TRAIN_ONLY:
