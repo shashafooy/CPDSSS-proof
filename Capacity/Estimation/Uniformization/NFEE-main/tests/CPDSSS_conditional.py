@@ -14,18 +14,18 @@ import util.io
 
 SAVE_MODEL = True
 TRAIN_ONLY = True
-REUSE_MODEL = False
+REUSE_MODEL = True
 
-SAVE_FILE = False
+SAVE_FILE = True
 
 """
 Parameters for CPDSSS
 """
-N = 12
+N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 6
+d0 = 3
 d1 = int(N - d0)
 T_range = range(2, 11)
 # T_range = range(2, 6)
@@ -58,11 +58,11 @@ model = None
 File names
 """
 today = date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/MI(h,X)/conditional_noFading/N{N}_d0d1({d0},{d1})/"
+base_path = f"temp_data/CPDSSS_data/MI(h,X)/conditional/N{N}_d0d1({d0},{d1})/"
 path = base_path  # + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-base_model_path = f"temp_data/saved_models/conditional_noFading/{N}N_d0d1({d0},{d1})"
+base_model_path = f"temp_data/saved_models/conditional/{N}N_d0d1({d0},{d1})"
 
 
 # fix filename if file already exists
