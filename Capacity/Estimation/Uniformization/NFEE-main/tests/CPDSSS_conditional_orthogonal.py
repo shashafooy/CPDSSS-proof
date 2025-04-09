@@ -25,9 +25,9 @@ N = 3
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 2
+d0 = 1
 d1 = int(N - d0)
-T_range = range(2, 11)
+T_range = range(2, 7)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
@@ -37,7 +37,7 @@ Number of iterations
 """
 n_trials = 100  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
-n_train_samples = 100000
+n_train_samples = 10000
 
 
 """
@@ -85,7 +85,23 @@ for i in range(n_trials):
         # generate base samples based on max dimension
         sim_model.set_XHcond()
         knn_samples = int(max(min_knn_samples, n_train_samples * sim_model.x_dim))
+        # samples = sim_model.sim(knn_samples)
+
+        sim_model.set_T(1)
+        sim_model.set_Xcond()
         samples = sim_model.sim(knn_samples)
+        misc.print_border(f"H(X)")
+        H_X = 4.256
+        # H_X, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+
+        misc.print_border(f"H(X,h)")
+        samples[0] = np.concatenate((samples[0], sim_model.h), axis=1)
+        sim_model.input_dim[0] = N * N + N
+        sim_model.update_x_dim()
+        H_XH, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+
+        misc.print_border(f"H(h)")
+        H_h = sim_model.chan_entropy()
 
         """Train H(xT | h, x1:T-1)"""
         misc.print_border(f"1/2 calculating H(xT | h, x1:T-1), T: {T}, iter: {i+1}")
