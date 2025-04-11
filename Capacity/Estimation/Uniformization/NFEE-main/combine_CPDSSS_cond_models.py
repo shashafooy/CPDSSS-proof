@@ -1,5 +1,4 @@
 import numpy as np
-import numpy as np
 
 import os
 import re
@@ -7,14 +6,6 @@ import re
 from simulators.CPDSSS_models import CPDSSS_Cond
 from misc_CPDSSS.entropy_util import Cond_MAF as ent
 
-
-"""
-Parameters for CPDSSS
-"""
-N = 12
-L = 3
-d0 = 3
-d1 = N - d0
 
 # min_samples = 2000000  # samples to generate per entropy calc
 n_train_samples = 100000
