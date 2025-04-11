@@ -16,7 +16,7 @@ SAVE_MODEL = True
 TRAIN_ONLY = False
 REUSE_MODEL = True
 
-SAVE_FILE = True
+SAVE_FILE = False
 
 """
 Parameters for CPDSSS
@@ -69,8 +69,10 @@ base_model_path = f"temp_data/saved_models/conditional/{N}N_d0d1({d0},{d1})"
 if SAVE_FILE:
     filename = misc.update_filename(path, filename, -1, rename=False)
 
+misc.print_border(f"Evaluating {N}N, {d0}d0, {d1}d1")
+
 for i in range(n_trials):
-    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=False)
+    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
 
     # sim_model.set_T(1)
     # sim_model.set_Xcond()

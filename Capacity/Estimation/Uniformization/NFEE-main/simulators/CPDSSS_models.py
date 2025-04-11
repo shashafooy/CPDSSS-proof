@@ -15,7 +15,7 @@ import sys
 import util.misc
 
 dtype = theano.config.floatX
-# USE_GPU = True
+USE_GPU = False
 
 
 # from memory_profiler import profile
@@ -186,7 +186,7 @@ class CPDSSS(_distribution):
             self.samples = self.h
             return self.h
 
-        self.sim_GQ(reuse_GQ)
+        self.sim_GQ(reuse_GQ, new_samples)
         if self.sym_N == self.N:
             X = np.matmul(self.G[:n_samples, :, :], s)
         else:
@@ -206,20 +206,21 @@ class CPDSSS(_distribution):
         return samples
 
     # @profile
-    def sim_GQ(self, reuse):
+    def sim_GQ(self, reuse, new_samples=0):
         n_samples = self.h.shape[0]
         # if stored G samples is less than number of h samples, generate more G,Q
         if reuse and self.G.shape[0] >= n_samples:
             return
 
-        new_samples = n_samples - self.G.shape[0] if reuse else n_samples
+        # new_samples = n_samples - self.G.shape[0] if reuse else n_samples
         G = np.empty((0, self.N, self.sym_N), dtype=dtype)
         Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
 
         split_N = max(np.floor(new_samples / 100000), 1)
-        sections = np.array_split(range(new_samples, 0, -1), split_N)
+        sections = np.array_split(range(n_samples - new_samples, n_samples), split_N)
 
-        if self.tt_GQ_func is None:
+        # self._gen_batch_GQ_sample(self.h[sections[0]])
+        if self.tt_GQ_func is None and USE_GPU:
             self.tt_GQ_func = self._gen_tt_GQ_func()
 
         # For large N, inv(H^T*H + delta*eye(N)) can be singular.
@@ -230,7 +231,10 @@ class CPDSSS(_distribution):
             singular = True
             while singular:
                 try:
-                    new_G, new_Q = self.tt_GQ_func(self.h[-section, :])
+                    if USE_GPU:
+                        new_G, new_Q = self.tt_GQ_func(self.h[section, :])
+                    else:  # using batch numpy CPU functions is MUCH faster
+                        new_G, new_Q = self._gen_batch_GQ_sample(self.h[section, :])
                     G = np.concatenate((G, new_G), axis=0)
                     Q = np.concatenate((Q, new_Q), axis=0)
                     singular = False
@@ -238,7 +242,7 @@ class CPDSSS(_distribution):
                 except KeyboardInterrupt:
                     sys.exit()
                 except Exception as inst:  # regenerate h if inv(H'H) is singular
-                    self.h[-section] = (
+                    self.h[section] = (
                         self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
                     ).astype(dtype)
                     util.misc.printProgressBar(i, split_N, "Singular, rerun")
@@ -264,7 +268,7 @@ class CPDSSS(_distribution):
             # Only take every L columns of toepltiz matrix
             # Slightly faster than doing G@E
             G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
-            # Potentially better G, fullfills G'*Q=0 and HE * G = I
+            # Potentially better G, fullfills G.T*Q=0 and HE * G = I
             # G = lin.inv(R) @ HE[self.G_slice,:].T
 
         # ev, V = lin.eig(R)
@@ -277,28 +281,126 @@ class CPDSSS(_distribution):
 
         return G, Q
 
+    def _gen_batch_GQ_sample(self, h):
+
+        # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
+        # A=E.T @ H
+        # Slightly faster than doing E.T @ H
+        # HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[self.G_slice, :]
+        n_samp, N = h.shape
+
+        def batch_toeplitz(h):
+            row = np.concatenate([h[:, [0]], h[:, -1:0:-1]], axis=1)
+            col_idx = np.arange(self.N).reshape(self.N, 1)
+            row_idx = np.arange(self.N).reshape(1, self.N)
+            idx = col_idx - row_idx
+            # idx = idx[self.G_slice, :]
+            idx = np.broadcast_to(idx, (h.shape[0], *idx.shape))
+
+            return np.where(
+                idx >= 0,
+                np.take_along_axis(h[:, None, :], idx, axis=2),
+                np.take_along_axis(row[:, None, :], -idx, axis=2),
+            )
+
+        HE = batch_toeplitz(h)[:, self.G_slice, :]
+
+        R = np.matmul(HE.transpose(0, 2, 1), HE) + self.eye
+        # R = HE.T @ HE + self.eye
+        p = HE[:, 0, :]
+        # g = lin.inv(R) @ p
+        if self.sym_N == 0:
+            G = np.zeros((n_samp, N, 0))
+        else:
+            g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros((n_samp, N))
+            # Only take every L columns of toepltiz matrix
+            # Slightly faster than doing G@E
+            G = batch_toeplitz(g)[:, :, self.G_slice]
+            # G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
+            # Potentially better G, fullfills G.T*Q=0 and HE * G = I
+            # G = lin.inv(R) @ HE[self.G_slice,:].T
+
+        # ev, V = lin.eig(R)
+        ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
+        # Only use eigenvectors associated with "zero" eigenvalue
+        #  get indices of the smallest eigenvalues to find "zero" EV
+        sort_indices = np.argsort(ev, axis=1)[:, : self.noise_N]
+        batch_idx = np.arange(n_samp)[:, np.newaxis]
+
+        # Sometimes get a very small imaginary value, ignore it
+        Q = V[batch_idx, :, sort_indices].transpose(
+            0, 2, 1
+        )  # shape (samples,noise_N,N) -> (samples,N,noise_N)
+        Q = np.real(Q)
+
+        return G, Q
+
     def _gen_tt_GQ_func(self):
-        # Define symbolic input
+        # # Define symbolic input
+        # h_batch = tt.matrix("h_batch")
+
+        # def toeplitz(col):
+        #     N = col.shape[0]
+        #     row = tt.concatenate([col[:1], col[-1:0:-1]])
+        #     col_idx = tt.arange(N).reshape((N, 1))
+        #     row_idx = tt.arange(N).reshape((1, N))
+        #     indices = col_idx - row_idx
+        #     return tt.switch(indices >= 0, col[indices], row[-indices])
+
+        # def process_GQ(h):
+        #     HE = toeplitz(h)[self.tt_G_slice, :]  # shape (len(G_slice), N)
+        #     R = tt.dot(HE.T, HE) + self.tt_eye  # shape (N, N)
+        #     p = HE[0, :]
+
+        #     # g = solve(R, p)
+        #     g = tt.slinalg.solve(R, p)  # shape (N,)
+
+        #     G = toeplitz(g).T[self.tt_G_slice, :].T  # shape (N, len(G_slice))
+
+        #     # eigendecomposition
+        #     ev, V = tt.nlinalg.eigh(R)
+
+        #     # sort eigenvalues
+        #     sorted_idx = tt.argsort(ev)
+        #     Q = V[:, sorted_idx[: self.noise_N]]  # smallest `noise_N` eigenvectors
+
+        #     return G, Q
+
+        # [G_batch, Q_batch], _ = theano.scan(fn=process_GQ, sequences=[h_batch])
+
+        # return theano.function(
+        #     inputs=[h_batch], outputs=[G_batch, Q_batch], allow_input_downcast=True
+        # )
+
         h = tt.matrix("h")
 
         # Create toeplitz matrix and decimate across its rows
         def gen_HE(col):
             """Generate a toeplitz matrix and slice it such that toeplitz[G_slice,:]"""
+            N = col.shape[0]
+            # first_col = col
+            # first_row = tt.concatenate([col[:1], col[-1:0:-1]])
+
             row = col[::-1]  # reverse column vector
             # Construct indices for the Toeplitz matrix
             col_idx = self.tt_G_slice.dimshuffle(0, "x")  # shape: (len(G_slice),1)
-            row_idx = tt.arange(row.shape[0]).dimshuffle("x", 0)  # shape (1, len(row))
+            row_idx = tt.arange(N).dimshuffle("x", 0)  # shape (1, N)
+            # col_idx = tt.arange(N).reshape((N,1))
+            # row_idx = tt.arange(N).reshape((1,N))
             indices = col_idx - row_idx
 
             # Use T.switch to fill values based on indices
+            # toeplitz_matrix = tt.switch(indices >= 0, first_col[indices], first_row[-indices])
             toeplitz_matrix = tt.switch(indices >= 0, col[indices], row[-indices - 1])
 
             return toeplitz_matrix
 
         HE = theano.scan(fn=gen_HE, sequences=[h], non_sequences=[])[0]
+        # return theano.function(inputs=[h], outputs=[HE], allow_input_downcast=True)
 
         # Compute R, p, and g
         R = tt.batched_dot(HE.transpose(0, 2, 1), HE) + self.tt_eye
+        # return theano.function(inputs=[h], outputs=[R], allow_input_downcast=True)
         p = HE[:, 0, :]
 
         # Solve g = inv(R) * p
@@ -324,18 +426,12 @@ class CPDSSS(_distribution):
 
         # return theano.function(inputs=[h], outputs=G)
 
-        # def make_Q(r):
-        #     ev, V = tt.nlinalg.eigh(r)
-        #     sort_indices = tt.argsort(ev)[: self.noise_N]
-        #     return V[:, sort_indices]
-
         # Q = theano.scan(fn=make_Q, sequences=[R])[0]
         # return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
 
         # Compute eigenvalues and eigenvectors of R
         def compute_ev(r):
             ev, V = tt.nlinalg.eigh(r)
-            # ev, V = tt.nlinalg.eig(r)
             return ev, V
 
         ev_b, V_b = theano.scan(fn=compute_ev, sequences=[R])[0]
@@ -349,6 +445,7 @@ class CPDSSS(_distribution):
         )  # shape (samples,noise_N,N) -> (samples,N,noise_N)
 
         # Define Theano function
+        # return theano.function(inputs=[h], outputs=[G, Q, ev_b, V_b], allow_input_downcast=True)
         return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
 
     def chan_entropy(self):
