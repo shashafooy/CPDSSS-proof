@@ -87,6 +87,8 @@ class CPDSSS(_distribution):
         self.N = N
         self.L = L
 
+        self._use_chan = False
+
         if L is not None:
             assert N / L % 1 == 0, "N/L must be an integer"
             self.sym_N = int(N / L)
@@ -532,22 +534,47 @@ class CPDSSS_Cond(CPDSSS):
     def sim(self, n_samples=1000, reuse_GQ=False):
         assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
         # if not reuse_GQ or self._X is None:
-        _, XT, Xcond, _ = super().get_base_X_h(n_samples, reuse_GQ)
-        if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
-            cond = np.concatenate((Xcond, self.h[:n_samples]), axis=1)
-        elif self.input_dim[1] == 0:
-            cond = np.zeros((n_samples, 1))
-        else:  # X is the conditional
-            cond = Xcond
-        return [XT, cond]
+
+        vals = self._sim(n_samples, reuse_GQ)
+        X = vals[:, 0 : self.N * self.T]
+        XT = X[:, -self.N :]
+        Xcond = X[:, 0 : -self.N]
+
+        if self._sym_type == "XT|Xold":
+            return [XT, Xcond]
+        elif self._sym_type == "XT|Xold,h":
+            cond = (
+                np.concatenate((Xcond, self.h[:n_samples]), axis=1)
+                if self.input_dim[0] > 0
+                else np.zeros((n_samples, 1))
+            )
+            return [XT, cond]
+        elif self._sym_type == "h|XT,Xold":
+            return [self.h[:n_samples], X]
+        else:
+            raise ValueError("Invalid sym type, use model.set**() to set sym type")
+
+        # if self.input_dim[1] == self.N * self.T:  # X,H are conditionals
+        #     cond = np.concatenate((Xcond, self.h[:n_samples]), axis=1)
+        # elif self.input_dim[1] == 0:
+        #     cond = np.zeros((n_samples, 1))
+        # else:  # X is the conditional
+        #     cond = Xcond
+        # return [XT, cond]
 
     def set_Xcond(self):
         self.input_dim[1] = self.N * (self.T - 1)
         self.update_x_dim()
+        self._sym_type = "XT|Xold"
 
     def set_XHcond(self):
         self.input_dim[1] = self.N * self.T
         self.update_x_dim()
+        self._sym_type = "XT|Xold,h"
+
+    def set_H_given_X(self):
+        self.input_dim = [self.N, self.N * self.T]
+        self._sym_type = "h|XT,Xold"
 
     def set_T(self, T):
         ### TODO: update class to change how many transmissions are outputted when calling sim().

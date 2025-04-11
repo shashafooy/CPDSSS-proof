@@ -13,8 +13,8 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
-REUSE_MODEL = False
+TRAIN_ONLY = False
+REUSE_MODEL = True
 
 SAVE_FILE = False
 
@@ -27,7 +27,7 @@ d0 = int(N / 2)
 d1 = int(N / 2)
 d0 = 4
 d1 = int(N - d0)
-T_range = range(2, 11)
+T_range = range(1, 11)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
@@ -93,6 +93,20 @@ for i in range(n_trials):
     for k, T in enumerate(T_range):
         name = f"{T}T"
         index = (i, k)
+
+        misc.print_border(f"Evaluating H(h|x) T={T}, iter: {i+1}")
+        print(f"H(h) = {sim_model.chan_entropy()}")
+        sim_model.set_T(T)
+        sim_model.set_H_given_X()
+        samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
+        model_path = f"temp_data/saved_models/h_given_x/{N}N_d0d1({d0},{d1})"
+        model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
+        H, estimator = ent.calc_entropy(sim_model, model=model, base_samples=samples, method="both")
+        if SAVE_MODEL:
+            _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
+
+        continue
+
         """
         Generate samples
         """
