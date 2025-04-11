@@ -13,7 +13,7 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
+TRAIN_ONLY = False
 REUSE_MODEL = True
 
 SAVE_FILE = True
@@ -25,7 +25,7 @@ N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 3
+d0 = 2
 d1 = int(N - d0)
 T_range = range(2, 11)
 # T_range = range(2, 6)
@@ -71,6 +71,23 @@ if SAVE_FILE:
 
 for i in range(n_trials):
     sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=False)
+
+    # sim_model.set_T(1)
+    # sim_model.set_Xcond()
+    # samples = sim_model.sim(n_train_samples * sim_model.x_dim)
+    # misc.print_border(f"H(X)")
+    # # H_X = 4.256
+    # H_X, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+
+    # misc.print_border(f"H(X,h)")
+    # samples[0] = np.concatenate((samples[0], sim_model.h), axis=1)
+    # sim_model.input_dim[0] = 2 * N
+    # sim_model.update_x_dim()
+    # H_XH, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+
+    # misc.print_border(f"H(h)")
+    # H_h = sim_model.chan_entropy()
+
     for k, T in enumerate(T_range):
         name = f"{T}T"
         index = (i, k)
