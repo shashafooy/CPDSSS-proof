@@ -13,8 +13,8 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = False
-REUSE_MODEL = False
+TRAIN_ONLY = True
+REUSE_MODEL = True
 
 SAVE_FILE = False
 
@@ -25,7 +25,7 @@ N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 3
+d0 = 2
 d1 = int(N - d0)
 T_range = range(2, 11)
 # T_range = range(2, 6)
@@ -68,6 +68,8 @@ base_model_path = f"temp_data/saved_models/conditional/{N}N_d0d1({d0},{d1})"
 # fix filename if file already exists
 if SAVE_FILE:
     filename = misc.update_filename(path, filename, -1, rename=False)
+
+misc.print_border(f"Evaluating {N}N, {d0}d0, {d1}d1")
 
 for i in range(n_trials):
     sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
