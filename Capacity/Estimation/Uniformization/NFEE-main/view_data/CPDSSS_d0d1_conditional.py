@@ -114,6 +114,38 @@ MI[1].mean = H_X[1].mean - H_HX[1].mean
 
 H_h[:] = [CPDSSS(1, 3, d0=1, d1=2, use_fading=False).chan_entropy()] * 3
 
+"""6N without fading"""
+# d0d1=3,3
+H_X[0].mean = np.asarray([7.261, 7.121, 7.012, 6.925, 6.859, 6.808, 6.771, 6.739, 6.710])
+H_HX[0].mean = np.asarray([6.414, 6.412, 6.418, 6.413, 6.422, 6.416, 6.419, 6.416, 6.422])
+MI[0].mean = H_X[0].mean - H_HX[0].mean
+
+# d0d1=2,4
+H_X[1].mean = np.asarray([7.816, 7.780, 7.751, 7.715, 7.683, 7.659, 7.628, 7.595, 7.581])
+H_HX[1].mean = np.asarray([7.131, 7.130, 7.133, 7.129, 7.125, 7.126, 7.128, 7.127, 7.130])
+MI[1].mean = H_X[1].mean - H_HX[1].mean
+H_h[:] = [CPDSSS(1, 6, d0=3, d1=3, use_fading=False).chan_entropy()] * 3
+
+"""6N using fading"""
+# d0d1=3,3
+H_HX[0].mean = np.asarray([7.462, 7.463, 7.463, 7.470, 7.467, 7.471, 7.469, 7.477, 7.471])
+H_X[0].mean = np.asarray([8.034, 7.959, 7.913, 7.867, 7.828, 7.790, 7.764, 7.755, 7.727])
+MI[0].mean = H_X[0].mean - H_HX[0].mean
+
+# d0d1=4,2
+H_HX[1].mean = np.asarray([7.367, 7.375, 7.373, 7.311, 7.311, 7.319, 7.328, 7.333, 7.329])
+H_X[1].mean = np.asarray([8.084, 7.974, 7.907, 7.815, 7.782, 7.743, 7.720, 7.706, 7.688])
+MI[1].mean = H_X[1].mean - H_HX[1].mean
+H_h[:] = [CPDSSS(1, 6, d0=3, d1=3, use_fading=True).chan_entropy()] * 3
+
+# d0d1=2,4
+H_HX[2].mean = np.asarray([7.808, 7.814, 7.811, 7.814, 7.814, 7.817, 7.813, 7.815, 7.809])
+H_X[2].mean = np.asarray([8.253, 8.225, 8.203, 8.183, 8.168, 8.156, 8.148, 8.135, 8.127])
+MI[2].mean = H_X[2].mean - H_HX[2].mean
+
+"""3N using orthogonal G,Q gram schmidt"""
+# d0d1=3,0
+# H(X|Xold) = H(X|h,Xold)
 
 for data_HX, data_X, (d0, d1), t_range in zip(H_HX, H_X, d0d1, T_range):
     fig, ax = plt.subplots(1, 2)

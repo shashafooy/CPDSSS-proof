@@ -14,7 +14,7 @@ n_train_samples = 100000
 Generate data
 """
 
-base_folder = "temp_data/saved_models/new_models/conditional_noFading"
+base_folder = "temp_data/saved_models/new_models/conditional"
 for model_folder in os.listdir(base_folder):
     curr_path = os.path.join(base_folder, model_folder)
     match = re.match(r"(\d{1,2})N_d0d1\((\d{1,2}),\s*(\d{1,2})\)", model_folder)
