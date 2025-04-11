@@ -43,8 +43,8 @@ Parameters for CPDSSS
 """
 N = 6
 # L = 3
-d0 = 4
-d1 = 2
+d0 = 2
+d1 = 4
 T_range = range(2, 10)
 # T_range = range(5, 7)
 
@@ -98,7 +98,7 @@ for i in range(n_trials):
         # generate base samples based on max dimension
         sim_model.set_dim_joint()
         knn_samples = int(max(min_knn_samples, 0.75 * n_train_samples * sim_model.x_dim))
-        X, X_T, X_cond, h = sim_model.get_base_X_h(knn_samples)
+        X, X_T, X_cond, h = sim_model.get_base_X_h(knn_samples, reuse_GQ=True)
         hxc = np.concatenate((X_cond, h), axis=1)
         joint = np.concatenate((X, h), axis=1)
 

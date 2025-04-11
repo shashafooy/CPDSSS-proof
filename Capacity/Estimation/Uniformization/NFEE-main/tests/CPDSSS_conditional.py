@@ -13,10 +13,10 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
-REUSE_MODEL = True
+TRAIN_ONLY = False
+REUSE_MODEL = False
 
-SAVE_FILE = True
+SAVE_FILE = False
 
 """
 Parameters for CPDSSS
@@ -70,7 +70,7 @@ if SAVE_FILE:
     filename = misc.update_filename(path, filename, -1, rename=False)
 
 for i in range(n_trials):
-    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=False)
+    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
     for k, T in enumerate(T_range):
         name = f"{T}T"
         index = (i, k)
