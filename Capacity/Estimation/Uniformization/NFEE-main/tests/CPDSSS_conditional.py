@@ -13,7 +13,7 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = False
+TRAIN_ONLY = True
 REUSE_MODEL = True
 
 SAVE_FILE = False
@@ -27,7 +27,7 @@ d0 = int(N / 2)
 d1 = int(N / 2)
 d0 = 4
 d1 = int(N - d0)
-T_range = range(1, 11)
+T_range = range(11, 16)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
