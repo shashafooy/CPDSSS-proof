@@ -97,9 +97,7 @@ H_HX[2].mean = np.asarray([8.424, 8.445, 8.372, 8.295, 8.309, 8.279, 8.263, 8.61
 H_X[2].mean = np.asarray([10.737, 10.391, 10.157, 10.017, 9.889, 9.824, 9.729, 9.634, 9.815])
 MI[2].mean = H_X[2].mean - H_HX[2].mean
 
-H_h[0] = CPDSSS(1, N, d0=6, d1=6, use_fading=False).chan_entropy()
-H_h[1] = H_h[0]
-H_h[2] = H_h[0]
+H_h = CPDSSS(1, N, d0=6, d1=6, use_fading=False).chan_entropy()
 
 """3N without fading"""
 # d0d1=1,2
@@ -112,7 +110,7 @@ H_X[1].mean = np.asarray([4.113, 4.058, 4.016, 3.987, 3.965, 3.945, 3.928, 3.916
 H_HX[1].mean = np.asarray([3.706, 3.711, 3.713, 3.713, 3.714, 3.714, 3.713, 3.714, 3.714])
 MI[1].mean = H_X[1].mean - H_HX[1].mean
 
-H_h[:] = [CPDSSS(1, 3, d0=1, d1=2, use_fading=False).chan_entropy()] * 3
+H_h = CPDSSS(1, 3, d0=1, d1=2, use_fading=False).chan_entropy()
 
 """6N without fading"""
 # d0d1=3,3
@@ -124,7 +122,7 @@ MI[0].mean = H_X[0].mean - H_HX[0].mean
 H_X[1].mean = np.asarray([7.816, 7.780, 7.751, 7.715, 7.683, 7.659, 7.628, 7.595, 7.581])
 H_HX[1].mean = np.asarray([7.131, 7.130, 7.133, 7.129, 7.125, 7.126, 7.128, 7.127, 7.130])
 MI[1].mean = H_X[1].mean - H_HX[1].mean
-H_h[:] = [CPDSSS(1, 6, d0=3, d1=3, use_fading=False).chan_entropy()] * 3
+H_h = CPDSSS(1, 6, d0=3, d1=3, use_fading=False).chan_entropy()
 
 """6N using fading"""
 # d0d1=3,3
@@ -132,28 +130,44 @@ H_HX[0].mean = np.asarray([7.462, 7.463, 7.463, 7.470, 7.467, 7.471, 7.469, 7.47
 H_X[0].mean = np.asarray([8.034, 7.959, 7.913, 7.867, 7.828, 7.790, 7.764, 7.755, 7.727])
 MI[0].mean = H_X[0].mean - H_HX[0].mean
 
-# d0d1=4,2
-H_HX[1].mean = np.asarray([7.367, 7.375, 7.373, 7.311, 7.311, 7.319, 7.328, 7.333, 7.329])
-H_X[1].mean = np.asarray([8.084, 7.974, 7.907, 7.815, 7.782, 7.743, 7.720, 7.706, 7.688])
-MI[1].mean = H_X[1].mean - H_HX[1].mean
-H_h[:] = [CPDSSS(1, 6, d0=3, d1=3, use_fading=True).chan_entropy()] * 3
 
 # d0d1=2,4
-H_HX[2].mean = np.asarray([7.808, 7.814, 7.811, 7.814, 7.814, 7.817, 7.813, 7.815, 7.809])
-H_X[2].mean = np.asarray([8.253, 8.225, 8.203, 8.183, 8.168, 8.156, 8.148, 8.135, 8.127])
+H_HX[1].mean = np.asarray([7.808, 7.814, 7.811, 7.814, 7.814, 7.817, 7.813, 7.815, 7.809])
+H_X[1].mean = np.asarray([8.253, 8.225, 8.203, 8.183, 8.168, 8.156, 8.148, 8.135, 8.127])
+MI[1].mean = H_X[1].mean - H_HX[1].mean
+
+# d0d1=4,2
+H_HX[2].mean = np.asarray([7.367, 7.375, 7.373, 7.311, 7.311, 7.319, 7.328, 7.333, 7.329])
+H_X[2].mean = np.asarray([8.084, 7.974, 7.907, 7.815, 7.782, 7.743, 7.720, 7.706, 7.688])
 MI[2].mean = H_X[2].mean - H_HX[2].mean
+H_h = CPDSSS(1, 6, d0=3, d1=3, use_fading=True).chan_entropy()
+
+d0d1 = [(3, 3), (2, 4), (4, 2)]
+
+"""6N using fading direct H(h|X)"""
+H_hx = []
+# d0d1=3,3
+H_hx.append(np.array([5.353, 4.851, 4.423, 4.017, 3.696, 3.412, 3.149, 2.923, 2.730, 2.534]))
+MI[0].mean = H_h - H_hx[0]
+# d0d1=2,4
+H_hx.append(np.array([5.567, 5.190, 4.831, 4.525, 4.212, 3.956, 3.772, 3.487, 3.283, 3.120]))
+MI[1].mean = H_h - H_hx[1]
+# d0d1=4,2
+H_hx.append(np.array([5.190, 4.645, 4.243, 3.876, 3.464, 3.253, 3.057, 2.762, 2.562, 2.447]))
+MI[2].mean = H_h - H_hx[2]
+
 
 """3N using orthogonal G,Q gram schmidt"""
 # d0d1=3,0
 # H(X|Xold) = H(X|h,Xold)
 
-for data_HX, data_X, (d0, d1), t_range in zip(H_HX, H_X, d0d1, T_range):
-    fig, ax = plt.subplots(1, 2)
-    x = np.full(data_HX.data.shape, t_range)
-    ax[0].scatter(x, data_HX.data), ax[0].set_title("H(X|h,Xold)")
-    x = np.full(data_X.data.shape, t_range)
-    ax[1].scatter(x, data_X.data), ax[1].set_title("H(X,Xold)")
-    fig.suptitle(f"Cond scatter for d_0={d0}, d_1={d1}")
+# for data_HX, data_X, (d0, d1), t_range in zip(H_HX, H_X, d0d1, T_range):
+#     fig, ax = plt.subplots(1, 2)
+#     x = np.full(data_HX.data.shape, t_range)
+#     ax[0].scatter(x, data_HX.data), ax[0].set_title("H(X|h,Xold)")
+#     x = np.full(data_X.data.shape, t_range)
+#     ax[1].scatter(x, data_X.data), ax[1].set_title("H(X,Xold)")
+#     fig.suptitle(f"Cond scatter for d_0={d0}, d_1={d1}")
 
 
 T_range[:] = [range(2, 11)] * 3
@@ -165,7 +179,7 @@ fig2, ax2 = plt.subplots()
 for i, (d0, d1) in enumerate(d0d1):
     """Plot individual and cumulative Mutual Information"""
 
-    _MI_mean = MI[i].mean / H_h[i] if NORMALIZE_MI else MI[i].mean
+    _MI_mean = MI[i].mean / H_h if NORMALIZE_MI else MI[i].mean
     # fig1.suptitle("N={}, L={}".format(N, L))
     # temp_range = range(1, max(T_range[i]) + 1)
     temp_range = np.insert(T_range[i], 0, 1)
@@ -184,10 +198,10 @@ ax2.set_xlabel(r"$T$")
 ax2.set_ylabel(r"Mutual Information")
 
 
-# ax2.axhline(y=H_h[i], linestyle="dashed", color="black")
+ax2.axhline(y=H_h, linestyle="dashed", color="black")
 ax2.text(
     x=1,
-    y=H_h[i] + 0.02,
+    y=H_h + 0.02,
     s=rf"$H(\mathbf{{h}})$",
     fontsize=14,
     verticalalignment="bottom",
