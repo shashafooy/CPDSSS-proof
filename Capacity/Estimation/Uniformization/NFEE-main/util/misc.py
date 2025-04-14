@@ -1,5 +1,6 @@
 import re
 import numpy as np
+import shutil
 
 
 def remove_whitespace(str):
@@ -108,6 +109,10 @@ def printProgressBar(
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
+    terminal_width = shutil.get_terminal_size().columns
+    reserved = len(prefix) + len(suffix) + len("100.%") + decimals + 10
+    length = max(10, terminal_width - reserved)
+
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + "-" * (length - filledLength)
