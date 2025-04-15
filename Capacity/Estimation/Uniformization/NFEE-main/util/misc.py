@@ -110,7 +110,8 @@ def printProgressBar(
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
     terminal_width = shutil.get_terminal_size().columns
-    reserved = len(prefix) + len(suffix) + len("100.%") + decimals + 10
+    reserved = len(prefix) + len(suffix) + len("100.%") + decimals + 7
+    length = min(length, terminal_width - reserved)
 
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)

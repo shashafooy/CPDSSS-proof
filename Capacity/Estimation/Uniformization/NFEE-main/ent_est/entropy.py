@@ -396,7 +396,7 @@ def ksg(y, n=None, k=1, shuffle=True, standardize=True, rng=np.random):
         hh_mean.append(np.mean(hh))
         n_size.append(len(hh))
     # N = hh.shape[0]
-    h_ksg[i] = (
+    h = (
         -spl.digamma(k)
         + spl.digamma(sum(n_size))
         + (dim - 1) / k
