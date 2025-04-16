@@ -99,7 +99,13 @@ class _MAF_helper(ABC):
 
     @classmethod
     def update_best_model(
-        cls, model, samples, best_trn_loss=1e5, name="model_name", path="temp_data/saved_models"
+        cls,
+        model,
+        samples=None,
+        sim_model=None,
+        best_trn_loss=1e5,
+        name="model_name",
+        path="temp_data/saved_models",
     ):
         """Compare the given model with the saved model {name} located at {path}. If new model has lower training loss, save to given file
 
@@ -113,6 +119,10 @@ class _MAF_helper(ABC):
         Returns:
             _type_: best error
         """
+        if samples is None:
+            assert sim_model is not None, "sim_model must be provided if samples is None"
+            samples = sim_model.sim(100000 * sim_model.x_dim, reuse_GQ=True)
+
         new_loss = model.eval_trnloss(samples)
         checkpointer = ModelCheckpointer(model)
         checkpointer.checkpoint()

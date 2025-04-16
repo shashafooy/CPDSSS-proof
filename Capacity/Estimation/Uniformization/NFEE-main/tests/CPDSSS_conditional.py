@@ -35,7 +35,7 @@ T_range = range(1, 16)
 """
 Number of iterations
 """
-n_trials = 100  # iterations to average
+n_trials = 2  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
 n_train_samples = 100000
 
@@ -108,7 +108,9 @@ for i in range(n_trials):
                 sim_model, model=model, base_samples=samples, method="both"
             )
         if SAVE_MODEL:
-            _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
+            _ = ent.update_best_model(
+                estimator.model, sim_model=sim_model, name=name, path=model_path
+            )
 
         continue
 
