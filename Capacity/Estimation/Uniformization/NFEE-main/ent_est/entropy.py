@@ -568,6 +568,7 @@ class UMestimator:
         minibatch=256,
         coarse_fine_tune=True,
         step=ss.Adam(),
+        regularizer=None,
     ):
         """Learn the transformation to push a gaussian towards target distribution
 
@@ -610,6 +611,7 @@ class UMestimator:
             show_progress=show_progress,
             coarse_fine_tune=coarse_fine_tune,
             step=step,
+            regularizer=regularizer,
         )
         logger.write("training done\n")
 

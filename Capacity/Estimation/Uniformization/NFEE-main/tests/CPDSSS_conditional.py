@@ -27,7 +27,7 @@ d0 = int(N / 2)
 d1 = int(N / 2)
 d0 = 4
 d1 = int(N - d0)
-T_range = range(11, 16)
+T_range = range(1, 16)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
@@ -101,7 +101,12 @@ for i in range(n_trials):
         samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
         model_path = f"temp_data/saved_models/h_given_x/{N}N_d0d1({d0},{d1})"
         model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
-        H, estimator = ent.calc_entropy(sim_model, model=model, base_samples=samples, method="both")
+        if TRAIN_ONLY:
+            estimator = ent.learn_model(sim_model, model, train_samples=samples)
+        else:
+            H, estimator = ent.calc_entropy(
+                sim_model, model=model, base_samples=samples, method="both"
+            )
         if SAVE_MODEL:
             _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
 

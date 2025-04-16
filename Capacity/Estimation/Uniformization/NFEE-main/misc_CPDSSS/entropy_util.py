@@ -18,6 +18,7 @@ import ml.models.mafs as mafs
 import util.io
 from ml.trainers import ModelCheckpointer
 import ml.step_strategies as ss
+import ml.loss_functions as lf
 
 
 dtype = theano.config.floatX
@@ -239,9 +240,12 @@ class _MAF_helper(ABC):
 
         train_samples = train_samples if isinstance(train_samples, list) else [train_samples]
 
+        regularizer = lf.WeightDecay(pretrained_model.parms, 1e-6)
         if not coarse_fine_tune:
             mini_batch = mini_batch * 4
             # step = ss.Adam(a=5e-5)
+            # mini_batch = 1024
+            patience = 10
             step = ss.Adam(a=1e-5)
             coarse_fine_tune = False
 
@@ -261,6 +265,7 @@ class _MAF_helper(ABC):
             minibatch=mini_batch,
             step=step,
             show_progress=show_progress,
+            regularizer=regularizer,
         )
         end_time = time.time()
         print("learning time: ", str(timedelta(seconds=int(end_time - start_time))))
