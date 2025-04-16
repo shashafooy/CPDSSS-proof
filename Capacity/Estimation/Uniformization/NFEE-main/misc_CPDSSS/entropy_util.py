@@ -143,7 +143,14 @@ class _MAF_helper(ABC):
 
     @classmethod
     def calc_entropy(
-        cls, sim_model, n_train=10000, base_samples=None, model=None, reuse=True, method="umtksg"
+        cls,
+        sim_model,
+        n_train=10000,
+        base_samples=None,
+        model=None,
+        reuse=True,
+        method="umtksg",
+        KNN_only=False,
     ):
         """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
         This method does not implement any speed up from threading
@@ -162,9 +169,13 @@ class _MAF_helper(ABC):
         """
         n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
         base_samples = base_samples if reuse else None
-        estimator = cls.learn_model(
-            sim_model, model, n_train, train_samples=base_samples, n_hiddens=n_hiddens
-        )
+        if not KNN_only:
+            estimator = cls.learn_model(
+                sim_model, model, n_train, train_samples=base_samples, n_hiddens=n_hiddens
+            )
+        else:
+            estimator = entropy.UMestimator(sim_model, model, base_samples)
+
         start_time = time.time()
         H = estimator.calc_ent(samples=base_samples, method=method)
         end_time = time.time()

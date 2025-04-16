@@ -14,6 +14,7 @@ import util.io
 
 SAVE_MODEL = True
 TRAIN_ONLY = True
+KNN_ONLY = False
 REUSE_MODEL = True
 
 SAVE_FILE = False
@@ -105,7 +106,7 @@ for i in range(n_trials):
             estimator = ent.learn_model(sim_model, model, train_samples=samples)
         else:
             H, estimator = ent.calc_entropy(
-                sim_model, model=model, base_samples=samples, method="both"
+                sim_model, model=model, base_samples=samples, method="both", KNN_only=KNN_ONLY
             )
         if SAVE_MODEL:
             _ = ent.update_best_model(
