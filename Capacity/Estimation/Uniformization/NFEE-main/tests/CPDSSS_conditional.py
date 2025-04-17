@@ -101,7 +101,7 @@ for i in range(n_trials):
             estimator = ent.learn_model(sim_model, model, train_samples=samples)
         else:
             H_hx[index], estimator = ent.calc_entropy(
-                sim_model, model=model, base_samples=samples, method="both", KNN_only=KNN_ONLY
+                sim_model, model=model, base_samples=samples, method="umtksg", KNN_only=KNN_ONLY
             )
             MI[index] = sim_model.chan_entropy() - H_hx[index]
         if SAVE_MODEL:
