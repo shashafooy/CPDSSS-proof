@@ -549,9 +549,11 @@ class UMestimator:
         self.samples = samples if isinstance(samples, list) else [samples]
         self.n_samples = None
         self.target = sim_model.entropy()
-        self.checkpointer = trainers.ModelCheckpointer(model)
-
-        self.checkpointer.checkpoint()
+        if model is not None:
+            self.checkpointer = trainers.ModelCheckpointer(model)
+            self.checkpointer.checkpoint()
+        else:
+            self.checkpointer = None
 
     def __del__(self):
         del self.samples

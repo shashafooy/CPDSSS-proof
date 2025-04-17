@@ -143,7 +143,7 @@ class CPDSSS(_distribution):
 
         self.tt_GQ_func = None
 
-    def sim(self, n_samples=1000, reuse_GQ=False):
+    def sim(self, n_samples=1000, reuse_GQ=True):
         """wrapper allowing inherited class to reuse while _sim() retains the core functionality
 
         Args:
@@ -151,7 +151,7 @@ class CPDSSS(_distribution):
         """
         return self._sim(n_samples, reuse_GQ)
 
-    def _sim(self, n_samples=1000, reuse_GQ=False):
+    def _sim(self, n_samples=1000, reuse_GQ=True):
         """Generate samples X and (optional) G for CPDSSS
 
         Args:
@@ -531,7 +531,7 @@ class CPDSSS_Cond(CPDSSS):
         super().__init__(num_tx, N, L, d0, d1, use_fading)
         self.sim_val = None
 
-    def sim(self, n_samples=1000, reuse_GQ=False):
+    def sim(self, n_samples=1000, reuse_GQ=True):
         assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
         # if not reuse_GQ or self._X is None:
 
@@ -618,15 +618,22 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
         # separate X into T-th transmission and previous transmissions
         previous_X_T = X[:, :, : self.T - 1].reshape((n_samples, self.N * (self.T - 1)), order="F")
         X_T = X[:, :, -1]
-        del X
         gc.collect()
 
-        if self.input_dim[1] == self.N * (self.T - 1) + self.N**2:  # X,H are conditionals
+        if self._sym_type == "XT|Xold,h":  # X,H are conditionals
             cond = np.concatenate((previous_X_T, self.h[:n_samples]), axis=1)
+            return [X_T, cond]
         elif self.input_dim[1] == 0:
             cond = np.zeros((n_samples, 1))
-        else:  # X is the conditional
+            return [X_T, cond]
+        elif self._sym_type == "XT|Xold":  # X is the conditional
             cond = previous_X_T
+            return [X_T, cond]
+        elif self._sym_type == "h|X":
+            return [
+                self.h[:n_samples],
+                X[:, :, : self.T].reshape((n_samples, self.N * self.T), order="F"),
+            ]
         return [X_T, cond]
 
     def sim_GQ(self):
@@ -669,10 +676,16 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
     def set_Xcond(self):
         self.input_dim[1] = self.N * (self.T - 1)
         self.update_x_dim()
+        self._sym_type = "XT|Xold"
 
     def set_XHcond(self):
         self.input_dim[1] = self.N * (self.T - 1) + self.N * self.N
         self.update_x_dim()
+        self._sym_type = "XT|Xold,h"
+
+    def set_H_given_X(self):
+        self.input_dim = [self.N * self.N, self.N * self.T]
+        self._sym_type = "h|X"
 
     def chan_entropy(self):
         return self.N * self.N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(1)

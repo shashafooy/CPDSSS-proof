@@ -173,7 +173,16 @@ class _MAF_helper(ABC):
             estimator = cls.learn_model(
                 sim_model, model, n_train, train_samples=base_samples, n_hiddens=n_hiddens
             )
+            # regenerate samples after training to be more generalized
+            n_samp = (
+                base_samples[0].shape[0]
+                if isinstance(base_samples, list)
+                else base_samples.shape[0]
+            )
+            base_samples = sim_model.sim(n_samp)
         else:
+            if model is not None:
+                print(f"Model Loss: {model.eval_trnloss(base_samples):.4f}")
             estimator = entropy.UMestimator(sim_model, model, base_samples)
 
         start_time = time.time()
