@@ -12,12 +12,12 @@ from misc_CPDSSS import util as misc
 import util.io
 
 
-SAVE_MODEL = True
-TRAIN_ONLY = True
-KNN_ONLY = False
+SAVE_MODEL = False
+TRAIN_ONLY = False
+KNN_ONLY = True
 REUSE_MODEL = True
 
-SAVE_FILE = False
+SAVE_FILE = True
 
 """
 Parameters for CPDSSS
@@ -26,7 +26,7 @@ N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 4
+d0 = 3
 d1 = int(N - d0)
 T_range = range(1, 16)
 # T_range = range(2, 6)
@@ -44,12 +44,8 @@ n_train_samples = 100000
 """
 Initialize arrays
 """
-MI_KL = np.empty((n_trials, len(T_range))) * np.nan
-MI_KSG = np.empty((n_trials, len(T_range))) * np.nan
-H_XH_KL = np.empty((n_trials, len(T_range))) * np.nan
-H_XH_KSG = np.empty((n_trials, len(T_range))) * np.nan
-H_XX_KL = np.empty((n_trials, len(T_range))) * np.nan
-H_XX_KSG = np.empty((n_trials, len(T_range))) * np.nan
+MI = np.empty((n_trials, len(T_range))) * np.nan
+H_hx = np.empty((n_trials, len(T_range))) * np.nan
 
 
 model = None
@@ -59,11 +55,11 @@ model = None
 File names
 """
 today = date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/MI(h,X)/conditional/N{N}_d0d1({d0},{d1})/"
+base_path = f"temp_data/CPDSSS_data/h_given_x/N{N}_d0d1({d0},{d1})/"
 path = base_path  # + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-base_model_path = f"temp_data/saved_models/conditional/{N}N_d0d1({d0},{d1})"
+model_path = f"temp_data/saved_models/h_given_x/{N}N_d0d1({d0},{d1})"
 
 
 # fix filename if file already exists
@@ -95,22 +91,29 @@ for i in range(n_trials):
         name = f"{T}T"
         index = (i, k)
 
-        misc.print_border(f"Evaluating H(h|x) T={T}, iter: {i+1}")
+        misc.print_border(f"Evaluating H(h|x) T={T}, iter: {i+1}, d0={d0}, d1={d1}")
         print(f"H(h) = {sim_model.chan_entropy()}")
         sim_model.set_T(T)
         sim_model.set_H_given_X()
         samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
-        model_path = f"temp_data/saved_models/h_given_x/{N}N_d0d1({d0},{d1})"
         model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
         if TRAIN_ONLY:
             estimator = ent.learn_model(sim_model, model, train_samples=samples)
         else:
-            H, estimator = ent.calc_entropy(
+            H_hx[index], estimator = ent.calc_entropy(
                 sim_model, model=model, base_samples=samples, method="both", KNN_only=KNN_ONLY
             )
+            MI[index] = sim_model.chan_entropy() - H_hx[index]
         if SAVE_MODEL:
             _ = ent.update_best_model(
                 estimator.model, sim_model=sim_model, name=name, path=model_path
+            )
+
+        if SAVE_FILE:
+            filename = misc.update_filename(path, filename, i)
+            util.io.save(
+                (T_range, MI, H_hx),
+                os.path.join(path, filename),
             )
 
         continue
