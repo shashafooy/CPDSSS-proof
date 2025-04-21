@@ -34,7 +34,7 @@ n_train_samples = 100000
 
 N = 6
 T = 2
-T_range = range(8, 11)
+T_range = range(1, 11)
 inputs = 2
 givens = N - inputs
 
@@ -77,7 +77,7 @@ model_paths = f"temp_data/saved_models/conditional_tests/{N}N"
 #     sim_model.set_Xcond()
 #     samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
 #     H_X = ent.calc_entropy(sim_model, base_samples=samples)[0]
-#     H_X_kl_ksg = ent.knn_entropy(estimator, samples, method="kl_ksg")
+#     H_A_knn = ent.knn_entropy(estimator, samples, method="kl_ksg")
 
 
 #     MI.append(H_X - H_XH)
@@ -122,6 +122,7 @@ sigma = np.tile(row, (N, 1))
 np.fill_diagonal(sigma, 1)
 sigma_n = 2  # * np.eye(N)
 sigma_A = 1
+sigma_x = 1
 
 X_model_path = os.path.join(model_paths, "MAF_X")
 XY_model_path = os.path.join(model_paths, "MAF_XY")
@@ -134,13 +135,13 @@ if SAVE_FILE:
     filename = misc.update_filename(random_A_path, filename, -1, rename=False)
 
 
-H_xy_MAF = np.empty((n_trials, len(T_range), 2)) * np.nan
-H_x_MAF = np.empty((n_trials, len(T_range), 2)) * np.nan
-H_xy_kl_ksg = np.empty((n_trials, len(T_range), 2)) * np.nan
-H_x_kl_ksg = np.empty((n_trials, len(T_range), 2)) * np.nan
-H_cond_MAF = np.empty((n_trials, len(T_range), 2)) * np.nan
-H_xy_true = np.empty((n_trials, len(T_range))) * np.nan
-H_y_given_x_true = np.empty((n_trials, len(T_range))) * np.nan
+H_yA_MAF = np.empty((n_trials, len(T_range))) * np.nan
+H_A_MAF = np.empty((n_trials, len(T_range))) * np.nan
+H_yA_knn = np.empty((n_trials, len(T_range))) * np.nan
+H_A_knn = np.empty((n_trials, len(T_range))) * np.nan
+H_cond_MAF = np.empty((n_trials, len(T_range))) * np.nan
+H_yA_true = np.empty((n_trials, len(T_range))) * np.nan
+H_y_given_A_true = np.empty((n_trials, len(T_range))) * np.nan
 
 for iter in range(n_trials):
     for Ti, T in enumerate(T_range):
@@ -148,22 +149,28 @@ for iter in range(n_trials):
         index = (iter, Ti)
         model_name = f"random_A_{T}T"
         n_samples = 2 * N * T * n_train_samples
-        A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N))
-        x = np.random.normal(0, 1, (n_samples, N, T))
-        n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T))
+        A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N)).astype(np.float32)
+        x = np.random.normal(0, np.sqrt(sigma_x), (n_samples, N, T)).astype(np.float32)
+        n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T)).astype(np.float32)
         y = np.matmul(A, x) + n
         sim_model = simMod.Gaussian(mu, sigma)
 
-        y = np.asarray(y, dtype=np.float32)
-        x = np.asarray(x, dtype=np.float32)
-        del A, n  # free memory
+        del x, n  # free memory
 
-        samples = [y.reshape(n_samples, N * T, order="F"), x.reshape(n_samples, N * T, order="F")]
+        samples = [y.reshape(n_samples, N * T, order="F"), A.reshape(n_samples, N * N, order="F")]
         # covar is symmetric so det is the product (log sum) of eigenvalues
-        dets = np.sum(
+        # dets_x = np.sum(
+        #     np.log(
+        #         np.linalg.eigvalsh(
+        #             sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x)
+        #         )
+        #     ),
+        #     axis=1,
+        # )
+        dets_A = np.sum(
             np.log(
                 np.linalg.eigvalsh(
-                    sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x)
+                    sigma_n * np.eye(N) + sigma_x * np.matmul(A, A.transpose(0, 2, 1))
                 )
             ),
             axis=1,
@@ -171,28 +178,31 @@ for iter in range(n_trials):
         # gaussian entropy 0.5*log(2 pi e ) + 0.5*log(det(sigma))
         # Matrix form of gaussian
         # Multiple-Antennas and Isotropically Random Unitary Inputs: The Received Signal Density in Closed Form
-        H_y_given_x_true[index] = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(
-            dets
-        )
-        del dets, y, x  # free memory
+        # H_y_given_A_true[index] = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(
+        #     dets_x
+        # )
+        H_y_given_A_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + T / 2 * np.mean(dets_A)
+        del dets_A  # free memory
         H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
-        H_xy_true[index] = H_y_given_x_true[index] + H_x_true
+        H_A_true = simMod.Gaussian(0, 1, N * N).entropy()
+        H_yA_true[index] = H_y_given_A_true[index] + H_x_true
+        H_yA_true = H_y_given_A_true + H_A_true
 
         misc.print_border(f"evaluating joint H(x,y) MAF, T={T}, iter={iter}")
         test_samples = np.concatenate(samples, axis=1)
         model = entMAF.load_model(name=model_name, path=XY_model_path) if LOAD_MODEL else None
-        sim_model.input_dim = N * T * 2
+        sim_model.input_dim = N * T + N * N
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
             estimator = entMAF.learn_model(
                 sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
             )
         else:
-            H_xy_MAF[index], estimator = entMAF.calc_entropy(
-                sim_model, model=model, base_samples=test_samples, method="both"
+            H_yA_MAF[index], estimator = entMAF.calc_entropy(
+                sim_model, model=model, base_samples=test_samples, method="tksg"
             )
-            # H_xy_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-            # H_xy_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
+            H_yA_knn[index] = entMAF.knn_entropy(estimator, test_samples, method="ksg")
+            # H_yA_knn[index] = np.asarray(entropy.kl_ksg(test_samples))
 
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
@@ -201,12 +211,12 @@ for iter in range(n_trials):
         if SAVE_FILE and not TRAIN_ONLY:
             filename = misc.update_filename(random_A_path, filename, iter)
             util.io.save(
-                (T_range, H_y_given_x_true, H_xy_MAF, H_xy_kl_ksg, H_x_MAF, H_x_kl_ksg, H_cond_MAF),
+                (T_range, H_y_given_A_true, H_yA_MAF, H_yA_knn, H_A_MAF, H_A_knn, H_cond_MAF),
                 os.path.join(random_A_path, filename),
             )
-        print(f"H_xy MAF:\n{H_xy_MAF[index]}")
-        print(f"H_xy kl,ksg:\n{H_xy_kl_ksg[index]}")
-        print(f"True H: {H_xy_true[index]}")
+        print(f"H_xy MAF:\n{H_yA_MAF[index]}")
+        print(f"H_xy kl,ksg:\n{H_yA_knn[index]}")
+        print(f"True H: {H_yA_true[index]}")
 
         misc.print_border(f"evaluating H(x) MAF, T={T}, iter={iter}")
         test_samples = samples[1]
@@ -218,22 +228,22 @@ for iter in range(n_trials):
                 sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
             )
         else:
-            H_x_MAF[index], estimator = entMAF.calc_entropy(
+            H_A_MAF[index], estimator = entMAF.calc_entropy(
                 sim_model, model=model, base_samples=test_samples, method="both"
             )
-            # H_x_kl_ksg[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-            # H_x_kl_ksg[index] = np.asarray(entropy.kl_ksg(test_samples))
+            # H_A_knn[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
+            # H_A_knn[index] = np.asarray(entropy.kl_ksg(test_samples))
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
                 estimator.model, test_samples, name=model_name, path=X_model_path
             )
         if SAVE_FILE and not TRAIN_ONLY:
             util.io.save(
-                (T_range, H_y_given_x_true, H_xy_MAF, H_xy_kl_ksg, H_x_MAF, H_x_kl_ksg, H_cond_MAF),
+                (T_range, H_y_given_A_true, H_yA_MAF, H_yA_knn, H_A_MAF, H_A_knn, H_cond_MAF),
                 os.path.join(random_A_path, filename),
             )
-        print(f"H_x MAF:\n{H_x_MAF[index]}")
-        print(f"H_x kl,ksg:\n{H_x_kl_ksg[index]}")
+        print(f"H_x MAF:\n{H_A_MAF[index]}")
+        print(f"H_x kl,ksg:\n{H_A_knn[index]}")
         print(f"True H: {H_x_true}")
 
         misc.print_border(f"evaluating cond H(y|x) condMAF, T={T}, iter={iter}")
@@ -254,14 +264,14 @@ for iter in range(n_trials):
             )
         if SAVE_FILE and not TRAIN_ONLY:
             util.io.save(
-                (T_range, H_y_given_x_true, H_xy_MAF, H_xy_kl_ksg, H_x_MAF, H_x_kl_ksg, H_cond_MAF),
+                (T_range, H_y_given_A_true, H_yA_MAF, H_yA_knn, H_A_MAF, H_A_knn, H_cond_MAF),
                 os.path.join(random_A_path, filename),
             )
         print(f"\ny=Ax+n, A is random T={T}")
         print(f"estimated cond MAF H: {H_cond_MAF[index]}")
-        print(f"estimated MAF H_XY - H_X: {H_xy_MAF[index]-H_x_MAF[index]}")
-        print(f"estimated knn H_XY - H_X: {H_xy_kl_ksg[index]-H_x_kl_ksg[index]}")
-        print(f"true H: {H_y_given_x_true[index]}")
+        print(f"estimated MAF H_XY - H_X: {H_yA_MAF[index]-H_A_MAF[index]}")
+        print(f"estimated knn H_XY - H_X: {H_yA_knn[index]-H_A_knn[index]}")
+        print(f"true H: {H_y_given_A_true[index]}")
         del samples, test_samples
         gc.collect()
 
@@ -292,13 +302,13 @@ if LOAD_MODEL:
     H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
 else:
     H, estimator = entCondMAF.calc_entropy(sim_model, base_samples=samples, method="both")
-H_y_given_x_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
+H_y_given_A_true = N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(lin.det(sigma_n))
 if SAVE_MODEL:
     _ = entCondMAF.update_best_model(estimator.model, samples, name=model_name, path=model_paths)
 
 print(f"y=Ax+n, A is constant")
 print(f"estimated H: {H}")
-print(f"true H: {H_y_given_x_true:.4f}")
+print(f"true H: {H_y_given_A_true:.4f}")
 
 
 # import sys
@@ -332,14 +342,14 @@ else:
 
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
-H_y_given_x_true = joint_H - marginal_H
+H_y_given_A_true = joint_H - marginal_H
 
 if SAVE_MODEL:
     _ = entCondMAF.update_best_model(estimator.model, samples, name=model_name, path=model_paths)
 
 print(f"gaussian covar, sigma always decreasing for each additional N.")
 print(f"estimated H: {H}")
-print(f"true H: {H_y_given_x_true:.4f}")
+print(f"true H: {H_y_given_A_true:.4f}")
 
 
 """Toeplitz sigma"""
@@ -366,14 +376,14 @@ else:
     H, estimator = entCondMAF.calc_entropy(sim_model, base_samples=samples, method="both")
 joint_H = sim_model.entropy()
 marginal_H = 0.5 * np.log(lin.det(sigma[inputs:, inputs:])) + givens / 2 * (1 + np.log(2 * np.pi))
-H_y_given_x_true = joint_H - marginal_H
+H_y_given_A_true = joint_H - marginal_H
 if SAVE_MODEL:
     _ = entCondMAF.update_best_model(estimator.model, samples, name=model_name, path=model_paths)
 
 
 print("sigma toeplitz, further away values have less weight")
 print(f"estimated H: {H}")
-print(f"true H: {H_y_given_x_true:.4f}")
+print(f"true H: {H_y_given_A_true:.4f}")
 
 
 # """
