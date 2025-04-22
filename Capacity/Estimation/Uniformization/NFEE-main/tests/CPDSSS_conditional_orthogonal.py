@@ -82,6 +82,10 @@ for i in range(n_trials):
         misc.print_border("Generating CPDSSS samples")
         # sim_model = CPDSSS_Cond(T, N, d0=d0, d1=d1)
         sim_model.set_T(T)
+        sim_model.set_H_given_X()
+        samples = sim_model.sim(100000 * sim_model.x_dim)
+        H = ent.calc_entropy(sim_model, base_samples=samples, method="both")[0]
+        print(sim_model.chan_entropy() - H)
         # generate base samples based on max dimension
         sim_model.set_XHcond()
         knn_samples = int(max(min_knn_samples, n_train_samples * sim_model.x_dim))

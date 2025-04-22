@@ -136,6 +136,7 @@ class _MAF_helper(ABC):
 
         print(f"Saved best test loss: {best_trn_loss:.3f}, new model test loss: {new_loss:.3f}")
         if best_trn_loss > new_loss:
+            print("new best loss")
             cls.save_model(model, name, path)
             return new_loss
         else:
