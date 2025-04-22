@@ -18,19 +18,17 @@ import ent_est.entropy as entropy
 import util.io
 
 
-SAVE_MODEL = True
+SAVE_MODEL = False
 TRAIN_ONLY = False
-REUSE_MODEL = True
-LOAD_MODEL = True
+REUSE_MODEL = False
 
-SAVE_FILE = True
+SAVE_FILE = False
 
 """
 Number of iterations
 """
-n_trials = 100  # iterations to average
-min_knn_samples = 2000000  # samples to generate per entros.pathy calc
-n_train_samples = 100000
+n_trials = 1  # iterations to average
+n_train_samples = 10000
 
 N = 6
 T = 2
@@ -41,7 +39,7 @@ givens = N - inputs
 model = None
 n_samples = N * T * n_train_samples
 
-model_paths = f"temp_data/saved_models/conditional_tests/{N}N"
+model_paths = f"temp_data/saved_models/conditional_tests/y_given_A/{N}N"
 
 
 # for N in range(17, 20):
@@ -124,11 +122,11 @@ sigma_n = 2  # * np.eye(N)
 sigma_A = 1
 sigma_x = 1
 
-X_model_path = os.path.join(model_paths, "MAF_X")
-XY_model_path = os.path.join(model_paths, "MAF_XY")
+A_model_path = os.path.join(model_paths, "MAF_A")
+YA_model_path = os.path.join(model_paths, "MAF_YA")
 cond_model_path = os.path.join(model_paths, "cond_MAF")
 
-random_A_path = "temp_data/conditional_test/random_A/"
+random_A_path = "temp_data/conditional_test/random_A/y_given_A"
 today = date.today().strftime("%b_%d")
 filename = "cond_data({})".format(today)
 if SAVE_FILE:
@@ -148,65 +146,74 @@ for iter in range(n_trials):
 
         index = (iter, Ti)
         model_name = f"random_A_{T}T"
-        n_samples = 2 * N * T * n_train_samples
-        A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N)).astype(np.float32)
-        x = np.random.normal(0, np.sqrt(sigma_x), (n_samples, N, T)).astype(np.float32)
-        n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T)).astype(np.float32)
-        y = np.matmul(A, x) + n
-        sim_model = simMod.Gaussian(mu, sigma)
+        n_samples = (N * T + N * N) * n_train_samples
 
-        del x, n  # free memory
+        sim_model = simMod.MIMO_Gaussian(N=N, sigma_A=sigma_A, sigma_x=sigma_x, sigma_n=sigma_n)
+        sim_model.set_T(T)
+        # A = np.random.normal(0, np.sqrt(sigma_A), (n_samples, N, N)).astype(np.float32)
+        # x = np.random.normal(0, np.sqrt(sigma_x), (n_samples, N, T)).astype(np.float32)
+        # n = np.random.normal(0, np.sqrt(sigma_n), (n_samples, N, T)).astype(np.float32)
+        # y = np.matmul(A, x) + n
+        # sim_model = simMod.Gaussian(mu, sigma)
 
-        samples = [y.reshape(n_samples, N * T, order="F"), A.reshape(n_samples, N * N, order="F")]
-        # covar is symmetric so det is the product (log sum) of eigenvalues
-        # dets_x = np.sum(
+        # del x, n  # free memory
+
+        # samples = [y.reshape(n_samples, N * T, order="F"), A.reshape(n_samples, N * N, order="F")]
+        # # covar is symmetric so det is the product (log sum) of eigenvalues
+        # # dets_x = np.sum(
+        # #     np.log(
+        # #         np.linalg.eigvalsh(
+        # #             sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x)
+        # #         )
+        # #     ),
+        # #     axis=1,
+        # # )
+        # dets_A = np.sum(
         #     np.log(
         #         np.linalg.eigvalsh(
-        #             sigma_n * np.eye(T) + sigma_A * np.matmul(x.transpose(0, 2, 1), x)
+        #             sigma_n * np.eye(N) + sigma_x * np.matmul(A, A.transpose(0, 2, 1))
         #         )
         #     ),
         #     axis=1,
         # )
-        dets_A = np.sum(
-            np.log(
-                np.linalg.eigvalsh(
-                    sigma_n * np.eye(N) + sigma_x * np.matmul(A, A.transpose(0, 2, 1))
-                )
-            ),
-            axis=1,
-        )
-        # gaussian entropy 0.5*log(2 pi e ) + 0.5*log(det(sigma))
-        # Matrix form of gaussian
-        # Multiple-Antennas and Isotropically Random Unitary Inputs: The Received Signal Density in Closed Form
-        # H_y_given_A_true[index] = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(
-        #     dets_x
-        # )
-        H_y_given_A_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + T / 2 * np.mean(dets_A)
-        del dets_A  # free memory
-        H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
-        H_A_true = simMod.Gaussian(0, 1, N * N).entropy()
-        H_yA_true[index] = H_y_given_A_true[index] + H_x_true
-        H_yA_true = H_y_given_A_true + H_A_true
+        # # gaussian entropy 0.5*log(2 pi e ) + 0.5*log(det(sigma))
+        # # Matrix form of gaussian
+        # # Multiple-Antennas and Isotropically Random Unitary Inputs: The Received Signal Density in Closed Form
+        # # H_y_given_A_true[index] = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + N / 2 * np.mean(
+        # #     dets_x
+        # # )
+        # H_y_given_A_true = (N * T) / 2 * np.log(2 * np.pi * np.exp(1)) + T / 2 * np.mean(dets_A)
+        # del dets_A  # free memory
+        # H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
+        # H_A_true = simMod.Gaussian(0, 1, N * N).entropy()
 
-        misc.print_border(f"evaluating joint H(x,y) MAF, T={T}, iter={iter}")
-        test_samples = np.concatenate(samples, axis=1)
-        model = entMAF.load_model(name=model_name, path=XY_model_path) if LOAD_MODEL else None
-        sim_model.input_dim = N * T + N * N
+        sim_model.set_input_A()
+        sim_model.sim()
+        H_A_true = sim_model.entropy()
+        sim_model.set_input_Y_given_A()
+        H_y_given_A_true[index] = sim_model.entropy()
+        H_yA_true = H_y_given_A_true[index] + H_A_true
+
+        misc.print_border(f"evaluating joint H(y,A) MAF, T={T}, iter={iter}")
+        sim_model.set_input_YA()
+        samples = sim_model.sim(n_samples)
+        # samples = np.concatenate(samples, axis=1)
+        model = entMAF.load_model(name=model_name, path=YA_model_path) if REUSE_MODEL else None
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
             estimator = entMAF.learn_model(
-                sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
+                sim_model, model, train_samples=samples, n_hiddens=n_hiddens
             )
         else:
             H_yA_MAF[index], estimator = entMAF.calc_entropy(
-                sim_model, model=model, base_samples=test_samples, method="tksg"
+                sim_model, model=model, base_samples=samples, method="umtksg"
             )
-            H_yA_knn[index] = entMAF.knn_entropy(estimator, test_samples, method="ksg")
-            # H_yA_knn[index] = np.asarray(entropy.kl_ksg(test_samples))
+            H_yA_knn[index] = entMAF.knn_entropy(estimator, samples, method="ksg")
+            # H_yA_knn[index] = np.asarray(entropy.kl_ksg(samples))
 
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
-                estimator.model, test_samples, name=model_name, path=XY_model_path
+                estimator.model, samples, name=model_name, path=YA_model_path
             )
         if SAVE_FILE and not TRAIN_ONLY:
             filename = misc.update_filename(random_A_path, filename, iter)
@@ -216,26 +223,26 @@ for iter in range(n_trials):
             )
         print(f"H_xy MAF:\n{H_yA_MAF[index]}")
         print(f"H_xy kl,ksg:\n{H_yA_knn[index]}")
-        print(f"True H: {H_yA_true[index]}")
+        print(f"True H: {H_yA_true}")
 
-        misc.print_border(f"evaluating H(x) MAF, T={T}, iter={iter}")
-        test_samples = samples[1]
-        model = entMAF.load_model(name=model_name, path=X_model_path) if LOAD_MODEL else None
-        sim_model.input_dim = N * T
+        misc.print_border(f"evaluating H(A) MAF, T={T}, iter={iter}")
+        sim_model.set_input_A()
+        samples = sim_model.sim()
+        model = entMAF.load_model(name=model_name, path=A_model_path) if REUSE_MODEL else None
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
             estimator = entMAF.learn_model(
-                sim_model, model, train_samples=test_samples, n_hiddens=n_hiddens
+                sim_model, model, train_samples=samples, n_hiddens=n_hiddens
             )
         else:
             H_A_MAF[index], estimator = entMAF.calc_entropy(
-                sim_model, model=model, base_samples=test_samples, method="both"
+                sim_model, model=model, base_samples=samples, method="umtksg"
             )
-            # H_A_knn[index] = entMAF.knn_entropy(estimator, test_samples, method="kl_ksg")
-            # H_A_knn[index] = np.asarray(entropy.kl_ksg(test_samples))
+            H_A_knn[index] = entMAF.knn_entropy(estimator, samples, method="ksg")
+            # H_A_knn[index] = np.asarray(entropy.kl_ksg(samples))
         if SAVE_MODEL:
             _ = entMAF.update_best_model(
-                estimator.model, test_samples, name=model_name, path=X_model_path
+                estimator.model, samples, name=model_name, path=A_model_path
             )
         if SAVE_FILE and not TRAIN_ONLY:
             util.io.save(
@@ -244,20 +251,23 @@ for iter in range(n_trials):
             )
         print(f"H_x MAF:\n{H_A_MAF[index]}")
         print(f"H_x kl,ksg:\n{H_A_knn[index]}")
-        print(f"True H: {H_x_true}")
+        print(f"True H: {H_A_true}")
 
-        misc.print_border(f"evaluating cond H(y|x) condMAF, T={T}, iter={iter}")
-        model = entCondMAF.load_model(name=model_name, path=cond_model_path) if LOAD_MODEL else None
-        sim_model.input_dim = [N * T, N * T]
+        misc.print_border(f"evaluating cond H(y|A) condMAF, T={T}, iter={iter}")
+        sim_model.set_input_Y_given_A()
+        samples = sim_model.sim(n_samples)
+        model = (
+            entCondMAF.load_model(name=model_name, path=cond_model_path) if REUSE_MODEL else None
+        )
         if TRAIN_ONLY:
             n_hiddens = [max(4 * sim_model.x_dim, 200)] * 3
             estimator = entCondMAF.learn_model(
                 sim_model, model, train_samples=samples, n_hiddens=n_hiddens
             )
-        # else:
-        # H_cond_MAF[index], estimator = entCondMAF.calc_entropy(
-        #     sim_model, model=model, base_samples=samples, method="both"
-        # )
+        else:
+            H_cond_MAF[index], estimator = entCondMAF.calc_entropy(
+                sim_model, model=model, base_samples=samples, method="umtksg"
+            )
         if SAVE_MODEL:
             _ = entCondMAF.update_best_model(
                 estimator.model, samples, name=model_name, path=cond_model_path
@@ -272,7 +282,7 @@ for iter in range(n_trials):
         print(f"estimated MAF H_XY - H_X: {H_yA_MAF[index]-H_A_MAF[index]}")
         print(f"estimated knn H_XY - H_X: {H_yA_knn[index]-H_A_knn[index]}")
         print(f"true H: {H_y_given_A_true[index]}")
-        del samples, test_samples
+        del samples
         gc.collect()
 
 import sys
@@ -296,8 +306,8 @@ y = np.squeeze(np.matmul(A, x)) + n
 sim_model = simMod.Gaussian(mu, sigma)
 sim_model.input_dim = [N, N]
 samples = [y, np.squeeze(x)]
-if LOAD_MODEL:
-    model = entCondMAF.load_model(name=model_name, path=model_paths)
+if REUSE_MODEL:
+    model = entCondMAF.REUSE_MODEL(name=model_name, path=model_paths)
     estimator = UMestimator(sim_model, model, samples)
     H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
 else:
@@ -333,8 +343,8 @@ samples = [
     samples[:, inputs:],
 ]  # first 2 dim conditioned on last N-2 dimensions
 sim_model.input_dim = [inputs, givens]
-if LOAD_MODEL:
-    model = entCondMAF.load_model(name=model_name, path=model_paths)
+if REUSE_MODEL:
+    model = entCondMAF.REUSE_MODEL(name=model_name, path=model_paths)
     estimator = UMestimator(sim_model, model, samples)
     H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
 else:
@@ -368,8 +378,8 @@ samples = [
 ]  # first 2 dim conditioned on last N-2 dimensions
 sim_model.input_dim = [inputs, givens]
 
-if LOAD_MODEL:
-    model = entCondMAF.load_model(name=model_name, path=model_paths)
+if REUSE_MODEL:
+    model = entCondMAF.REUSE_MODEL(name=model_name, path=model_paths)
     estimator = UMestimator(sim_model, model, samples)
     H = estimator.calc_ent(samples=samples, method="both", SHOW_PDF_PLOTS=True)
 else:

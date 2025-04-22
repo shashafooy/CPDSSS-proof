@@ -25,17 +25,16 @@ for model_folder in os.listdir(base_folder):
 
     sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
 
+    segments = new_model_path.split("/")
+    segments.remove("new_models")
+    old_model_path = "/".join(segments)
+
     print(f"comparing models {model_folder}")
     for file in os.listdir(new_model_path):
         T = int(re.match("^\d{1,2}", file).group())
         name = file.split(".")[0]
         sim_model.set_T(T)
         sim_model.set_H_given_X()
-
-        segments = new_model_path.split("/")
-        segments.remove("new_models")
-        old_model_path = "/".join(segments)
-
         samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
 
         # Compare with new model files
@@ -44,4 +43,4 @@ for model_folder in os.listdir(base_folder):
         _ = ent.update_best_model(new_model, samples, name=name, path=old_model_path)
         # compare_models(X_samp, name, base_folder_X, name, new_folder_X)
         os.remove(os.path.join(new_model_path, name + ".pkl"))
-    os.rmdir(new_model_path)
+    # os.rmdir(new_model_path)

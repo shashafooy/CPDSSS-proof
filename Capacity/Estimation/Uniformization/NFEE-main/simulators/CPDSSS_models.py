@@ -709,6 +709,119 @@ class CPDSSS_Hinv(CPDSSS):
         return G, Q
 
 
+class MIMO_Gaussian(_distribution):
+    def __init__(self, N=1, sigma_A=1, sigma_x=1, sigma_n=1, rng=np.random.default_rng()):
+        super().__init__(x_dim=N)
+        self.N = N
+        self.sigma_A = sigma_A
+        self.sigma_x = sigma_x
+        self.sigma_n = sigma_n
+        self.rng = rng
+        self.T = -1
+        self._sym_type = "n/a"
+
+    def sim(self, n_samples=1000):
+        assert self._sym_type != "n/a", "Set the _sym_type before calling sim() using set_input*()"
+        assert self.T != -1, "Set the T before calling sim() using set_T()"
+
+        self.A = self.rng.normal(0, np.sqrt(self.sigma_A), (n_samples, self.N, self.N)).astype(
+            dtype
+        )
+        if self._sym_type == "A":
+            return self.A.reshape(n_samples, self.N * self.N, order="F")
+
+        self.X = self.rng.normal(0, np.sqrt(self.sigma_x), (n_samples, self.N, self.T)).astype(
+            dtype
+        )
+        n = self.rng.normal(0, np.sqrt(self.sigma_n), (n_samples, self.N, self.T)).astype(dtype)
+        Y = np.matmul(self.A, self.X) + n
+        Y = Y.reshape(n_samples, self.N * self.T, order="F")
+        X = self.X.reshape(n_samples, self.N * self.T, order="F")
+        A = self.A.reshape(n_samples, self.N * self.N, order="F")
+
+        if self._sym_type == "Y":
+            return Y
+        elif self._sym_type == "YX":
+            return np.concatenate((Y, X.reshape(n_samples, self.N**2, order="F")), axis=1)
+        elif self._sym_type == "X":
+            return X
+        elif self._sym_type == "A":
+            return A
+        elif self._sym_type == "YA":
+            return np.concatenate((Y, A), axis=1)
+        elif self._sym_type == "Y|A":
+            return [Y, A]
+        elif self._sym_type == "Y|X":
+            return [Y, X]
+        else:
+            raise ValueError("Invalid sym type, use model.set**() to set sym type")
+
+    def entropy(self):
+        if self._sym_type == "X":
+            return self.N * self.T / 2 * np.log(2 * np.pi * np.exp(1)) + self.T / 2 * np.log(
+                self.sigma_x
+            )
+        if self._sym_type == "A":
+            return self.N * self.N / 2 * np.log(2 * np.pi * np.exp(1)) + self.N / 2 * np.log(
+                self.sigma_A
+            )
+        if self._sym_type == "Y|A":
+            dets = np.sum(
+                np.log(
+                    np.linalg.eigvalsh(
+                        self.sigma_n * np.eye(self.N)
+                        + self.sigma_x * np.matmul(self.A, self.A.transpose(0, 2, 1))
+                    )
+                ),
+                axis=1,
+            )
+            return self.N * self.T / 2 * np.log(2 * np.pi * np.exp(1)) + self.T / 2 * np.mean(dets)
+        if self._sym_type == "Y|X":
+            dets = np.sum(
+                np.log(
+                    np.linalg.eigvalsh(
+                        self.sigma_n * np.eye(self.T)
+                        + self.sigma_A * np.matmul(self.X.transpose(0, 2, 1), self.X)
+                    )
+                ),
+                axis=1,
+            )
+            return self.N * self.T / 2 * np.log(2 * np.pi * np.exp(1)) + self.N / 2 * np.mean(dets)
+
+        return np.nan
+
+    def set_T(self, T):
+        self.T = T
+
+    def set_input_X(self):
+        self.input_dim = self.N * self.T
+        self._sym_type = "X"
+
+    def set_input_YX(self):
+        self.input_dim = self.N * self.T + self.N * self.N
+        self._sym_type = "YX"
+
+    def set_input_A(self):
+        self.input_dim = self.N * self.N
+        self._sym_type = "A"
+
+    def set_input_YA(self):
+        self.input_dim = self.N * self.T + self.N * self.N
+        self._sym_type = "YA"
+
+    def set_input_Y(self):
+        self.input_dim = self.N * self.T
+        self._sym_type = "Y"
+
+    def set_input_Y_given_A(self):
+        self.input_dim = [self.N * self.T, self.N * self.N]
+        self._sym_type = "Y|A"
+
+    def set_input_Y_given_X(self):
+        self.input_dim = [self.N * self.T, self.N * self.T]
+        self._sym_type = "Y|X"
+
+
 class CPDSSS_XS(CPDSSS):
     """
     Generate the output samples X for CPDSSS
