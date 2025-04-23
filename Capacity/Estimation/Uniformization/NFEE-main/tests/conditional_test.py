@@ -18,17 +18,17 @@ import ent_est.entropy as entropy
 import util.io
 
 
-SAVE_MODEL = False
-TRAIN_ONLY = False
-REUSE_MODEL = False
+SAVE_MODEL = True
+TRAIN_ONLY = True
+REUSE_MODEL = True
 
 SAVE_FILE = False
 
 """
 Number of iterations
 """
-n_trials = 1  # iterations to average
-n_train_samples = 10000
+n_trials = 10  # iterations to average
+n_train_samples = 100000
 
 N = 6
 T = 2
