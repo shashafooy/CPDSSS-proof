@@ -19,7 +19,7 @@ import util.io
 
 
 SAVE_MODEL = True
-TRAIN_ONLY = True
+TRAIN_ONLY = False
 REUSE_MODEL = True
 
 SAVE_FILE = False
@@ -28,9 +28,9 @@ SAVE_FILE = False
 Number of iterations
 """
 n_trials = 10  # iterations to average
-n_train_samples = 100000
+n_train_samples = 300000
 
-N = 6
+N = 1
 T = 2
 T_range = range(1, 11)
 inputs = 2
@@ -186,6 +186,13 @@ for iter in range(n_trials):
         # del dets_A  # free memory
         # H_x_true = simMod.Gaussian(0, 1, N * T).entropy()
         # H_A_true = simMod.Gaussian(0, 1, N * N).entropy()
+
+        sim_model.set_input_A_given_Y()
+        samples = sim_model.sim(100000)
+        H_A_given_Y_condMAF, estimator = entCondMAF.calc_entropy(sim_model, base_samples=samples)
+        H_AY = estimator.calc_ent(samples=np.concatenate(samples, axis=1), method="ksg")
+        H_Y = estimator.calc_ent(samples=samples[1], method="ksg")
+        H_A_given_Y_knn = H_AY - H_Y
 
         sim_model.set_input_A()
         sim_model.sim()

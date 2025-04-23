@@ -551,6 +551,10 @@ class CPDSSS_Cond(CPDSSS):
             return [XT, cond]
         elif self._sym_type == "h|XT,Xold":
             return [self.h[:n_samples], X]
+        elif self._sym_type == "X|h":
+            return [X, self.h[:n_samples]]
+        elif self._sym_type == "X":
+            return [X, np.zeros((n_samples, 1))]
         else:
             raise ValueError("Invalid sym type, use model.set**() to set sym type")
 
@@ -562,12 +566,12 @@ class CPDSSS_Cond(CPDSSS):
         #     cond = Xcond
         # return [XT, cond]
 
-    def set_Xcond(self):
+    def set_x_given_oldX(self):
         self.input_dim[1] = self.N * (self.T - 1)
         self.update_x_dim()
         self._sym_type = "XT|Xold"
 
-    def set_XHcond(self):
+    def set_x_given_h_oldX(self):
         self.input_dim[1] = self.N * self.T
         self.update_x_dim()
         self._sym_type = "XT|Xold,h"
@@ -575,6 +579,14 @@ class CPDSSS_Cond(CPDSSS):
     def set_H_given_X(self):
         self.input_dim = [self.N, self.N * self.T]
         self._sym_type = "h|XT,Xold"
+
+    def set_X_given_H(self):
+        self.input_dim = [self.N * self.T, self.N]
+        self._sym_type = "X|h"
+
+    def set_X_no_givens(self):
+        self.input_dim = [self.N * self.T, 1]
+        self._sym_type = "X"
 
     def set_T(self, T):
         ### TODO: update class to change how many transmissions are outputted when calling sim().
@@ -673,12 +685,12 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
         util.misc.printProgressBar(n_samples, n_samples, "G,Q generation")
         print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 
-    def set_Xcond(self):
+    def set_x_given_oldX(self):
         self.input_dim[1] = self.N * (self.T - 1)
         self.update_x_dim()
         self._sym_type = "XT|Xold"
 
-    def set_XHcond(self):
+    def set_x_given_h_oldX(self):
         self.input_dim[1] = self.N * (self.T - 1) + self.N * self.N
         self.update_x_dim()
         self._sym_type = "XT|Xold,h"
@@ -753,6 +765,12 @@ class MIMO_Gaussian(_distribution):
             return [Y, A]
         elif self._sym_type == "Y|X":
             return [Y, X]
+        elif self._sym_type == "A|Y":
+            return [A, Y]
+        elif self._sym_type == "X|Y":
+            return [X, Y]
+        elif self._sym_type == "X|A":
+            return [X, A]
         else:
             raise ValueError("Invalid sym type, use model.set**() to set sym type")
 
@@ -765,6 +783,7 @@ class MIMO_Gaussian(_distribution):
             return self.N * self.N / 2 * np.log(2 * np.pi * np.exp(1)) + self.N / 2 * np.log(
                 self.sigma_A
             )
+        # Multiple-Antennas and Isotropically Random Unitary Inputs: The Received Signal Density in Closed Form
         if self._sym_type == "Y|A":
             dets = np.sum(
                 np.log(
@@ -820,6 +839,18 @@ class MIMO_Gaussian(_distribution):
     def set_input_Y_given_X(self):
         self.input_dim = [self.N * self.T, self.N * self.T]
         self._sym_type = "Y|X"
+
+    def set_input_A_given_Y(self):
+        self.input_dim = [self.N * self.N, self.N * self.T]
+        self._sym_type = "A|Y"
+
+    def set_input_X_given_Y(self):
+        self.input_dim = [self.N * self.T, self.N * self.T]
+        self._sym_type = "X|Y"
+
+    def set_input_X_given_A(self):
+        self.input_dim = [self.N * self.T, self.N * self.N]
+        self._sym_type = "X|A"
 
 
 class CPDSSS_XS(CPDSSS):

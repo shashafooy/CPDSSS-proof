@@ -715,7 +715,7 @@ class UMestimator:
             # something went wrong in training, reload initial value
             if np.any(np.isnan(z_chunk)):
                 self.checkpointer.restore()
-                z = self.model.calc_random_numbers([x[section] for x in samples])
+                z_chunk = self.model.calc_random_numbers([x[section] for x in samples])
             uniform[start_idx : start_idx + n_size[-1]] = stats.norm.cdf(z_chunk)
             start_idx = start_idx + n_size[-1]
             correction1.append(-np.mean(np.sum(np.log(stats.norm.pdf(z_chunk)), axis=1)))
