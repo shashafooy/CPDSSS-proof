@@ -87,12 +87,12 @@ for i in range(n_trials):
         H = ent.calc_entropy(sim_model, base_samples=samples, method="both")[0]
         print(sim_model.chan_entropy() - H)
         # generate base samples based on max dimension
-        sim_model.set_XHcond()
+        sim_model.set_x_given_h_oldX()
         knn_samples = int(max(min_knn_samples, n_train_samples * sim_model.x_dim))
         # samples = sim_model.sim(knn_samples)
 
         sim_model.set_T(1)
-        sim_model.set_Xcond()
+        sim_model.set_x_given_oldX()
         samples = sim_model.sim(knn_samples)
         misc.print_border(f"H(X)")
         H_X = 4.256
@@ -135,7 +135,7 @@ for i in range(n_trials):
         misc.print_border(f"2/2 calculating H(xT | x1:T-1), T: {T}, iter: {i+1}")
         model_path = os.path.join(base_model_path, "X")
 
-        sim_model.set_Xcond()
+        sim_model.set_x_given_oldX()
         samples = sim_model.sim(knn_samples)
 
         model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
