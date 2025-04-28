@@ -6,7 +6,7 @@ from _utils import set_sys_path
 
 set_sys_path()
 
-from simulators.CPDSSS_models import CPDSSS_Cond
+from simulators.CPDSSS_models import CPDSSS_Cond, CPDSSS_Cond_ZC
 from misc_CPDSSS.entropy_util import Cond_MAF as ent
 from misc_CPDSSS import util as misc
 import util.io
@@ -70,6 +70,7 @@ misc.print_border(f"Evaluating N={N}, d0={d0}, d1={d1}")
 
 for i in range(n_trials):
     sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
+    sim_model_ZC = CPDSSS_Cond_ZC(0, 2, L=2, use_fading=True)
 
     # sim_model.set_T(1)
     # sim_model.set_Xcond()
@@ -90,6 +91,11 @@ for i in range(n_trials):
     for k, T in enumerate(T_range):
         name = f"{T}T"
         index = (i, k)
+
+        sim_model_ZC.set_T(T)
+        sim_model_ZC.set_H_given_X()
+        samples = sim_model_ZC.sim(n_train_samples * sim_model_ZC.x_dim, reuse_GQ=True)
+        H_ZC, estimator = ent.calc_entropy(sim_model_ZC, base_samples=samples)
 
         misc.print_border(f"Evaluating H(h|x) T={T}, iter: {i+1}, d0={d0}, d1={d1}")
         print(f"H(h) = {sim_model.chan_entropy()}")
