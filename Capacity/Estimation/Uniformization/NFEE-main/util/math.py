@@ -202,3 +202,18 @@ def median_distance(xs):
     dists = np.sqrt(np.sum(diffs**2, axis=1))
 
     return np.median(dists)
+
+
+def zadoff_chu(N, u):
+    """Evaluate the length N zadoff_chu sequence with root index u and unit power. Index u must be prime with respect to N
+
+    Args:
+        N (_type_): length of sequence
+        u (_type_): root index prime to N
+    """
+    assert np.gcd(N, u) == 1, "u is not prime with respect to N"
+    N_range = np.arange(N)
+    if N % 2 == 0:  # even
+        return np.exp(-1j * np.pi * u * N_range**2 / N) / np.sqrt(N)
+    else:  # odd
+        return np.exp(-1j * np.pi * u * N_range * (N_range + 1) / N) / np.sqrt(N)

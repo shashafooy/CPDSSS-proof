@@ -5,7 +5,7 @@ import numpy as np
 import scipy.linalg as lin
 import scipy.special as spec
 import scipy.stats as stats
-from simulators.complex import mvn
+from simulators.complex import mvn, mvn_complex
 import math
 import theano.tensor as tt
 import theano
@@ -13,6 +13,7 @@ import time
 import sys
 
 import util.misc
+from util.math import zadoff_chu
 
 dtype = theano.config.floatX
 USE_GPU = False
@@ -126,7 +127,9 @@ class CPDSSS(_distribution):
         self._sim_chan_only = False
 
         self.fading = (
-            np.exp(-np.arange(self.N) / 3).astype(dtype) if use_fading else np.ones(self.N)
+            np.exp(-np.arange(self.N) / 3).astype(dtype)
+            if use_fading
+            else np.ones(self.N).astype(dtype)
         )
 
         self.h = np.empty((0, N))
@@ -160,27 +163,20 @@ class CPDSSS(_distribution):
         Returns:
             numpy: (n_samples, dim_x) array of generated values
         """
+        N = self.sym_N + self.noise_N  # This may not match self.N if evaluating complex values
 
-        s = (
-            self.sim_S.sim(n_samples=n_samples)
-            .astype(dtype)
-            .reshape((n_samples, self.sym_N, self.T))
-        )
+        s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples, self.sym_N, self.T))
 
-        v = (
-            self.sim_V.sim(n_samples=n_samples)
-            .astype(dtype)
-            .reshape((n_samples, self.noise_N, self.T))
-        )
+        v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples, self.noise_N, self.T))
 
         # channel is reused, append new samples if needed
         new_samples = n_samples - self.h.shape[0] if reuse_GQ else n_samples
         new_h = (
-            (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading)).astype(dtype)
+            (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading))
             if new_samples > 0
-            else np.empty((0, self.N), dtype=dtype)
+            else np.empty((0, N), dtype=s.dtype)
         )
-        self.h = np.concatenate((self.h, new_h), axis=0, dtype=dtype) if reuse_GQ else new_h
+        self.h = np.concatenate((self.h, new_h), axis=0, dtype=new_h.dtype) if reuse_GQ else new_h
         del new_h
         # self.h = (self.sim_H.sim(n_samples=n_samples) * np.sqrt(self.fading)).astype(dtype)
 
@@ -189,14 +185,14 @@ class CPDSSS(_distribution):
             return self.h
 
         self.sim_GQ(reuse_GQ, new_samples)
-        if self.sym_N == self.N:
+        if self.sym_N == N:
             X = np.matmul(self.G[:n_samples, :, :], s)
         else:
             X = np.matmul(self.G[:n_samples, :, :], s) + np.matmul(self.Q[:n_samples, :, :], v)
         del s, v
         gc.collect()
         joint_X = X[:, :, : self.T].reshape(
-            (n_samples, self.N * self.T), order="F"
+            (n_samples, N * self.T), order="F"
         )  # order 'F' needed to make arrays stack instead of interlaced
         del X
         gc.collect()
@@ -209,14 +205,16 @@ class CPDSSS(_distribution):
 
     # @profile
     def sim_GQ(self, reuse, new_samples=0):
-        n_samples = self.h.shape[0]
+        n_samples, N = self.h.shape
         # if stored G samples is less than number of h samples, generate more G,Q
         if reuse and self.G.shape[0] >= n_samples:
             return
 
+        curr_dtype = self.h.dtype  # used if new_samples is complex
+
         # new_samples = n_samples - self.G.shape[0] if reuse else n_samples
-        G = np.empty((0, self.N, self.sym_N), dtype=dtype)
-        Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
+        G = np.empty((0, N, self.sym_N), dtype=curr_dtype)
+        Q = np.empty((0, N, self.noise_N), dtype=curr_dtype)
 
         split_N = max(np.floor(new_samples / 100000), 1)
         sections = np.array_split(range(n_samples - new_samples, n_samples), split_N)
@@ -253,35 +251,35 @@ class CPDSSS(_distribution):
         self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
         print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 
-    def _gen_GQ_sample(self, h):
+    # def _gen_GQ_sample(self, h):
 
-        # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
-        # A=E.T @ H
-        # Slightly faster than doing E.T @ H
-        HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[self.G_slice, :]
+    #     # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
+    #     # A=E.T @ H
+    #     # Slightly faster than doing E.T @ H
+    #     HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[self.G_slice, :]
 
-        R = HE.T @ HE + self.eye
-        p = HE[0, :].T
-        # g = lin.inv(R) @ p
-        if self.sym_N == 0:
-            G = np.zeros((self.N, 0))
-        else:
-            g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros(self.N)
-            # Only take every L columns of toepltiz matrix
-            # Slightly faster than doing G@E
-            G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
-            # Potentially better G, fullfills G.T*Q=0 and HE * G = I
-            # G = lin.inv(R) @ HE[self.G_slice,:].T
+    #     R = HE.T @ HE + self.eye
+    #     p = HE[0, :].T
+    #     # g = lin.inv(R) @ p
+    #     if self.sym_N == 0:
+    #         G = np.zeros((self.N, 0))
+    #     else:
+    #         g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros(self.N)
+    #         # Only take every L columns of toepltiz matrix
+    #         # Slightly faster than doing G@E
+    #         G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
+    #         # Potentially better G, fullfills G.T*Q=0 and HE * G = I
+    #         # G = lin.inv(R) @ HE[self.G_slice,:].T
 
-        # ev, V = lin.eig(R)
-        ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
-        # Only use eigenvectors associated with "zero" eigenvalue
-        #  get indices of the smallest eigenvalues to find "zero" EV
-        sort_indices = np.argsort(ev)
-        # Sometimes get a very small imaginary value, ignore it
-        Q = np.real(V[:, sort_indices[0 : self.noise_N]])
+    #     # ev, V = lin.eig(R)
+    #     ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
+    #     # Only use eigenvectors associated with "zero" eigenvalue
+    #     #  get indices of the smallest eigenvalues to find "zero" EV
+    #     sort_indices = np.argsort(ev)
+    #     # Sometimes get a very small imaginary value, ignore it
+    #     Q = np.real(V[:, sort_indices[0 : self.noise_N]])
 
-        return G, Q
+    #     return G, Q
 
     def _gen_batch_GQ_sample(self, h):
 
@@ -293,8 +291,8 @@ class CPDSSS(_distribution):
 
         def batch_toeplitz(h):
             row = np.concatenate([h[:, [0]], h[:, -1:0:-1]], axis=1)
-            col_idx = np.arange(self.N).reshape(self.N, 1)
-            row_idx = np.arange(self.N).reshape(1, self.N)
+            col_idx = np.arange(N).reshape(N, 1)
+            row_idx = np.arange(N).reshape(1, N)
             idx = col_idx - row_idx
             # idx = idx[self.G_slice, :]
             idx = np.broadcast_to(idx, (h.shape[0], *idx.shape))
@@ -333,7 +331,7 @@ class CPDSSS(_distribution):
         Q = V[batch_idx, :, sort_indices].transpose(
             0, 2, 1
         )  # shape (samples,noise_N,N) -> (samples,N,noise_N)
-        Q = np.real(Q)
+        Q = np.real(Q) if Q.dtype == dtype else Q
 
         return G, Q
 
@@ -375,6 +373,7 @@ class CPDSSS(_distribution):
         # )
 
         h = tt.matrix("h")
+        n_samp, N = h.shape
 
         # Create toeplitz matrix and decimate across its rows
         def gen_HE(col):
@@ -409,7 +408,7 @@ class CPDSSS(_distribution):
         # Make toeplitz matrix and decimate across its columns
         def make_G(R, p):
             if self.sym_N == 0:  # return 0 vector if there are 0 symbols
-                return tt.zeros((self.N, 0))
+                return tt.zeros((N, 0))
             col = tt.slinalg.solve(R, p)  # g vector R*g = p
 
             """Generate a toeplitz matrix HE and slice it such that HE[:,G_slice]"""
@@ -451,7 +450,8 @@ class CPDSSS(_distribution):
         return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
 
     def chan_entropy(self):
-        return self.N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(
+        N = self.sym_N + self.noise_N
+        return N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(
             np.linalg.det(np.diag(self.fading))
         )
         return 0.5 * np.log(np.linalg.det(2 * math.pi * np.exp(1) * np.diag(self.fading)))
@@ -529,7 +529,6 @@ class CPDSSS(_distribution):
 class CPDSSS_Cond(CPDSSS):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True):
         super().__init__(num_tx, N, L, d0, d1, use_fading)
-        self.sim_val = None
 
     def sim(self, n_samples=1000, reuse_GQ=True):
         assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
@@ -585,6 +584,55 @@ class CPDSSS_Cond(CPDSSS):
         self.input_dim = [self.N, -1]
         self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
+
+
+class CPDSSS_Cond_ZC(CPDSSS_Cond):
+    """Modification of CPDSSS to include zadoff chu sequence for spreading.
+    Thus the output is complex. For simulation, it may be thought of as dimension = N*2
+    x=GZ*s+Qv  where GZ = G*Z*E and E is a decimator matrix [:,range(0,N,N/L)]
+
+    Args:
+        CPDSSS_Cond (_type_): _description_
+    """
+
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True):
+        super().__init__(num_tx, N, L, d0, d1, use_fading)
+        self.N = N * 2  # double N due to complex
+
+        self.sim_S = mvn_complex(0, self.sym_N * self.T)
+        self.sim_V = mvn_complex(0, self.noise_N * self.T)
+        self.sim_H = mvn_complex(0, N)
+
+        # self.sim_H.sim(1000)
+
+        # get first integer that is prime with respect to N, ie gcd(N,u)=1
+        # try not not have u=1
+        u = np.argmax(np.gcd(self.N, np.arange(2, self.N)) == 1) + 2 if self.N > 2 else 1
+        z = zadoff_chu(N, u).astype(np.complex64)
+        self.Z = lin.toeplitz(z, np.concatenate(([z[0]], z[-1:0:-1])))
+
+    def _gen_batch_GQ_sample(self, h):
+        G, Q = super()._gen_batch_GQ_sample(h)
+        # If circular, then matrix multiplicaiton is communitive
+        # GZ = G*Z*E = Z*G*E   where E is a decimating matrix, ie [:,g_slice]
+        return self.Z @ G, Q
+
+    def sim(self, n_samples=1000, reuse_GQ=True):
+        samples = super().sim(n_samples, reuse_GQ)
+
+        samples = [util.misc.split_complex_to_real(x) for x in samples]
+        return samples
+
+    def chan_entropy(self):
+        return np.log(np.linalg.det(np.pi * np.exp(1) * np.diag(self.fading)))
+
+    def set_T(self, T):
+        self.T = T
+
+        # self.x_dim = self.N * self.T + self.N
+        self.input_dim = [self.N, -1]
+        self.sim_S = mvn_complex(rho=0.0, dim_x=self.sym_N * self.T)
+        self.sim_V = mvn_complex(rho=0.0, dim_x=self.noise_N * self.T)
 
 
 class CPDSSS_Gram_Schmidt(CPDSSS_Cond):

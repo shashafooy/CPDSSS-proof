@@ -166,6 +166,19 @@ class mvn:
         return 0.5 * np.log(np.linalg.det(2 * math.pi * np.exp(1) * self.S))
 
 
+class mvn_complex(mvn):
+    def __init__(self, rho=0.8, dim_x=1):
+        super().__init__(rho, dim_x)
+
+    def sim(self, n_samples=1000, rng=np.random):
+        return (
+            self.gaussian.gen(n_samples, rng) + 1j * self.gaussian.gen(n_samples, rng)
+        ) / np.sqrt(2)
+
+    def mcmc_entropy(self):
+        return np.log(np.linalg.det(np.pi * np.exp(1) * self.S))
+
+
 class mog:
 
     def __init__(self, rho=0.8, dim_x=1):

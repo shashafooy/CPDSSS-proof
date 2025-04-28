@@ -120,3 +120,19 @@ def printProgressBar(
     # Print New Line on Complete
     if iteration == total:
         print()
+
+
+def split_complex_to_real(arr):
+    real = np.real(arr)
+    imag = np.imag(arr)
+    if arr.ndim == 1:
+        arr = arr[np.newaxis, :]  # add dimension to act like matrix
+    n_samp, N = arr.shape
+    output = np.empty((n_samp, 2 * N), dtype=real.dtype)
+    output[:, 0::2] = real
+    output[:, 1::2] = imag
+
+    if output.shape[0] == 1:
+        return output[0]  # arr was originally a vector
+    else:
+        return output

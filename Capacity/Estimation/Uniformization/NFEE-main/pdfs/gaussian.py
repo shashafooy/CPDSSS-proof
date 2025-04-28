@@ -1,5 +1,8 @@
 import numpy as np
 import scipy.stats
+import theano
+
+dtype = theano.config.floatX
 
 
 class ImproperCovarianceError(Exception):
@@ -97,11 +100,11 @@ class Gaussian:
             else:
                 raise ValueError("Mean information missing.")
 
-            self.P = self.P.astype(np.float32)
-            self.C = self.C.astype(np.float32)
-            self.S = self.S.astype(np.float32)
-            self.m = self.m.astype(np.float32)
-            self.logdetP = self.logdetP.astype(np.float32)
+            self.P = self.P.astype(dtype)
+            self.C = self.C.astype(dtype)
+            self.S = self.S.astype(dtype)
+            self.m = self.m.astype(dtype)
+            self.logdetP = self.logdetP.astype(dtype)
 
         except np.linalg.LinAlgError:
             raise ImproperCovarianceError()
@@ -115,7 +118,7 @@ class Gaussian:
 
         # z = rng.randn(1 if one_sample else n_samples, self.n_dims)
         z = rng.default_rng().standard_normal(
-            size=(1 if one_sample else n_samples, self.n_dims), dtype=np.float32
+            size=(1 if one_sample else n_samples, self.n_dims), dtype=dtype
         )
         samples = np.dot(z, self.C) + self.m
 
