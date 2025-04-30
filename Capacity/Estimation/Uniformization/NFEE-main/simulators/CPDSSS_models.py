@@ -13,7 +13,9 @@ import time
 import sys
 
 import util.misc
-from util.math import zadoff_chu
+import util.math
+
+# from util.math import zadoff_chu
 
 dtype = theano.config.floatX
 USE_GPU = False
@@ -305,9 +307,9 @@ class CPDSSS(_distribution):
 
         HE = batch_toeplitz(h)[:, self.G_slice, :]
 
-        R = np.matmul(HE.transpose(0, 2, 1), HE) + self.eye
+        R = np.matmul(HE.conj().transpose(0, 2, 1), HE) + self.eye
         # R = HE.T @ HE + self.eye
-        p = HE[:, 0, :]
+        p = HE[:, 0, :].conj()
         # g = lin.inv(R) @ p
         if self.sym_N == 0:
             G = np.zeros((n_samp, N, 0))
@@ -598,7 +600,7 @@ class CPDSSS_Cond(CPDSSS):
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
 
 
-class CPDSSS_Cond_ZC(CPDSSS_Cond):
+class CPDSSS_Cond_Complex(CPDSSS_Cond):
     """Modification of CPDSSS to include zadoff chu sequence for spreading.
     Thus the output is complex. For simulation, it may be thought of as dimension = N*2
     x=GZ*s+Qv  where GZ = G*Z*E and E is a decimator matrix [:,range(0,N,N/L)]
@@ -615,19 +617,41 @@ class CPDSSS_Cond_ZC(CPDSSS_Cond):
         self.sim_V = mvn_complex(0, self.noise_N * self.T)
         self.sim_H = mvn_complex(0, N)
 
-        # self.sim_H.sim(1000)
+        """select a subspace matrix. In terms of secrecy, generally eye>zadoff chu>DFT"""
+        ### Gamma = Identity, for N=2 T=1 capacity ~= 7.8%
+        # Scaling eye by any number increases capacity % (secrecy decreased)
+        self.gamma = np.eye(N)
+
+        ### Gamma = Zadoff Chu, for N=2 T=1 capacity ~= 16.8%
 
         # get first integer that is prime with respect to N, ie gcd(N,u)=1
         # try not not have u=1
-        u = np.argmax(np.gcd(self.N, np.arange(2, self.N)) == 1) + 2 if self.N > 2 else 1
-        z = zadoff_chu(N, u).astype(np.complex64)
-        self.Z = lin.toeplitz(z, np.concatenate(([z[0]], z[-1:0:-1])))
+        u = np.argmax(np.gcd(N, np.arange(2, N)) == 1) + 2 if N > 2 else 1
+        z = util.math.zadoff_chu(N, u).astype(np.complex64)
+        Z = lin.toeplitz(z, np.concatenate(([z[0]], z[-1:0:-1])))
+
+        # self.gamma = Z  # information subspace
+
+        ### gamma = DFT matrix, for N=2 T=1 capacity ~= 40%
+        # self.gamma = np.fft.fft(np.eye(N)) / np.sqrt(N)
 
     def _gen_batch_GQ_sample(self, h):
-        G, Q = super()._gen_batch_GQ_sample(h)
+        # G, Q = super()._gen_batch_GQ_sample(h)
         # If circular, then matrix multiplicaiton is communitive
         # GZ = G*Z*E = Z*G*E   where E is a decimating matrix, ie [:,g_slice]
-        return self.Z @ G, Q
+        # return G, Q
+
+        G = []
+        Q = []
+        for hi in h:
+            temp = util.math.gram_schmidt(
+                np.concatenate([hi[:, None], np.ones((2, 1))], axis=1), False
+            )
+            G.append(temp[:, 0][:, None])
+            Q.append(temp[:, 1][:, None])
+        G = np.asarray(G, dtype=h.dtype)
+        Q = np.asarray(Q, dtype=h.dtype)
+        return self.gamma @ G, Q
 
     def sim(self, n_samples=1000, reuse_GQ=True):
         samples = super().sim(n_samples, reuse_GQ)
@@ -700,22 +724,6 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
         # generate G and Q using Gram-Schmidt process
         # https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
 
-        def project(v, u):
-            return np.dot(u, v) / np.dot(u, u) * u
-
-        def gram_schmidt(vectors, normalize=True):
-            orthogonal_vectors = []
-            for v in vectors:
-                for u in orthogonal_vectors:
-                    v -= project(v, u)
-                orthogonal_vectors.append(v)
-
-            orthogonal_vectors = np.array(orthogonal_vectors)
-            if normalize:
-                return orthogonal_vectors / np.linalg.norm(orthogonal_vectors, axis=1)[:, None]
-            else:
-                return orthogonal_vectors
-
         n_samples = self.H.shape[0]
 
         self.G = np.empty((n_samples, self.N, self.sym_N), dtype=dtype)
@@ -725,7 +733,7 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
         for i in range(n_samples):
             if i % 10000 == 0:
                 util.misc.printProgressBar(i, n_samples, "G,Q generation")
-            vect = gram_schmidt(self.H[i])
+            vect = util.math.gram_schmidt(self.H[i])
             self.G[i] = vect[:, : self.sym_N]
             self.Q[i] = (
                 vect[:, -self.noise_N :] if self.noise_N > 0 else np.empty((self.N, 0), dtype=dtype)

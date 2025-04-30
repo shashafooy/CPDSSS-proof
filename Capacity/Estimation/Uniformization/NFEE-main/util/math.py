@@ -217,3 +217,21 @@ def zadoff_chu(N, u):
         return np.exp(-1j * np.pi * u * N_range**2 / N) / np.sqrt(N)
     else:  # odd
         return np.exp(-1j * np.pi * u * N_range * (N_range + 1) / N) / np.sqrt(N)
+
+
+def project(v, u):
+    return np.dot(u, v) / np.dot(u, u) * u
+
+
+def gram_schmidt(vectors, normalize=True):
+    orthogonal_vectors = []
+    for v in vectors.T:  # iterate over each column
+        for u in orthogonal_vectors:
+            v -= project(v, u)
+        orthogonal_vectors.append(v)
+
+    orthogonal_vectors = np.array(orthogonal_vectors).T  # return to original orientation
+    if normalize:
+        return orthogonal_vectors / np.linalg.norm(orthogonal_vectors, axis=0)[:, None]
+    else:
+        return orthogonal_vectors

@@ -181,6 +181,7 @@ class _MAF_helper(ABC):
                 else base_samples.shape[0]
             )
             base_samples = sim_model.sim(n_samp)
+            print(f"New samples Loss: {estimator.model.eval_trnloss(base_samples):.4f}")
         else:
             if model is not None:
                 print(f"Model Loss: {model.eval_trnloss(base_samples):.4f}")

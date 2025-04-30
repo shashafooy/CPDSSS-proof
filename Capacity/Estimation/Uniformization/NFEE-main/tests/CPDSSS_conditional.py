@@ -6,10 +6,11 @@ from _utils import set_sys_path
 
 set_sys_path()
 
-from simulators.CPDSSS_models import CPDSSS_Cond, CPDSSS_Cond_ZC
+import simulators.CPDSSS_models as models  # imort CPDSSS_Cond, CPDSSS_Cond_Complex
 from misc_CPDSSS.entropy_util import Cond_MAF as ent
 from misc_CPDSSS import util as misc
 import util.io
+import util.misc
 
 
 SAVE_MODEL = True
@@ -28,7 +29,7 @@ d0 = int(N / 2)
 d1 = int(N / 2)
 d0 = 1
 d1 = int(N - d0)
-T_range = range(1, 10)
+T_range = range(1, 5)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
@@ -36,7 +37,7 @@ T_range = range(1, 10)
 """
 Number of iterations
 """
-n_trials = 100  # iterations to average
+n_trials = 2  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
 n_train_samples = 100000
 
@@ -71,8 +72,13 @@ if SAVE_FILE:
 misc.print_border(f"Evaluating N={N}, d0={d0}, d1={d1}")
 
 for i in range(n_trials):
-    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
-    sim_model_ZC = CPDSSS_Cond_ZC(0, 2, L=2, use_fading=True)
+    sim_model = models.CPDSSS_Cond(2, 2, d0=1, d1=1, use_fading=True)
+    # sim_model.set_T(1)
+    # sim_model.set_H_given_X()
+    # sim_model.sim(1000)
+    # roughly equivalent to N=6, d0d1=(4,2)
+    # sim_model_ZC = models.CPDSSS_Cond_Complex(0, 2, d0=1, d1=1, use_fading=True)
+    sim_model_ZC = models.CPDSSS_Gram_Schmidt(0, 2, 2)
 
     # sim_model.set_T(1)
     # sim_model.set_Xcond()
@@ -96,8 +102,29 @@ for i in range(n_trials):
 
         sim_model_ZC.set_T(T)
         sim_model_ZC.set_H_given_X()
-        samples = sim_model_ZC.sim(n_train_samples * sim_model_ZC.x_dim, reuse_GQ=True)
+        samples = sim_model_ZC.sim(n_train_samples * sim_model_ZC.x_dim)
+        H_hx, estimator = ent.calc_entropy(
+            sim_model_ZC, base_samples=np.concatenate(samples, axis=1), KNN_only=True, method="ksg"
+        )
+        H_x, estimator = ent.calc_entropy(
+            sim_model_ZC, base_samples=samples[1], KNN_only=True, method="ksg"
+        )
+        MI = sim_model_ZC.chan_entropy() - (H_hx - H_x)
+        print(f"complex MI T={T}, N=2, d0d1=(1,1):\nH(h)={sim_model_ZC.chan_entropy()}")
+        print(f"MI(h,x)={MI}")
+        print(f"Capacity {MI / sim_model_ZC.chan_entropy() * 100:.1f}%")
+
         H_ZC, estimator = ent.calc_entropy(sim_model_ZC, base_samples=samples)
+        MI = sim_model_ZC.chan_entropy() - H_ZC
+        if SAVE_MODEL:
+            ent.update_best_model(
+                estimator.model, sim_model=sim_model_ZC, name=name, path=model_path_h_given_x
+            )
+        print(f"complex MI T={T}, N=2, d0d1=(1,1):\nH(h)={sim_model_ZC.chan_entropy()}")
+        print(f"MI(h,x)={MI}")
+        print(f"Capacity {MI / sim_model_ZC.chan_entropy() * 100}%")
+
+        continue
 
         misc.print_border(f"Evaluating H(h|x) T={T}, iter: {i+1}, d0={d0}, d1={d1}")
         print(f"H(h) = {sim_model.chan_entropy()}")
