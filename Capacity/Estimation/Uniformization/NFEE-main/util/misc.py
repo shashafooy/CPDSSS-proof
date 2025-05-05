@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import shutil
+from scipy.optimize import lsq_linear
 
 
 def remove_whitespace(str):
@@ -136,3 +137,8 @@ def split_complex_to_real(arr):
         return output[0]  # arr was originally a vector
     else:
         return output
+
+
+def lsq_single(args):
+    A, b, bounds = args
+    return lsq_linear(A, -b, bounds=bounds).x

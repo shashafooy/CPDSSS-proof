@@ -5,15 +5,18 @@ import numpy as np
 import scipy.linalg as lin
 import scipy.special as spec
 import scipy.stats as stats
-from simulators.complex import mvn, mvn_complex
 import math
 import theano.tensor as tt
 import theano
 import time
 import sys
+import multiprocessing as mp
+
 
 import util.misc
 import util.math
+from simulators.complex import mvn, mvn_complex
+
 
 # from util.math import zadoff_chu
 
@@ -84,11 +87,12 @@ class _distribution:
 
 
 class CPDSSS(_distribution):
-    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True):
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True, whiten=False):
         super().__init__(x_dim=N * num_tx + N)
 
         self.N = N
         self.L = L
+        self.whiten = whiten
 
         self._use_chan = False
 
@@ -124,6 +128,8 @@ class CPDSSS(_distribution):
         self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
+
+        self.gamma = np.eye(N)
 
         # self.use_chan_in_sim()
         self._sim_chan_only = False
@@ -167,7 +173,7 @@ class CPDSSS(_distribution):
         """
         N = self.sym_N + self.noise_N  # This may not match self.N if evaluating complex values
 
-        s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples, self.sym_N, self.T))
+        self.s = self.sim_S.sim(n_samples=n_samples).reshape((n_samples, self.sym_N, self.T))
 
         v = self.sim_V.sim(n_samples=n_samples).reshape((n_samples, self.noise_N, self.T))
 
@@ -176,7 +182,7 @@ class CPDSSS(_distribution):
         new_h = (
             (self.sim_H.sim(n_samples=new_samples) * np.sqrt(self.fading))
             if new_samples > 0
-            else np.empty((0, N), dtype=s.dtype)
+            else np.empty((0, N), dtype=self.s.dtype)
         )
         self.h = np.concatenate((self.h, new_h), axis=0, dtype=new_h.dtype) if reuse_GQ else new_h
         del new_h
@@ -187,15 +193,15 @@ class CPDSSS(_distribution):
             return self.h
 
         self.sim_GQ(reuse_GQ, new_samples)
+        v = v * np.sqrt(self.sigma_v)[:, :, np.newaxis]
         if self.sym_N == N:
-            X = np.matmul(self.G[:n_samples, :, :], s)
+            X = np.matmul(self.G[:n_samples, :, :], self.s)
         else:
-            X = np.matmul(self.G[:n_samples, :, :], s) + np.matmul(self.Q[:n_samples, :, :], v)
-        del s, v
+            X = np.matmul(self.G[:n_samples, :, :], self.s) + np.matmul(self.Q[:n_samples, :, :], v)
+        del v
         gc.collect()
-        joint_X = X[:, :, : self.T].reshape(
-            (n_samples, N * self.T), order="F"
-        )  # order 'F' needed to make arrays stack instead of interlaced
+        joint_X = X[:, :, : self.T].reshape((n_samples, N * self.T), order="F")
+        # order 'F' needed to make arrays stack instead of interlaced
         del X
         gc.collect()
         if self._use_chan:
@@ -217,6 +223,7 @@ class CPDSSS(_distribution):
         # new_samples = n_samples - self.G.shape[0] if reuse else n_samples
         G = np.empty((0, N, self.sym_N), dtype=curr_dtype)
         Q = np.empty((0, N, self.noise_N), dtype=curr_dtype)
+        sigma_v = np.empty((0, self.noise_N))
 
         split_N = max(np.floor(new_samples / 100000), 1)
         sections = np.array_split(range(n_samples - new_samples, n_samples), split_N)
@@ -236,62 +243,35 @@ class CPDSSS(_distribution):
                     if USE_GPU:
                         new_G, new_Q = self.tt_GQ_func(self.h[section, :])
                     else:  # using batch numpy CPU functions is MUCH faster
-                        new_G, new_Q = self._gen_batch_GQ_sample(self.h[section, :])
+                        new_G, new_Q, new_sigma_v = self._gen_batch_GQ_sample(self.h[section, :])
                     G = np.concatenate((G, new_G), axis=0)
                     Q = np.concatenate((Q, new_Q), axis=0)
+                    sigma_v = np.concatenate((sigma_v, new_sigma_v), axis=0)
                     singular = False
                     util.misc.printProgressBar(i + 1, split_N, "G,Q generation ")
                 except KeyboardInterrupt:
                     sys.exit()
                 except Exception as inst:  # regenerate h if inv(H'H) is singular
-                    self.h[section] = (
-                        self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
-                    ).astype(dtype)
+                    self.h[section] = self.sim_H.sim(n_samples=len(section)) * np.sqrt(self.fading)
                     util.misc.printProgressBar(i, split_N, "Singular, rerun")
 
         self.G = np.concatenate((self.G, G), axis=0) if reuse else G
         self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
+        self.sigma_v = np.concatenate((self.sigma_v, sigma_v), axis=0) if reuse else sigma_v
         print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 
-    # def _gen_GQ_sample(self, h):
-
-    #     # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
-    #     # A=E.T @ H
-    #     # Slightly faster than doing E.T @ H
-    #     HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[self.G_slice, :]
-
-    #     R = HE.T @ HE + self.eye
-    #     p = HE[0, :].T
-    #     # g = lin.inv(R) @ p
-    #     if self.sym_N == 0:
-    #         G = np.zeros((self.N, 0))
-    #     else:
-    #         g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros(self.N)
-    #         # Only take every L columns of toepltiz matrix
-    #         # Slightly faster than doing G@E
-    #         G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
-    #         # Potentially better G, fullfills G.T*Q=0 and HE * G = I
-    #         # G = lin.inv(R) @ HE[self.G_slice,:].T
-
-    #     # ev, V = lin.eig(R)
-    #     ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
-    #     # Only use eigenvectors associated with "zero" eigenvalue
-    #     #  get indices of the smallest eigenvalues to find "zero" EV
-    #     sort_indices = np.argsort(ev)
-    #     # Sometimes get a very small imaginary value, ignore it
-    #     Q = np.real(V[:, sort_indices[0 : self.noise_N]])
-
-    #     return G, Q
-
     def _gen_batch_GQ_sample(self, h):
-
-        # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
-        # A=E.T @ H
-        # Slightly faster than doing E.T @ H
-        # HE = lin.toeplitz(h, np.concatenate(([h[0]], h[-1:0:-1])))[self.G_slice, :]
+        """Generate matrices G,Q and corresponding noise power to whiten the spectrum
+        Follows the form
+        H = toeplitz(h)
+        R=H'*H
+        g = inv(R)*h'
+        Q = eigenvectors(R)
+        """
         n_samp, N = h.shape
 
         def batch_toeplitz(h):
+            """batch toeplitz generation equivalent to toeplitz(h,[h[0],h[-1:0:-1]])"""
             row = np.concatenate([h[:, [0]], h[:, -1:0:-1]], axis=1)
             col_idx = np.arange(N).reshape(N, 1)
             row_idx = np.arange(N).reshape(1, N)
@@ -308,34 +288,46 @@ class CPDSSS(_distribution):
         HE = batch_toeplitz(h)[:, self.G_slice, :]
 
         R = np.matmul(HE.conj().transpose(0, 2, 1), HE) + self.eye
-        # R = HE.T @ HE + self.eye
         p = HE[:, 0, :].conj()
-        # g = lin.inv(R) @ p
         if self.sym_N == 0:
             G = np.zeros((n_samp, N, 0))
         else:
             g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros((n_samp, N))
             # Only take every L columns of toepltiz matrix
-            # Slightly faster than doing G@E
             G = batch_toeplitz(g)[:, :, self.G_slice]
-            # G = lin.toeplitz(g, np.concatenate(([g[0]], g[-1:0:-1])))[:, self.G_slice]
-            # Potentially better G, fullfills G.T*Q=0 and HE * G = I
-            # G = lin.inv(R) @ HE[self.G_slice,:].T
 
-        # ev, V = lin.eig(R)
         ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
         # Only use eigenvectors associated with "zero" eigenvalue
         #  get indices of the smallest eigenvalues to find "zero" EV
         sort_indices = np.argsort(ev, axis=1)[:, : self.noise_N]
         batch_idx = np.arange(n_samp)[:, np.newaxis]
 
-        # Sometimes get a very small imaginary value, ignore it
         Q = V[batch_idx, :, sort_indices].transpose(
             0, 2, 1
         )  # shape (samples,noise_N,N) -> (samples,N,noise_N)
-        Q = np.real(Q) if Q.dtype == dtype else Q
+        # may have residual imaginary component even when h is real
+        Q = np.real(Q) if np.any(np.isreal(h)) else Q
 
-        return G, Q
+        if self.whiten:
+            ### Adjust noise power such that the power spectrum |x_f|^2 is closer to white
+            g = np.squeeze(np.matmul(self.gamma, G[:, :, :1]))  # gamma * first col of G
+            g_power = self.sym_N * np.abs(np.fft.fft(g, axis=1)) ** 2
+            Q_power = np.abs(np.fft.fft(Q, axis=1)) ** 2
+
+            ### Solving for sigma_v and d0 where d0 is the optimal power level for whitening.
+            # Enforce sigma_v>0 and max power level isn't more than twice that of data symbol power
+            neg_ones = -np.ones((g.shape[1], 1))
+            args = [
+                (np.hstack([Q_power[i], neg_ones]), g_power[i], (0, 2 * max(g_power[i])))
+                for i in range(g_power.shape[0])
+            ]
+            with mp.Pool(processes=mp.cpu_count() - 2) as pool:
+                results = pool.map(util.misc.lsq_single, args)
+            new_sigma_v = np.vstack(results)[:, :-1]  # remove d0 part of optimized values
+        else:
+            new_sigma_v = np.ones((n_samp, self.noise_N))
+
+        return self.gamma @ G, Q, new_sigma_v
 
     def _gen_tt_GQ_func(self):
         # # Define symbolic input
@@ -529,8 +521,9 @@ class CPDSSS(_distribution):
 
 
 class CPDSSS_Cond(CPDSSS):
-    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True):
-        super().__init__(num_tx, N, L, d0, d1, use_fading)
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True, whiten=False):
+        # def __init__(self, *args, **kwargs):
+        super().__init__(num_tx, N, L=None, d0=None, d1=None, use_fading=True, whiten=False)
 
     def sim(self, n_samples=1000, reuse_GQ=True):
         assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
@@ -556,6 +549,8 @@ class CPDSSS_Cond(CPDSSS):
             return [X, self.h[:n_samples]]
         elif self._sym_type == "X":
             return [X, np.zeros((n_samples, 1))]
+        elif self._sym_type == "X|S":
+            return [X, self.s.reshape((n_samples, self.sym_N * self.T), order="F")]
         else:
             raise ValueError("Invalid sym type, use model.set**() to set sym type")
 
@@ -589,6 +584,10 @@ class CPDSSS_Cond(CPDSSS):
         self.input_dim = [self.N * self.T, 1]
         self._sym_type = "X"
 
+    def set_X_given_S(self):
+        self.input_dim = [self.N * self.T, self.N * self.T]
+        self._sym_type = "X|S"
+
     def set_T(self, T):
         ### TODO: update class to change how many transmissions are outputted when calling sim().
         # Potentially look at re-using samples from sim
@@ -609,13 +608,17 @@ class CPDSSS_Cond_Complex(CPDSSS_Cond):
         CPDSSS_Cond (_type_): _description_
     """
 
-    def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True):
-        super().__init__(num_tx, N, L, d0, d1, use_fading)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        N = args[1]
+
         self.N = N * 2  # double N due to complex
 
         self.sim_S = mvn_complex(0, self.sym_N * self.T)
         self.sim_V = mvn_complex(0, self.noise_N * self.T)
         self.sim_H = mvn_complex(0, N)
+
+        self.sigma_v = np.empty((0, self.noise_N))
 
         """select a subspace matrix. In terms of secrecy, generally eye>zadoff chu>DFT"""
         ### Gamma = Identity, for N=2 T=1 capacity ~= 7.8%
@@ -635,23 +638,62 @@ class CPDSSS_Cond_Complex(CPDSSS_Cond):
         ### gamma = DFT matrix, for N=2 T=1 capacity ~= 40%
         # self.gamma = np.fft.fft(np.eye(N)) / np.sqrt(N)
 
-    def _gen_batch_GQ_sample(self, h):
-        # G, Q = super()._gen_batch_GQ_sample(h)
-        # If circular, then matrix multiplicaiton is communitive
-        # GZ = G*Z*E = Z*G*E   where E is a decimating matrix, ie [:,g_slice]
-        # return G, Q
+    def plot_spectrum(self, idx):
+        N = int(self.N / 2)
 
-        G = []
-        Q = []
-        for hi in h:
-            temp = util.math.gram_schmidt(
-                np.concatenate([hi[:, None], np.ones((2, 1))], axis=1), False
-            )
-            G.append(temp[:, 0][:, None])
-            Q.append(temp[:, 1][:, None])
-        G = np.asarray(G, dtype=h.dtype)
-        Q = np.asarray(Q, dtype=h.dtype)
-        return self.gamma @ G, Q
+        """single sample"""
+        g = (self.gamma @ self.G[idx])[:, 0]
+        Q = self.Q[idx]
+        g_freq = np.fft.fft(g)
+        Q_freq = np.fft.fft(Q, axis=0)
+        g_power = self.sym_N * np.abs(g_freq) ** 2
+        Q_power = np.abs(Q_freq) ** 2
+
+        """Batch processing"""
+        # g = np.squeeze(np.matmul(self.gamma, self.G[:, :, :1]))  # gamma * first col of G
+        # g_freq = np.fft.fft(g, axis=1)
+        # Q_freq = np.fft.fft(self.Q, axis=1)
+        # g_power = self.sym_N * np.abs(g_freq) ** 2
+        # Q_power = np.abs(Q_freq) ** 2
+
+        import matplotlib.pyplot as plt
+        from scipy.optimize import lsq_linear
+
+        """Optimizing variance of noise v. Least squares in the form of ||Ax-b|| where x is the optimized value"""
+        # Optimize d0 value
+        # Include -d0*[ones] in with A. Last element in x=d0
+        A = np.concatenate([Q_power, -np.ones((N, 1))], axis=1)
+        b = g_power
+        result = lsq_linear(A, -b, (0, np.inf))
+        sigma_v = result.x[:-1]
+
+        # Try optimizing to both freq and time
+        # A = np.concatenate([np.concatenate([Q_power, Q_t], axis=0), -np.ones((2 * N, 1))], axis=1)
+        # b = np.concatenate([g_power, g_t])
+        # sigma_v_opt_d0_t_f = lsq_linear(A, -b, (0, np.inf)).x[:-1]
+
+        """Plot power spectrum E(|x_f|^2)"""
+        # E[|x|^2]=N_sym * E[|g|^2] + sum(E[sigma_v * |q_i|^2])
+
+        fig, ax = plt.subplots()
+        ax.plot(g_power + Q_power @ np.ones(self.noise_N), label="original")
+        ax.plot(g_power + Q_power @ (sigma_v), label="optimized")
+
+        # fig, ax = plt.subplots(2, 2)
+        # for i, sigma in enumerate([sigma_v_opt_d0_freq, sigma_v_opt_d0_t_f]):
+        #     ax[0, i].plot(g_power + Q_power @ np.ones(self.noise_N), label="Original")
+        #     # ax.plot(g_power + Q_power @ sigma_v_preset_d0, label="d0=1.2*max(|g|^2)")
+        #     ax[0, i].plot(g_power + Q_power @ sigma, label="optimized")
+        #     ax[0, i].legend()
+        #     ax[0, i].set_title("Spectrum |x_f|^2")
+
+        #     """Plot in time"""
+        #     ax[1, i].plot(self.sym_N * g_t + Q_t @ np.ones(self.noise_N), label="Original")
+        #     ax[1, i].plot(self.sym_N * g_t + Q_t @ sigma, label="optimized")
+        #     ax[1, i].legend()
+        #     ax[1, i].set_title("Time |x|^2")
+        # ax[0, 0].set_title("Spectrum, optimized for freq")
+        # ax[0, 1].set_title("Spectrum, optimized for freq and time")
 
     def sim(self, n_samples=1000, reuse_GQ=True):
         samples = super().sim(n_samples, reuse_GQ)
