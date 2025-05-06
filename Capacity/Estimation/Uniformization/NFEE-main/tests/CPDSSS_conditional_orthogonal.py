@@ -12,9 +12,9 @@ from misc_CPDSSS import util as misc
 import util.io
 
 
-SAVE_MODEL = True
+SAVE_MODEL = False
 TRAIN_ONLY = False
-REUSE_MODEL = True
+REUSE_MODEL = False
 
 SAVE_FILE = False
 
@@ -27,7 +27,7 @@ d0 = int(N / 2)
 d1 = int(N / 2)
 d0 = 1
 d1 = int(N - d0)
-T_range = range(2, 7)
+T_range = range(1, 2)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
@@ -35,9 +35,9 @@ T_range = range(2, 7)
 """
 Number of iterations
 """
-n_trials = 100  # iterations to average
+n_trials = 1  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
-n_train_samples = 10000
+n_samples = 10000
 
 
 """
@@ -49,6 +49,8 @@ H_XH_KL = np.empty((n_trials, len(T_range))) * np.nan
 H_XH_KSG = np.empty((n_trials, len(T_range))) * np.nan
 H_XX_KL = np.empty((n_trials, len(T_range))) * np.nan
 H_XX_KSG = np.empty((n_trials, len(T_range))) * np.nan
+
+H_H_given_X = np.empty((n_trials, len(T_range))) * np.nan
 
 
 model = None
@@ -88,37 +90,57 @@ for i in range(n_trials):
         # print(sim_model.chan_entropy() - H)
         # generate base samples based on max dimension
         sim_model.set_x_given_h_oldX()
-        knn_samples = int(max(min_knn_samples, n_train_samples * sim_model.x_dim))
         # samples = sim_model.sim(knn_samples)
 
         sim_model.set_T(1)
-        sim_model.set_x_given_oldX()
-        samples = sim_model.sim(100000 * sim_model.x_dim)
-        misc.print_border(f"H(X)")
-        H_X = 4.256
-        H_X, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+        # sim_model.set_x_given_oldX()
+        # samples = sim_model.sim(n_samples * sim_model.x_dim)
+        # misc.print_border(f"H(X)")
+        H_X = 4.256  # N=3, d0d1=(1,2)
+        # H_X, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+        # H_X = ent.calc_entropy(sim_model, base_samples=samples[0], KNN_only=True, method="ksg")[0]
 
-        misc.print_border(f"H(X,h)")
-        samples[0] = np.concatenate((samples[0], sim_model.h), axis=1)
-        sim_model.input_dim[0] = N * N + N
-        sim_model.update_x_dim()
-        H_XH, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="both")
+        # misc.print_border(f"H(X,h)")
+        # sim_model.set_HX()
+        # samples = sim_model.sim(n_samples * sim_model.x_dim)
+        # samples[0] = np.concatenate((samples[0], sim_model.h), axis=1)
+        # sim_model.input_dim[0] = N * N + N
+        # sim_model.update_x_dim()
+        H_XH = 16.944  # N=3, d0d1=(1,2) KNN
+        H_XH = 17.0333  # N=3, d0d1=(1,2) MAF
+        # H_XH, estimator = ent.calc_entropy(sim_model, base_samples=samples, method="umtksg")
+        # H_XH = ent.calc_entropy(sim_model, base_samples=samples[0], KNN_only=True, method="ksg")[0]
 
-        misc.print_border(f"H(h)")
+        # misc.print_border(f"H(h)")
         H_h = sim_model.chan_entropy()
 
+        # MI = H_X + H_h - H_XH
+        # print(f"MI=H(X)+H(H)-H(X,H): {MI}")
+        # print(f"Capacity: {MI/H_h*100:.2f}%")
+
+        sim_model.set_H_given_X()
+        # samples = sim_model.sim(n_samples * sim_model.x_dim)
+        H_cond = 12.7737  # N=3, d0d1=(1,2) cond MAF
+        # H_H_given_X = ent.calc_entropy(sim_model, base_samples=samples)[0]
+
+        MI = H_h - H_cond
+        # print(f"MI=H(H) - H(H|X): {MI}")
+        # print(f"Capacity: {MI/H_h*100:.2f}%")
+
         """Train H(xT | h, x1:T-1)"""
-        misc.print_border(f"1/2 calculating H(xT | h, x1:T-1), T: {T}, iter: {i+1}")
-        model_path = os.path.join(base_model_path, "XH")
+        misc.print_border(f"calculating H(h | x1:T-1), T: {T}, iter: {i+1}")
+        model_path = os.path.join(base_model_path, "H_given_X")
+        sim_model.set_H_given_X()
+        samples = sim_model.sim(n_samples * sim_model.x_dim)
 
         model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
         if TRAIN_ONLY:
             estimator = ent.learn_model(sim_model, model, train_samples=samples)
         else:
-            H, estimator = ent.calc_entropy(
-                sim_model, model=model, base_samples=samples, method="both"
+            H_H_given_X[index], estimator = ent.calc_entropy(
+                sim_model, model=model, base_samples=samples
             )
-            H_XH_KL[index], H_XH_KSG[index] = H[0], H[1]
+            # H_XH_KL[index], H_XH_KSG[index] = H[0], H[1]
 
         if SAVE_MODEL:
             _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
@@ -131,30 +153,35 @@ for i in range(n_trials):
             )
         del estimator
 
-        """Train H(xT |x1:T-1)"""
-        misc.print_border(f"2/2 calculating H(xT | x1:T-1), T: {T}, iter: {i+1}")
-        model_path = os.path.join(base_model_path, "X")
+        H_h = sim_model.chan_entropy()
+        MI = H_h - H_H_given_X[index]
+        print(f"MI=H(H) - H(H|X): {MI}")
+        print(f"Capacity: {MI/H_h*100:.2f}%")
 
-        sim_model.set_x_given_oldX()
-        samples = sim_model.sim(knn_samples)
+        # """Train H(xT |x1:T-1)"""
+        # misc.print_border(f"2/2 calculating H(xT | x1:T-1), T: {T}, iter: {i+1}")
+        # model_path = os.path.join(base_model_path, "X")
 
-        model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
-        if TRAIN_ONLY:
-            estimator = ent.learn_model(sim_model, model, train_samples=samples)
-        else:
-            H, estimator = ent.calc_entropy(
-                sim_model, model=model, base_samples=samples, method="both"
-            )
-            H_XX_KL[index], H_XX_KSG[index] = H[0], H[1]
-        MI_KL[index] = H_XX_KL[index] - H_XH_KL[index]
-        MI_KSG[index] = H_XX_KSG[index] - H_XH_KSG[index]
+        # sim_model.set_x_given_oldX()
+        # samples = sim_model.sim(knn_samples)
 
-        if SAVE_MODEL:
-            _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
+        # model = ent.load_model(name=name, path=model_path) if REUSE_MODEL else None
+        # if TRAIN_ONLY:
+        #     estimator = ent.learn_model(sim_model, model, train_samples=samples)
+        # else:
+        #     H, estimator = ent.calc_entropy(
+        #         sim_model, model=model, base_samples=samples, method="both"
+        #     )
+        #     H_XX_KL[index], H_XX_KSG[index] = H[0], H[1]
+        # MI_KL[index] = H_XX_KL[index] - H_XH_KL[index]
+        # MI_KSG[index] = H_XX_KSG[index] - H_XH_KSG[index]
 
-        if SAVE_FILE:
-            util.io.save(
-                (T_range, MI_KL, MI_KSG, H_XH_KL, H_XH_KSG, H_XX_KL, H_XX_KSG, i),
-                os.path.join(path, filename),
-            )
-        del estimator
+        # if SAVE_MODEL:
+        #     _ = ent.update_best_model(estimator.model, samples, name=name, path=model_path)
+
+        # if SAVE_FILE:
+        #     util.io.save(
+        #         (T_range, MI_KL, MI_KSG, H_XH_KL, H_XH_KSG, H_XX_KL, H_XX_KSG, i),
+        #         os.path.join(path, filename),
+        #     )
+        # del estimator

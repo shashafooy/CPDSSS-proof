@@ -219,19 +219,45 @@ def zadoff_chu(N, u):
         return np.exp(-1j * np.pi * u * N_range * (N_range + 1) / N) / np.sqrt(N)
 
 
-def project(v, u):
-    return np.dot(u, v) / np.dot(u, u) * u
+def project(v, u, pre_normalized=False):
+    uv = np.sum(u * v, axis=1, keepdims=True)
+    # if previous vector u has been normalized, it will always be 1
+    uu = 1 if pre_normalized else np.sum(u * u, axis=1, keepdims=True) + 1e-10
+    return uv / uu * u
+
+    # return np.dot(u, v) / np.dot(u, u) * u
 
 
-def gram_schmidt(vectors, normalize=True):
-    orthogonal_vectors = []
-    for v in vectors.T:  # iterate over each column
-        for u in orthogonal_vectors:
-            v -= project(v, u)
-        orthogonal_vectors.append(v)
+def gram_schmidt(vectors, normalize=False):
+    n_dims = vectors.ndim
+    if n_dims == 2:
+        vectors = vectors[np.newaxis, :, :]  # batch size of 1
+    n_samples, N, M = vectors.shape
+    Q = np.zeros_like(vectors)
+    for i in range(M):  # iterate over each column
+        v = vectors[:, :, i]
+        for j in range(i):  # project based on previous columns
+            u = Q[:, :, j]
+            v -= project(v, u, pre_normalized=normalize)
 
-    orthogonal_vectors = np.array(orthogonal_vectors).T  # return to original orientation
-    if normalize:
-        return orthogonal_vectors / np.linalg.norm(orthogonal_vectors, axis=0)[:, None]
-    else:
-        return orthogonal_vectors
+        if normalize:
+            v = v / (np.linalg.norm(v, axis=1, keepdims=True) + 1e-10)
+        Q[:, :, i] = v
+    if n_dims == 2:
+        Q = Q[0]
+    return Q
+
+    # orthogonal_vectors = []
+    # for v in vectors.T:  # iterate over each column
+    #     # for v in vectors:  # iterate over each column
+    #     for u in orthogonal_vectors:
+    #         v -= project(v, u)
+    #     orthogonal_vectors.append(v)
+
+    # orthogonal_vectors = np.array(orthogonal_vectors).T  # return to original orientation
+    # # orthogonal_vectors = np.array(orthogonal_vectors)  # return to original orientation
+
+    # if normalize:
+    #     return orthogonal_vectors / np.linalg.norm(orthogonal_vectors, axis=0)
+    # else:
+    #     return orthogonal_vectors
