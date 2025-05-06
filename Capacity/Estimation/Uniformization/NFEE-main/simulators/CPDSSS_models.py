@@ -128,6 +128,7 @@ class CPDSSS(_distribution):
         self.sim_S = mvn(rho=0.0, dim_x=self.sym_N * self.T)
         self.sim_V = mvn(rho=0.0, dim_x=self.noise_N * self.T)
         self.sim_H = mvn(rho=0.0, dim_x=self.N)
+        self.sigma_v = np.empty((0, self.noise_N))
 
         self.gamma = np.eye(N)
 
