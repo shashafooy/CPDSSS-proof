@@ -283,7 +283,7 @@ class CPDSSS(_distribution):
 
     #     return G, Q
 
-    def _gen_batch_GQ_sample(self, h):
+    def _gen_batch_GQ_sample(self, h, normalize=False):
 
         # H = lin.toeplitz(h[i,:],np.concatenate(([h[i,0]],h[i,-1:0:-1])))
         # A=E.T @ H
@@ -315,6 +315,7 @@ class CPDSSS(_distribution):
             G = np.zeros((n_samp, N, 0))
         else:
             g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros((n_samp, N))
+            g = g / np.linalg.norm(g, axis=1, keepdims=True) if normalize else g
             # Only take every L columns of toepltiz matrix
             # Slightly faster than doing G@E
             G = batch_toeplitz(g)[:, :, self.G_slice]
@@ -718,6 +719,9 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
                 self.h[:n_samples],
                 X[:, :, : self.T].reshape((n_samples, self.N * self.T), order="F"),
             ]
+        elif self._sym_type == "HX":
+            X = X[:, :, : self.T].reshape((n_samples, self.N * self.T), order="F")
+            return [np.concatenate([X, self.h], axis=1), np.zeros((n_samples, 1))]
         return [X_T, cond]
 
     def sim_GQ(self):
@@ -726,19 +730,29 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
 
         n_samples = self.H.shape[0]
 
-        self.G = np.empty((n_samples, self.N, self.sym_N), dtype=dtype)
-        self.Q = np.empty((n_samples, self.N, self.noise_N), dtype=dtype)
+        self.G = np.empty((0, self.N, self.sym_N), dtype=dtype)
+        self.Q = np.empty((0, self.N, self.noise_N), dtype=dtype)
+
+        split_N = max(np.floor(n_samples / 100000), 1)
+        sections = np.array_split(range(n_samples), split_N)
+        util.misc.printProgressBar(0, split_N, "G,Q generation")
 
         start = time.time()
-        for i in range(n_samples):
-            if i % 10000 == 0:
-                util.misc.printProgressBar(i, n_samples, "G,Q generation")
-            vect = util.math.gram_schmidt(self.H[i])
-            self.G[i] = vect[:, : self.sym_N]
-            self.Q[i] = (
-                vect[:, -self.noise_N :] if self.noise_N > 0 else np.empty((self.N, 0), dtype=dtype)
-            )
-        util.misc.printProgressBar(n_samples, n_samples, "G,Q generation")
+        for i, section in enumerate(sections):
+            orth_vect = util.math.gram_schmidt(self.H[section])
+            self.G = np.concatenate((self.G, orth_vect[:, :, : self.sym_N]), axis=0)
+            self.Q = np.concatenate((self.Q, orth_vect[:, :, -self.noise_N :]), axis=0)
+            util.misc.printProgressBar(i + 1, split_N, "G,Q generation")
+        # for i in range(n_samples):
+        #     if i % 10000 == 0:
+        #         util.misc.printProgressBar(i, n_samples, "G,Q generation")
+        #     # util.math.gram_schmidt(self.H[:100])
+        #     vect = util.math.gram_schmidt(self.H[i])
+        #     self.G[i] = vect[:, : self.sym_N]
+        #     self.Q[i] = (
+        #         vect[:, -self.noise_N :] if self.noise_N > 0 else np.empty((self.N, 0), dtype=dtype)
+        #     )
+        # util.misc.printProgressBar(n_samples, n_samples, "G,Q generation")
         print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 
     def set_x_given_oldX(self):
@@ -754,6 +768,10 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
     def set_H_given_X(self):
         self.input_dim = [self.N * self.N, self.N * self.T]
         self._sym_type = "h|X"
+
+    def set_HX(self):
+        self.input_dim = [self.N * self.N + self.N * self.T, 1]
+        self._sym_type = "HX"
 
     def chan_entropy(self):
         return self.N * self.N / 2 * np.log(2 * np.pi * np.exp(1)) + 0.5 * np.log(1)

@@ -23,13 +23,13 @@ SAVE_FILE = True
 """
 Parameters for CPDSSS
 """
-N = 2
+N = 6
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 1
+d0 = 3
 d1 = int(N - d0)
-T_range = range(1, 5)
+T_range = range(1, 6)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
@@ -37,7 +37,7 @@ T_range = range(1, 5)
 """
 Number of iterations
 """
-n_trials = 2  # iterations to average
+n_trials = 6  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
 n_train_samples = 100000
 
@@ -56,13 +56,13 @@ model = None
 File names
 """
 today = date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/h_given_x/N{N}_d0d1({d0},{d1})/"
+base_path = f"temp_data/CPDSSS_data/h_given_x_normalized/N{N}_d0d1({d0},{d1})/"
 path = base_path  # + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-model_path_h_given_x = f"temp_data/saved_models/h_given_x/{N}N_d0d1({d0},{d1})"
-model_path_x_given_h = f"temp_data/saved_models/x_given_h/{N}N_d0d1({d0},{d1})"
-model_path_x = f"temp_data/saved_models/X/{N}N_d0d1({d0},{d1})"
+model_path_h_given_x = f"temp_data/saved_models/h_given_x_normalized/{N}N_d0d1({d0},{d1})"
+# model_path_x_given_h = f"temp_data/saved_models/x_given_h/{N}N_d0d1({d0},{d1})"
+# model_path_x = f"temp_data/saved_models/X/{N}N_d0d1({d0},{d1})"
 
 
 # fix filename if file already exists
@@ -72,7 +72,7 @@ if SAVE_FILE:
 misc.print_border(f"Evaluating N={N}, d0={d0}, d1={d1}")
 
 for i in range(n_trials):
-    sim_model = models.CPDSSS_Cond(2, 2, d0=1, d1=1, use_fading=True)
+    sim_model = models.CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
     # sim_model.set_T(1)
     # sim_model.set_H_given_X()
     # sim_model.sim(1000)
@@ -100,31 +100,31 @@ for i in range(n_trials):
         name = f"{T}T"
         index = (i, k)
 
-        sim_model_ZC.set_T(T)
-        sim_model_ZC.set_H_given_X()
-        samples = sim_model_ZC.sim(n_train_samples * sim_model_ZC.x_dim)
-        H_hx, estimator = ent.calc_entropy(
-            sim_model_ZC, base_samples=np.concatenate(samples, axis=1), KNN_only=True, method="ksg"
-        )
-        H_x, estimator = ent.calc_entropy(
-            sim_model_ZC, base_samples=samples[1], KNN_only=True, method="ksg"
-        )
-        MI = sim_model_ZC.chan_entropy() - (H_hx - H_x)
-        print(f"complex MI T={T}, N=2, d0d1=(1,1):\nH(h)={sim_model_ZC.chan_entropy()}")
-        print(f"MI(h,x)={MI}")
-        print(f"Capacity {MI / sim_model_ZC.chan_entropy() * 100:.1f}%")
+        # sim_model_ZC.set_T(T)
+        # sim_model_ZC.set_H_given_X()
+        # samples = sim_model_ZC.sim(n_train_samples * sim_model_ZC.x_dim)
+        # H_hx, estimator = ent.calc_entropy(
+        #     sim_model_ZC, base_samples=np.concatenate(samples, axis=1), KNN_only=True, method="ksg"
+        # )
+        # H_x, estimator = ent.calc_entropy(
+        #     sim_model_ZC, base_samples=samples[1], KNN_only=True, method="ksg"
+        # )
+        # MI = sim_model_ZC.chan_entropy() - (H_hx - H_x)
+        # print(f"complex MI T={T}, N=2, d0d1=(1,1):\nH(h)={sim_model_ZC.chan_entropy()}")
+        # print(f"MI(h,x)={MI}")
+        # print(f"Capacity {MI / sim_model_ZC.chan_entropy() * 100:.1f}%")
 
-        H_ZC, estimator = ent.calc_entropy(sim_model_ZC, base_samples=samples)
-        MI = sim_model_ZC.chan_entropy() - H_ZC
-        if SAVE_MODEL:
-            ent.update_best_model(
-                estimator.model, sim_model=sim_model_ZC, name=name, path=model_path_h_given_x
-            )
-        print(f"complex MI T={T}, N=2, d0d1=(1,1):\nH(h)={sim_model_ZC.chan_entropy()}")
-        print(f"MI(h,x)={MI}")
-        print(f"Capacity {MI / sim_model_ZC.chan_entropy() * 100}%")
+        # H_ZC, estimator = ent.calc_entropy(sim_model_ZC, base_samples=samples)
+        # MI = sim_model_ZC.chan_entropy() - H_ZC
+        # if SAVE_MODEL:
+        #     ent.update_best_model(
+        #         estimator.model, sim_model=sim_model_ZC, name=name, path=model_path_h_given_x
+        #     )
+        # print(f"complex MI T={T}, N=2, d0d1=(1,1):\nH(h)={sim_model_ZC.chan_entropy()}")
+        # print(f"MI(h,x)={MI}")
+        # print(f"Capacity {MI / sim_model_ZC.chan_entropy() * 100}%")
 
-        continue
+        # continue
 
         misc.print_border(f"Evaluating H(h|x) T={T}, iter: {i+1}, d0={d0}, d1={d1}")
         print(f"H(h) = {sim_model.chan_entropy()}")
@@ -151,6 +151,12 @@ for i in range(n_trials):
                 (T_range, MI, H_h_given_x),
                 os.path.join(path, filename),
             )
+
+        # old CPDSSS MI=0.289 cap=10.82%
+        print(f"MI=H(H) - H(H|X): {MI[index]}")
+        print(f"Capacity: {MI[index]/sim_model.chan_entropy()*100:.2f}%")
+
+        continue
 
         misc.print_border(f"Evaluating H(x|h) T={T}, iter: {i+1}, d0={d0}, d1={d1}")
         sim_model.set_X_given_H()
@@ -186,6 +192,8 @@ for i in range(n_trials):
 
         print(f"MI = H(h) - H(h|x) = {sim_model.chan_entropy()} - {H_h_given_x[index]} = {MI_h}")
         print(f"MI = H(x) - H(x|h) = {H_x} - {H_x_given_h} = {MI_x}")
+
+        print(f"Capacity: {MI[index]/sim_model.chan_entropy()*100:.2f}%")
 
         continue
 
