@@ -39,7 +39,7 @@ Number of iterations
 """
 n_trials = 6  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
-n_train_samples = 10000
+n_train_samples = 100000
 
 
 """
@@ -78,7 +78,7 @@ for i in range(n_trials):
     # sim_model.sim(1000)
     # roughly equivalent to N=6, d0d1=(4,2)
     # sim_model_ZC = models.CPDSSS_Cond_Complex(0, 2, d0=1, d1=1, use_fading=True)
-    sim_model_ZC = models.CPDSSS_Cond_Complex(0, 2, L=2, whiten=True)
+    # sim_model_ZC = models.CPDSSS_Cond_Complex(0, 2, L=2, whiten=True)
     # sim_model_ZC = models.CPDSSS_Gram_Schmidt(0, 2, 2)
 
     # sim_model.set_T(1)

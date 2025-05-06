@@ -524,7 +524,7 @@ class CPDSSS(_distribution):
 class CPDSSS_Cond(CPDSSS):
     def __init__(self, num_tx, N, L=None, d0=None, d1=None, use_fading=True, whiten=False):
         # def __init__(self, *args, **kwargs):
-        super().__init__(num_tx, N, L=None, d0=None, d1=None, use_fading=True, whiten=False)
+        super().__init__(num_tx, N, L, d0, d1, use_fading, whiten)
 
     def sim(self, n_samples=1000, reuse_GQ=True):
         assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
