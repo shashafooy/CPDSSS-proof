@@ -29,7 +29,7 @@ d0 = int(N / 2)
 d1 = int(N / 2)
 d0 = 3
 d1 = int(N - d0)
-T_range = range(1, 6)
+T_range = range(1, 10)
 # T_range = range(2, 6)
 # T_range = range(5, 7)
 
@@ -56,11 +56,11 @@ model = None
 File names
 """
 today = date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/h_given_x_normalized/N{N}_d0d1({d0},{d1})/"
+base_path = f"temp_data/CPDSSS_data/h_given_x_normalized_whitened/N{N}_d0d1({d0},{d1})/"
 path = base_path  # + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-model_path_h_given_x = f"temp_data/saved_models/h_given_x_normalized/{N}N_d0d1({d0},{d1})"
+model_path_h_given_x = f"temp_data/saved_models/h_given_x_normalized_whitened/{N}N_d0d1({d0},{d1})"
 # model_path_x_given_h = f"temp_data/saved_models/x_given_h/{N}N_d0d1({d0},{d1})"
 # model_path_x = f"temp_data/saved_models/X/{N}N_d0d1({d0},{d1})"
 
@@ -72,7 +72,7 @@ if SAVE_FILE:
 misc.print_border(f"Evaluating N={N}, d0={d0}, d1={d1}")
 
 for i in range(n_trials):
-    sim_model = models.CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True)
+    sim_model = models.CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True, whiten=True)
     # sim_model.set_T(1)
     # sim_model.set_H_given_X()
     # sim_model.sim(1000)

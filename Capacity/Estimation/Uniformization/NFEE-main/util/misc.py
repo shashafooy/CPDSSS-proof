@@ -1,4 +1,5 @@
 import re
+import time
 import numpy as np
 import shutil
 from scipy.optimize import lsq_linear
@@ -96,7 +97,7 @@ def prepare_cond_input_ed(xdy, dtype):
 
 # Print iterations progress
 def printProgressBar(
-    iteration, total, prefix="", suffix="", decimals=1, length=70, fill="█", printEnd="\r"
+    iteration, total, prefix="", decimals=1, length=70, fill="█", printEnd="\r", start_time=None
 ):
     """
     Call in a loop to create terminal progress bar
@@ -110,13 +111,26 @@ def printProgressBar(
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
+
+    curr_progress = iteration / float(total)
+    percent = ("{0:." + str(decimals) + "f}").format(100 * curr_progress)
+
+    if iteration > 0 and start_time is not None:  # estimate remaining time
+        elapsed_time = time.time() - start_time
+        estimated_total_time = elapsed_time / curr_progress
+        remaining_time = estimated_total_time - elapsed_time
+    else:
+        remaining_time = 0
+
+    suffix = time.strftime("%H:%M:%S", time.gmtime(remaining_time))
+
     terminal_width = shutil.get_terminal_size().columns
     reserved = len(prefix) + len(suffix) + len("100.%") + decimals + 7
     length = min(length, terminal_width - reserved)
 
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + "-" * (length - filledLength)
+
     print(f"\r{prefix} |{bar}| {percent}% {suffix}", end=printEnd)
     # Print New Line on Complete
     if iteration == total:
@@ -140,5 +154,18 @@ def split_complex_to_real(arr):
 
 
 def lsq_single(args):
+    """Solve Ax=b for x using least squares linear regression."""
     A, b, bounds = args
     return lsq_linear(A, -b, bounds=bounds).x
+
+
+def lsq_iterable_counter(A, b, bounds, counter, max_iter, name, start_time, lock):
+    """Solve Ax=b for x using least squares linear regression.
+    Includes a multiprocessing counter for progress tracking."""
+    result = lsq_linear(A, b, bounds)
+
+    with lock:  # lock process to increment counter and use progress bar
+        counter.value += 1
+        if counter.value % int(max_iter / 100) == 0:
+            printProgressBar(counter.value, max_iter, name, start_time=start_time)
+    return result.x

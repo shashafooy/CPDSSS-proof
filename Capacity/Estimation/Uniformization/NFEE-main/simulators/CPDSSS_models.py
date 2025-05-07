@@ -194,7 +194,14 @@ class CPDSSS(_distribution):
             return self.h
 
         self.sim_GQ(reuse_GQ, new_samples)
+
+        # This process is slow due to least squares
+        if self.whiten:
+            self.sigma_v = np.concatenate([self.sigma_v, self.whiten_noise(new_samples)], axis=0)
+        else:
+            self.sigma_v = np.ones((n_samples, self.noise_N))
         v = v * np.sqrt(self.sigma_v)[:, :, np.newaxis]
+
         if self.sym_N == N:
             X = np.matmul(self.G[:n_samples, :, :], self.s)
         else:
@@ -244,12 +251,11 @@ class CPDSSS(_distribution):
                     if USE_GPU:
                         new_G, new_Q = self.tt_GQ_func(self.h[section, :])
                     else:  # using batch numpy CPU functions is MUCH faster
-                        new_G, new_Q, new_sigma_v = self._gen_batch_GQ_sample(self.h[section, :])
+                        new_G, new_Q = self._gen_batch_GQ_sample(self.h[section, :])
                     G = np.concatenate((G, new_G), axis=0)
                     Q = np.concatenate((Q, new_Q), axis=0)
-                    sigma_v = np.concatenate((sigma_v, new_sigma_v), axis=0)
                     singular = False
-                    util.misc.printProgressBar(i + 1, split_N, "G,Q generation ")
+                    util.misc.printProgressBar(i + 1, split_N, "G,Q generation", start_time=start)
                 except KeyboardInterrupt:
                     sys.exit()
                 except Exception as inst:  # regenerate h if inv(H'H) is singular
@@ -258,7 +264,6 @@ class CPDSSS(_distribution):
 
         self.G = np.concatenate((self.G, G), axis=0) if reuse else G
         self.Q = np.concatenate((self.Q, Q), axis=0) if reuse else Q
-        self.sigma_v = np.concatenate((self.sigma_v, sigma_v), axis=0) if reuse else sigma_v
         print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 
     def _gen_batch_GQ_sample(self, h, normalize=True):
@@ -310,26 +315,26 @@ class CPDSSS(_distribution):
         # may have residual imaginary component even when h is real
         Q = np.real(Q) if np.any(np.isreal(h)) else Q
 
-        if self.whiten:
-            ### Adjust noise power such that the power spectrum |x_f|^2 is closer to white
-            g = np.squeeze(np.matmul(self.gamma, G[:, :, :1]))  # gamma * first col of G
-            g_power = self.sym_N * np.abs(np.fft.fft(g, axis=1)) ** 2
-            Q_power = np.abs(np.fft.fft(Q, axis=1)) ** 2
+        # if self.whiten:
+        #     ### Adjust noise power such that the power spectrum |x_f|^2 is closer to white
+        #     g = np.squeeze(np.matmul(self.gamma, G[:, :, :1]))  # gamma * first col of G
+        #     g_power = self.sym_N * np.abs(np.fft.fft(g, axis=1)) ** 2
+        #     Q_power = np.abs(np.fft.fft(Q, axis=1)) ** 2
 
-            ### Solving for sigma_v and d0 where d0 is the optimal power level for whitening.
-            # Enforce sigma_v>0 and max power level isn't more than twice that of data symbol power
-            neg_ones = -np.ones((g.shape[1], 1))
-            args = [
-                (np.hstack([Q_power[i], neg_ones]), g_power[i], (0, 2 * max(g_power[i])))
-                for i in range(g_power.shape[0])
-            ]
-            with mp.Pool(processes=mp.cpu_count() - 2) as pool:
-                results = pool.map(util.misc.lsq_single, args)
-            new_sigma_v = np.vstack(results)[:, :-1]  # remove d0 part of optimized values
-        else:
-            new_sigma_v = np.ones((n_samp, self.noise_N))
+        #     ### Solving for sigma_v and d0 where d0 is the optimal power level for whitening.
+        #     # Enforce sigma_v>0 and max power level isn't more than twice that of data symbol power
+        #     neg_ones = -np.ones((g.shape[1], 1))
+        #     args = [
+        #         (np.hstack([Q_power[i], neg_ones]), g_power[i], (0, 2 * max(g_power[i])))
+        #         for i in range(g_power.shape[0])
+        #     ]
+        #     with mp.Pool(processes=mp.cpu_count() - 2) as pool:
+        #         results = pool.map(util.misc.lsq_single, args)
+        #     new_sigma_v = np.vstack(results)[:, :-1]  # remove d0 part of optimized values
+        # else:
+        #     new_sigma_v = np.ones((n_samp, self.noise_N))
 
-        return self.gamma @ G, Q, new_sigma_v
+        return self.gamma @ G, Q
 
     def _gen_tt_GQ_func(self):
         # # Define symbolic input
@@ -444,6 +449,46 @@ class CPDSSS(_distribution):
         # Define Theano function
         # return theano.function(inputs=[h], outputs=[G, Q, ev_b, V_b], allow_input_downcast=True)
         return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
+
+    def whiten_noise(self, new_samples=-1):
+        new_samples = self.G.shape[0] if new_samples == -1 else new_samples
+        N = self.G.shape[1]
+        start = time.time()
+
+        g = np.squeeze(
+            np.matmul(self.gamma, self.G[-new_samples:, :, :1])
+        )  # gamma * first col of G
+        g_freq = np.fft.fft(g, axis=1)
+        Q_freq = np.fft.fft(self.Q[-new_samples:], axis=1)
+        g_power = self.sym_N * np.abs(g_freq) ** 2
+        Q_power = np.abs(Q_freq) ** 2
+
+        # def single_run(A, b, counter, max_iter, lock):
+        #     result = lsq_linear(A, b, (0, np.inf))
+
+        #     with lock:  # lock process to increment counter and use progress bar
+        #         counter.value += 1
+        #         if counter.value % int(max_iter / 100) == 0:
+        #             util.misc.printProgressBar(counter.value, max_iter, "Whitening noise")
+        #     return result.x[:-1]
+
+        manager = mp.Manager()
+        counter = manager.Value("i", 0)
+        lock = manager.Lock()
+
+        A = np.concatenate([Q_power, -np.ones((new_samples, N, 1))], axis=2)
+        b = -g_power
+        args = [
+            [A[i], b[i], (0, np.inf), counter, new_samples, "Optimizing noise", start, lock]
+            for i in range(new_samples)
+        ]
+
+        with mp.Pool(processes=mp.cpu_count() - 1) as pool:
+            results = pool.starmap(util.misc.lsq_iterable_counter, args)
+
+        result = np.vstack(results)
+        print(f"Whitening noise time {str(timedelta(seconds=int(time.time() - start)))}")
+        return result[:, :-1]  # exclude d0 from results
 
     def chan_entropy(self):
         N = self.sym_N + self.noise_N
