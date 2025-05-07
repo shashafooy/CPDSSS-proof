@@ -134,10 +134,16 @@ for i in range(n_trials):
         samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
         model = ent.load_model(name=name, path=model_path_h_given_x) if REUSE_MODEL else None
         if TRAIN_ONLY:
-            estimator = ent.learn_model(sim_model, model, train_samples=samples, fine_tune=False)
+            estimator = ent.learn_model(
+                sim_model, model, train_samples=samples, fine_tune_only=False
+            )
         else:
             H_h_given_x[index], estimator = ent.calc_entropy(
-                sim_model, model=model, base_samples=samples, KNN_only=KNN_ONLY, fine_tune=False
+                sim_model,
+                model=model,
+                base_samples=samples,
+                KNN_only=KNN_ONLY,
+                fine_tune_only=False,
             )
             MI[index] = sim_model.chan_entropy() - H_h_given_x[index]
             MI_h = sim_model.chan_entropy() - H_h_given_x[index]

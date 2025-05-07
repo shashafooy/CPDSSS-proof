@@ -152,7 +152,7 @@ class _MAF_helper(ABC):
         reuse=True,
         method="umtksg",
         KNN_only=False,
-        fine_tune=True,
+        fine_tune_only=True,
     ):
         """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
         This method does not implement any speed up from threading
@@ -178,7 +178,7 @@ class _MAF_helper(ABC):
                 n_train,
                 train_samples=base_samples,
                 n_hiddens=n_hiddens,
-                fine_tune=fine_tune,
+                fine_tune_only=fine_tune_only,
             )
             # regenerate samples after training to be more generalized
             n_samp = (
@@ -250,7 +250,7 @@ class _MAF_helper(ABC):
         mini_batch=256,
         step=ss.Adam(),
         show_progress=False,
-        fine_tune=True,
+        fine_tune_only=True,
     ):
         """Create a MAF model and train it with the given parameters
 
@@ -270,14 +270,15 @@ class _MAF_helper(ABC):
             entropy.UMestimator: estimator object used for training and entropy calculation
         """
 
-        if fine_tune and pretrained_model is not None:
+        if fine_tune_only and pretrained_model is not None:
             mini_batch = mini_batch * 4
             # step = ss.Adam(a=5e-5)
             # mini_batch = 1024
             patience = 10
             step = ss.Adam(a=1e-5)
-        else:
-            fine_tune = False  # Don't fine tune if model is not pretrained
+            coarse_fine_tune = False
+        else:  # run training with multiple step sizes (coarse, then fine tune)
+            coarse_fine_tune = True
 
         if pretrained_model is None:
 
@@ -301,7 +302,7 @@ class _MAF_helper(ABC):
             n_samples=n_samples,
             val_tol=val_tol,
             patience=patience,
-            coarse_fine_tune=fine_tune,
+            coarse_fine_tune=coarse_fine_tune,
             minibatch=mini_batch,
             step=step,
             show_progress=show_progress,
