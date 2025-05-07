@@ -261,7 +261,7 @@ class CPDSSS(_distribution):
         self.sigma_v = np.concatenate((self.sigma_v, sigma_v), axis=0) if reuse else sigma_v
         print(f"G,Q time {str(timedelta(seconds=int(time.time() - start)))}")
 
-    def _gen_batch_GQ_sample(self, h, normalize=False):
+    def _gen_batch_GQ_sample(self, h, normalize=True):
         """Generate matrices G,Q and corresponding noise power to whiten the spectrum
         Follows the form
         H = toeplitz(h)

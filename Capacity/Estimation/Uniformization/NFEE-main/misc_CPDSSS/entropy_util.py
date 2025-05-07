@@ -244,6 +244,7 @@ class _MAF_helper(ABC):
         mini_batch=256,
         step=ss.Adam(),
         show_progress=False,
+        fine_tune=True,
     ):
         """Create a MAF model and train it with the given parameters
 
@@ -262,24 +263,25 @@ class _MAF_helper(ABC):
         Returns:
             entropy.UMestimator: estimator object used for training and entropy calculation
         """
-        coarse_fine_tune = False
-        if pretrained_model is None:
 
-            pretrained_model = cls.create_model(
-                sim_model.input_dim, n_hiddens=n_hiddens, n_mades=n_stages, sim_model=sim_model
-            )
-            coarse_fine_tune = True
-
-        train_samples = train_samples if isinstance(train_samples, list) else [train_samples]
-
-        regularizer = lf.WeightDecay(pretrained_model.parms, 1e-6)
-        if not coarse_fine_tune:
+        if fine_tune and pretrained_model is not None:
             mini_batch = mini_batch * 4
             # step = ss.Adam(a=5e-5)
             # mini_batch = 1024
             patience = 10
             step = ss.Adam(a=1e-5)
-            coarse_fine_tune = False
+        else:
+            fine_tune = False  # Don't fine tune if model is not pretrained
+
+        if pretrained_model is None:
+
+            pretrained_model = cls.create_model(
+                sim_model.input_dim, n_hiddens=n_hiddens, n_mades=n_stages, sim_model=sim_model
+            )
+
+        train_samples = train_samples if isinstance(train_samples, list) else [train_samples]
+
+        regularizer = lf.WeightDecay(pretrained_model.parms, 1e-6)
 
         estimator = entropy.UMestimator(sim_model, pretrained_model, train_samples)
         if train_samples[0] is not None:
@@ -293,7 +295,7 @@ class _MAF_helper(ABC):
             n_samples=n_samples,
             val_tol=val_tol,
             patience=patience,
-            coarse_fine_tune=coarse_fine_tune,
+            coarse_fine_tune=fine_tune,
             minibatch=mini_batch,
             step=step,
             show_progress=show_progress,
