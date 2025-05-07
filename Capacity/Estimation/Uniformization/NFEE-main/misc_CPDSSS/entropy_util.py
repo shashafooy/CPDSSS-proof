@@ -152,6 +152,7 @@ class _MAF_helper(ABC):
         reuse=True,
         method="umtksg",
         KNN_only=False,
+        fine_tune=True,
     ):
         """Calculate entropy by uniformizing the data by training a neural network and evaluating the knn entropy on the uniformized points.
         This method does not implement any speed up from threading
@@ -172,7 +173,12 @@ class _MAF_helper(ABC):
         base_samples = base_samples if reuse else None
         if not KNN_only:
             estimator = cls.learn_model(
-                sim_model, model, n_train, train_samples=base_samples, n_hiddens=n_hiddens
+                sim_model,
+                model,
+                n_train,
+                train_samples=base_samples,
+                n_hiddens=n_hiddens,
+                fine_tune=fine_tune,
             )
             # regenerate samples after training to be more generalized
             n_samp = (
