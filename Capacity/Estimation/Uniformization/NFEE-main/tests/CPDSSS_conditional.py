@@ -37,7 +37,7 @@ T_range = range(1, 10)
 """
 Number of iterations
 """
-n_trials = 1  # iterations to average
+n_trials = 5  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
 n_train_samples = 100000
 
@@ -148,8 +148,9 @@ for i in range(n_trials):
             MI[index] = sim_model.chan_entropy() - H_h_given_x[index]
             MI_h = sim_model.chan_entropy() - H_h_given_x[index]
         if SAVE_MODEL:
+            samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
             _ = ent.update_best_model(
-                estimator.model, sim_model=sim_model, name=name, path=model_path_h_given_x
+                estimator.model, samples=samples, name=name, path=model_path_h_given_x
             )
 
         if SAVE_FILE:

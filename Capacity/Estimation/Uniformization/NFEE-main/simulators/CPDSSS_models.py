@@ -451,6 +451,8 @@ class CPDSSS(_distribution):
         return theano.function(inputs=[h], outputs=[G, Q], allow_input_downcast=True)
 
     def whiten_noise(self, new_samples=-1):
+        if new_samples == 0:
+            return np.empty((0, self.noise_N))
         new_samples = self.G.shape[0] if new_samples == -1 else new_samples
         N = self.G.shape[1]
         start = time.time()
