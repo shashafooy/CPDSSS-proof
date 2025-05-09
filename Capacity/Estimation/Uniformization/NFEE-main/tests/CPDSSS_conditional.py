@@ -41,7 +41,6 @@ n_trials = 5  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
 n_train_samples = 100000
 
-
 """
 Initialize arrays
 """
@@ -56,11 +55,11 @@ model = None
 File names
 """
 today = date.today().strftime("%b_%d")
-base_path = f"temp_data/CPDSSS_data/h_given_x_normalized_whitened/N{N}_d0d1({d0},{d1})/"
+base_path = f"temp_data/CPDSSS_data/h_given_x_orthonormal/N{N}_d0d1({d0},{d1})/"
 path = base_path  # + "pretrained_model"
 filename = "CPDSSS_data({})".format(today)
 
-model_path_h_given_x = f"temp_data/saved_models/h_given_x_normalized_whitened/{N}N_d0d1({d0},{d1})"
+model_path_h_given_x = f"temp_data/saved_models/h_given_x_orthonormal/{N}N_d0d1({d0},{d1})"
 # model_path_x_given_h = f"temp_data/saved_models/x_given_h/{N}N_d0d1({d0},{d1})"
 # model_path_x = f"temp_data/saved_models/X/{N}N_d0d1({d0},{d1})"
 
@@ -72,7 +71,7 @@ if SAVE_FILE:
 misc.print_border(f"Evaluating N={N}, d0={d0}, d1={d1}")
 
 for i in range(n_trials):
-    sim_model = models.CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True, whiten=True)
+    sim_model = models.CPDSSS_Cond(2, N, d0=d0, d1=d1, use_fading=True, whiten=False)
     # sim_model.set_T(1)
     # sim_model.set_H_given_X()
     # sim_model.sim(1000)
@@ -133,6 +132,7 @@ for i in range(n_trials):
         sim_model.set_H_given_X()
         samples = sim_model.sim(n_train_samples * sim_model.x_dim, reuse_GQ=True)
         model = ent.load_model(name=name, path=model_path_h_given_x) if REUSE_MODEL else None
+
         if TRAIN_ONLY:
             estimator = ent.learn_model(
                 sim_model, model, train_samples=samples, fine_tune_only=False

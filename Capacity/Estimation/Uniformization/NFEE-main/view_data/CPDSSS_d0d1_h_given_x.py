@@ -185,6 +185,81 @@ H_h = sim_model.chan_entropy()
 #     ax[1].scatter(x, data_X.data), ax[1].set_title("H(X,Xold)")
 #     fig.suptitle(f"Cond scatter for d_0={d0}, d_1={d1}")
 
+"""6N normalized G,Q"""
+# Not normalized
+MI24 = [0.437, 0.816, 1.180, 1.501, 1.793]
+MI33 = [0.656, 1.159, 1.585, 1.969, 2.318]
+
+# Normalized
+MI24_n = [0.116, 0.224, 0.334, 0.473, 0.554]
+MI33_n = [0.213, 0.422, 0.605, 0.774, 0.869]
+fig, ax = plt.subplots()
+(line2,) = ax.plot(range(1, len(MI33) + 1), MI33, label=r"$d_0=3,d_1=3$")
+(line1,) = ax.plot(range(1, len(MI24) + 1), MI24, label=r"$d_0=2,d_1=4$")
+ax.plot(
+    range(1, len(MI33_n) + 1),
+    MI33_n,
+    color=line2.get_color(),
+    linestyle="dashed",
+    label=r"Norm $d_0=3,d_1=3$",
+)
+ax.plot(
+    range(1, len(MI24_n) + 1),
+    MI24_n,
+    color=line1.get_color(),
+    linestyle="dashed",
+    label=r"Norm $d_0=2,d_1=4$",
+)
+ax.set_xlabel(r"$T$")
+ax.set_ylabel(r"Mutual Information")
+
+
+ax.axhline(y=H_h, linestyle="dashed", color="black")
+ax.text(
+    x=1,
+    y=H_h + 0.02,
+    s=rf"$H(\mathbf{{h}})$",
+    fontsize=14,
+    verticalalignment="bottom",
+    horizontalalignment="left",
+)
+ax.legend(loc="upper right")
+ax.grid()
+
+from simulators.CPDSSS_models import CPDSSS_Cond
+
+sim_model = CPDSSS_Cond(1, 6, d0=3, d1=3, use_fading=True)
+sim_model.set_T(1)
+sim_model.set_H_given_X()
+samples = sim_model.sim(100000)
+x_m = np.mean(samples[1], axis=0)
+x_f = np.fft.fft(x_m)
+x_power = np.abs(x_f) ** 2
+plt.figure()
+plt.plot(x_power)
+
+
+idx = 3
+plt.cla()
+g = (sim_model.G[idx])[:, 0]
+Q = sim_model.Q[idx]
+g_freq = np.fft.fft(g)
+Q_freq = np.fft.fft(Q, axis=0)
+g_power = sim_model.sym_N * np.abs(g_freq) ** 2
+Q_power = np.abs(Q_freq) ** 2
+plt.plot(g_power + Q_power @ np.ones(sim_model.noise_N), label="original")
+
+from scipy.optimize import lsq_linear
+
+A = np.concatenate([Q_power, -np.ones((N, 1))], axis=1)
+b = g_power
+result = lsq_linear(A, -b, (0, np.inf))
+sigma_v = result.x[:-1]
+
+plt.plot(g_power + Q_power @ sigma_v, label="optimized")
+plt.legend()
+plt.title(r"$|x_f|^2 = |g_f|^2 + |Q_f|^2\Sigma_v$")
+
 
 """manual adjustments"""
 import scipy.optimize as scopt

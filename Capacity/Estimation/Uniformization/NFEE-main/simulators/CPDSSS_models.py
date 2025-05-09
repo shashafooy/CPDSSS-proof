@@ -299,9 +299,10 @@ class CPDSSS(_distribution):
             G = np.zeros((n_samp, N, 0))
         else:
             g = np.linalg.solve(R, p) if self.sym_N > 0 else np.zeros((n_samp, N))
-            g = g / np.linalg.norm(g, axis=1, keepdims=True) if normalize else g
+            # g = g / np.linalg.norm(g, axis=1, keepdims=True) if normalize else g
             # Only take every L columns of toepltiz matrix
             G = batch_toeplitz(g)[:, :, self.G_slice]
+            G = util.math.gram_schmidt(G)
 
         ev, V = np.linalg.eigh(R)  # R is symmetric, eigh is optimized for symmetric
         # Only use eigenvectors associated with "zero" eigenvalue
@@ -763,8 +764,10 @@ class CPDSSS_Cond_Complex(CPDSSS_Cond):
 
 
 class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
-    def __init__(self, num_tx, N, L=None, d0=None, d1=None):
+    def __init__(self, num_tx, N, L=None, d0=None, d1=None, normalize=True):
         super().__init__(num_tx, N, L, d0, d1)
+
+        self.normalize = normalize
 
     def sim(self, n_samples=1000):
         assert self.input_dim[1] != -1, "Input_dim[1] has not been set, run set_Xcond or set_XHcond"
@@ -829,7 +832,7 @@ class CPDSSS_Gram_Schmidt(CPDSSS_Cond):
 
         start = time.time()
         for i, section in enumerate(sections):
-            orth_vect = util.math.gram_schmidt(self.H[section])
+            orth_vect = util.math.gram_schmidt(self.H[section], self.normalize)
             self.G = np.concatenate((self.G, orth_vect[:, :, : self.sym_N]), axis=0)
             self.Q = np.concatenate((self.Q, orth_vect[:, :, -self.noise_N :]), axis=0)
             util.misc.printProgressBar(i + 1, split_N, "G,Q generation")

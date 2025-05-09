@@ -228,14 +228,14 @@ def project(v, u, pre_normalized=False):
     # return np.dot(u, v) / np.dot(u, u) * u
 
 
-def gram_schmidt(vectors, normalize=False):
+def gram_schmidt(vectors, normalize=True):
     n_dims = vectors.ndim
     if n_dims == 2:
         vectors = vectors[np.newaxis, :, :]  # batch size of 1
     n_samples, N, M = vectors.shape
     Q = np.zeros_like(vectors)
     for i in range(M):  # iterate over each column
-        v = vectors[:, :, i]
+        v = vectors[:, :, i].copy()
         for j in range(i):  # project based on previous columns
             u = Q[:, :, j]
             v -= project(v, u, pre_normalized=normalize)

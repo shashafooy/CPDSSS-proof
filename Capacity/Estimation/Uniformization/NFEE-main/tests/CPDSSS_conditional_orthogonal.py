@@ -6,7 +6,7 @@ from _utils import set_sys_path
 
 set_sys_path()
 
-from simulators.CPDSSS_models import CPDSSS_Gram_Schmidt
+from simulators.CPDSSS_models import CPDSSS_Gram_Schmidt, CPDSSS_Cond
 from misc_CPDSSS.entropy_util import Cond_MAF as ent
 from misc_CPDSSS import util as misc
 import util.io
@@ -21,11 +21,11 @@ SAVE_FILE = False
 """
 Parameters for CPDSSS
 """
-N = 3
+N = 10
 # L = 3
 d0 = int(N / 2)
 d1 = int(N / 2)
-d0 = 1
+d0 = 5
 d1 = int(N - d0)
 T_range = range(1, 2)
 # T_range = range(2, 6)
@@ -37,7 +37,7 @@ Number of iterations
 """
 n_trials = 1  # iterations to average
 min_knn_samples = 200000  # samples to generate per entropy calc
-n_samples = 10000
+n_samples = 10
 
 
 """
@@ -74,7 +74,7 @@ if SAVE_FILE:
 misc.print_border(f"Starting orthogonal CPDSSS simulation, N: {N}, d0: {d0}, d1: {d1}")
 
 for i in range(n_trials):
-    sim_model = CPDSSS_Gram_Schmidt(2, N, d0=d0, d1=d1)
+    sim_model = CPDSSS_Cond(2, N, d0=d0, d1=d1, whiten=True)
     for k, T in enumerate(T_range):
         name = f"{T}T"
         index = (i, k)
@@ -85,7 +85,35 @@ for i in range(n_trials):
         # sim_model = CPDSSS_Cond(T, N, d0=d0, d1=d1)
         sim_model.set_T(T)
         sim_model.set_H_given_X()
-        # samples = sim_model.sim(100000 * sim_model.x_dim)
+
+        sim_model.set_T(T)
+        sim_model.set_H_given_X()
+        samples = sim_model.sim(n_samples * sim_model.x_dim, reuse_GQ=True)
+        model = ent.load_model(name=name, path=model_path_h_given_x) if REUSE_MODEL else None
+
+        """ TURN OFF GRAM SCHMIDT IN GQ_GENERATION FOR TESTING"""
+        import matplotlib.pyplot as plt
+
+        idx = 0
+        B = np.concatenate([sim_model.G[idx], sim_model.Q[idx]], axis=1)
+        G_o = util.math.gram_schmidt(sim_model.G[idx], normalize=False)
+        G_on = util.math.gram_schmidt(sim_model.G[idx], normalize=True)
+        B_o = np.concatenate([G_o, sim_model.Q[idx]], axis=1)
+        B_on = np.concatenate([G_on, sim_model.Q[idx]], axis=1)
+
+        B_power = np.abs(np.fft.fft(B, axis=0)) ** 2
+        B_o_power = np.abs(np.fft.fft(B_o, axis=0)) ** 2
+        B_on_power = np.abs(np.fft.fft(B_on, axis=0)) ** 2
+        plt.cla()
+        plt.plot(B_power @ np.ones(N), label=r"original")
+        plt.plot(B_o_power @ np.ones(N), label=r"orthogonal G")
+        plt.plot(B_on_power @ np.ones(N), label=r"orthonormal G")
+        plt.plot(
+            B_power @ np.hstack([np.ones(d0), sim_model.sigma_v[idx]]), label=r"Optimal Noise power"
+        )
+        plt.legend()
+        plt.title(r"E|X_f|^2")
+
         # H = ent.calc_entropy(sim_model, base_samples=samples, method="both")[0]
         # print(sim_model.chan_entropy() - H)
         # generate base samples based on max dimension
